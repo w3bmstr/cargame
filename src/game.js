@@ -47,7 +47,7 @@ function initAudio() {
   ns.connect(nf); nf.connect(nGain); nGain.connect(actx.destination); ns.start();
 }
 function rpmOf() {
-  if (spd < 1) return 0.2;
+  if (spd < 1) return 0;
   const b = [0, 18, 32, 48, 62, 80]; let g = 1;
   while (g < 5 && spd >= b[g]) g++;
   return 0.35 + 0.6 * Math.min(1.15, (spd - b[g - 1]) / (b[g] - b[g - 1]));
@@ -57,7 +57,8 @@ function tickAudio() {
   if (actx.state === 'suspended') actx.resume();
   const rpm = rpmOf() + (boosting ? 0.08 : 0);
   engOsc.frequency.setTargetAtTime((42 + rpm * 135 + slide * 18) * (carId === 1 ? 1.3 : 1), actx.currentTime, 0.05);
-  engGain.gain.setTargetAtTime(!muted && run && !dead && !paused ? (0.035 + rpm * 0.11 + (boosting ? 0.04 : 0)) : 0, actx.currentTime, 0.07);
+  const engineLevel = spd >= 1 ? 0.035 + rpm * 0.11 + (boosting ? 0.04 : 0) : 0;
+  engGain.gain.setTargetAtTime(!muted && run && !dead && !paused ? engineLevel : 0, actx.currentTime, 0.07);
   nGain.gain.setTargetAtTime(!muted && slide > 0.3 ? slide * 0.07 : 0, actx.currentTime, 0.06);
 }
 function crashSnd() {
