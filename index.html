@@ -2796,6 +2796,7 @@ function updateDash() {
   }
 }
 
+let renderStep = true;
 function update(dt) {
   if (!run || dead || paused) { tickAudio(); return; }
   if (countdown > 0) {
@@ -3065,6 +3066,7 @@ function update(dt) {
   camera.fov = 66 + (spd / MAX_SPD) * 14 + (boosting ? 6 : 0);
   camera.updateProjectionMatrix();
 
+  if (renderStep) { // HUD, dash, audio and minimap: once per drawn frame, not once per physics step
   document.getElementById('dist').textContent = Math.floor(dist);
   const tle = document.getElementById('tl');
   tle.textContent = Math.ceil(timeLeft); tle.style.color = timeLeft < 10 ? '#f55' : '';
@@ -3084,6 +3086,7 @@ function update(dt) {
   else tip.style.opacity = '0';
 
   updateDash(); tickAudio(); drawMap();
+  }
 }
 
 function doCrash(why) {
@@ -3133,7 +3136,19 @@ function frame() {
     }
   }
   pollPad();
-  update(Math.min(0.04, clock.getDelta()));
+  // Physics runs in steps of at most 25 ms. On a fast device that is a single step per frame (same as before);
+  // on a slow phone a long frame is split into several steps, so the game keeps real-time speed instead of slow motion.
+  const rawDt = Math.min(clock.getDelta(), 0.2);
+  if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(rawDt, 0.04)); }
+  else {
+    const n = Math.max(1, Math.ceil(rawDt / 0.025)), h = rawDt / n;
+    for (let i = 0; i < n; i++) {
+      renderStep = (i === n - 1);
+      update(h);
+      if (!run || dead || paused) break;
+    }
+    renderStep = true;
+  }
   renderer.render(scene, camera);
 }
 
