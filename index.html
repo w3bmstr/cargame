@@ -210,7 +210,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 .touch-control{width:clamp(58px,16vw,78px);height:clamp(54px,12vw,68px);border:1px solid rgba(255,255,255,.42);border-radius:16px;background:linear-gradient(180deg,rgba(28,52,66,.82),rgba(2,8,14,.78));color:#fff;font-size:clamp(22px,6vw,32px);font-weight:800;touch-action:none;-webkit-tap-highlight-color:transparent;box-shadow:0 6px 18px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.18)}
 .touch-control:active,.touch-control.active{background:rgba(255,80,20,.75);transform:scale(.96)}
 #touch-boost{color:#6cf}
-@media (pointer:coarse){#touch-controls{display:flex}.touch-control:focus-visible{outline:2px solid #8feaff;outline-offset:3px}}
+@media (pointer:coarse){#touch-controls{display:none!important}}
 @media (hover:hover) and (pointer:fine){#touch-controls{display:none!important}}
 #start,#crash,#win,#levels{
   position:absolute;inset:0;
@@ -928,6 +928,13 @@ body.endurance #yoke-hud { display: block; }
   #hood { bottom: 26% !important; height: 7% !important; }
 }
 
+
+/* ===== Mobile-Only Performance Optimizations ===== */
+@media (hover: none), (pointer: coarse) {
+  #c { filter: none !important; }
+  #minimap { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  #cinematic-fx::after { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -1046,7 +1053,7 @@ body.endurance #yoke-hud { display: block; }
   <button class="main" id="story-btn" style="margin-bottom:10px">THE YEAR ROAD</button>
   <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
-  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: hold &larr; / &rarr; to steer, hold &uarr; for gas, hold &darr; to brake, hold &#9889; for boost<br>C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
+  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: touch &amp; drag left/right to steer (auto-gas), two fingers for boost<br>C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -1114,6 +1121,7 @@ let lapTime = 0, bestLap = 0, bestScore = 0;
 let groundMesh = null, treeLeafList = [], skyMesh = null, starMesh = null, hillMeshes = [];
 let cloudGroup = null, sunGlow = null, horizonGlow = null;
 let visualQuality = 'high';
+const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches;
 let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1;
 let boost = 100, boosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
@@ -1646,7 +1654,26 @@ function buildTrack() {
   }
   curve = new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.45);
   trackLen = curve.getLength();
+  buildTrackLUT();
   validateTrackGeometry();
+}
+const LUT_N = 2048;
+let lutP = null, lutT = null, lutK = null;
+function buildTrackLUT() {
+  lutP = new Array(LUT_N);
+  lutT = new Array(LUT_N);
+  lutK = new Float32Array(LUT_N);
+  for (let i = 0; i < LUT_N; i++) {
+    const u = i / LUT_N;
+    lutP[i] = curve.getPointAt(u);
+    lutT[i] = curve.getTangentAt(u).normalize();
+  }
+  const ds = 6;
+  const dIdx = Math.max(1, Math.round((ds / trackLen) * LUT_N));
+  for (let i = 0; i < LUT_N; i++) {
+    const t1 = lutT[i], t2 = lutT[(i + dIdx) % LUT_N];
+    lutK[i] = (t1.x * t2.z - t1.z * t2.x) / ds;
+  }
 }
 
 function sideUp(tang) {
@@ -1834,7 +1861,7 @@ function createWorld() {
   const groundTexture = grassTex();
   groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(1800, 1800),
-    new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.16 })
+    isMobile ? new THREE.MeshLambertMaterial({ color: visual.ground, map: groundTexture }) : new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.16 })
   );
   groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.y = -6; groundMesh.receiveShadow = true; scene.add(groundMesh);
 
@@ -1901,7 +1928,7 @@ function createWorld() {
     color: 0xe8f1f8, roughness: 1, transparent: true, opacity: 0.34,
     depthWrite: false, fog: true, emissive: 0x6a7e90, emissiveIntensity: 0.1
   });
-  const cloudCount = visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16;
+  const cloudCount = isMobile ? 6 : (visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16);
   for (let i = 0; i < cloudCount; i++) {
     const cloud = new THREE.Group();
     const puffs = 4 + (i % 4);
@@ -1926,7 +1953,7 @@ function createWorld() {
   // stars (night only visibility toggled)
   const starGeo = new THREE.BufferGeometry();
   const starPos = [];
-  for (let i = 0; i < (visualQuality === 'low' ? 180 : visualQuality === 'medium' ? 300 : 500); i++) {
+  for (let i = 0; i < (isMobile ? 160 : visualQuality === 'low' ? 180 : visualQuality === 'medium' ? 300 : 500); i++) {
     const r = 380;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(Math.random() * 0.85 + 0.05); // upper hemisphere-ish
@@ -2287,7 +2314,7 @@ function tickRain(dt) {
   rainMesh.geometry.attributes.position.needsUpdate = true;
 }
 function initSnow() {
-  const count = visualQuality === 'low' ? 900 : 2200;
+  const count = isMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
   const p = new Float32Array(count * 3);
   for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * 70;
   const g = new THREE.BufferGeometry();
@@ -2333,7 +2360,83 @@ const KINDS = {
   sports: [[.3, .95], [-.25, 1.25], [-1.0, 1.25], [-1.35, .95]],
   van: [[.85, .95], [.75, 1.8], [-1.9, 1.8], [-1.95, .95]]
 };
+let _mobMats = null;
+function getMobileCarMats() {
+  if (_mobMats) return _mobMats;
+  const std = (c, r, m) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+  _mobMats = {
+    tire: std(0x0b0b0c, 0.92, 0),
+    rim: std(0xc0c4c8, 0.25, 0.85),
+    dark: std(0x111214, 0.55, 0.25),
+    glass: std(0x101820, 0.1, 0.85),
+    chrome: std(0xd0d4d8, 0.15, 0.9),
+    white: std(0xeeeeee, 0.5, 0.1),
+    cargo: std(0xdcdcdc, 0.6, 0.1),
+    door: std(0xbfc4c8, 0.52, 0.12),
+    plate: std(0xd8e2e4, 0.48, 0.25),
+    hl: new THREE.MeshStandardMaterial({ color: 0xfff5c0, emissive: 0xffe080, emissiveIntensity: 0.8, roughness: 0.3 }),
+    tl: new THREE.MeshStandardMaterial({ color: 0xff2020, emissive: 0xaa0000, emissiveIntensity: 0.5, roughness: 0.3 }),
+    sh: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6 }),
+    paints: {}
+  };
+  return _mobMats;
+}
 function makeCar(color, big) {
+  if (isMobile) {
+    const g = new THREE.Group();
+    const sm = getMobileCarMats();
+    const paint = sm.paints[color] || (sm.paints[color] = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.35 }));
+    const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
+    const wheel = (x, z, r, w) => {
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 10), sm.tire); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
+      const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w + 0.02, 8), sm.rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
+    };
+    const lamp = (x, y, z, w, mat) => box(w, 0.1, 0.05, mat, x, y, z);
+    const shadow = (w, d, z) => {
+      const sh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sm.sh);
+      sh.rotation.x = -Math.PI / 2; sh.position.set(0, 0.01, z); g.add(sh);
+    };
+    if (big) {
+      if (Math.random() < 0.4) {
+        box(2.4, 2.9, 9.5, paint, 0, 1.75, 0);
+        box(2.42, 0.95, 8.8, sm.glass, 0, 2.3, 0); box(2.3, 0.8, 0.05, sm.glass, 0, 2.2, 4.77);
+        box(2.42, 0.1, 9.5, sm.white, 0, 3.25, 0);
+        [[-1.1, 3.1], [1.1, 3.1], [-1.1, -2.9], [1.1, -2.9]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32));
+        [-0.8, 0.8].forEach(x => lamp(x, 0.9, 4.77, 0.4, sm.hl));
+        [-0.9, 0.9].forEach(x => lamp(x, 0.9, -4.77, 0.4, sm.tl));
+        shadow(2.6, 9.8, 0);
+      } else {
+        box(2.1, 2.0, 2.0, paint, 0, 1.4, 3.0);
+        box(1.9, 0.8, 0.06, sm.glass, 0, 1.85, 4.02);
+        box(0.9, 0.6, 0.05, sm.chrome, 0, 0.95, 4.03); box(2.2, 0.28, 0.2, sm.chrome, 0, 0.5, 4.1);
+        [-0.9, 0.9].forEach(x => { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.3, 6), sm.chrome); s.position.set(x, 2.9, 2.1); g.add(s); });
+        box(2.0, 0.5, 8.4, sm.dark, 0, 0.6, 0.4);
+        box(2.3, 2.7, 5.8, sm.cargo, 0, 2.15, -1.0);
+        box(2.32, 0.45, 5.78, paint, 0, 2.4, -1.0);
+        box(2.12, 1.85, 0.045, sm.door, 0, 2.15, -3.94);
+        box(1.9, 0.16, 0.055, paint, 0, 2.42, -3.972);
+        [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32));
+        [-0.7, 0.7].forEach(x => lamp(x, 0.95, 4.03, 0.35, sm.hl));
+        [-0.85, 0.85].forEach(x => lamp(x, 0.95, -3.93, 0.4, sm.tl));
+        shadow(2.6, 8.6, 0.4);
+      }
+      return g;
+    }
+    const r = Math.random(), kind = r < 0.3 ? 'sedan' : r < 0.5 ? 'hatch' : r < 0.7 ? 'suv' : r < 0.85 ? 'sports' : 'van';
+    const gh = KINDS[kind], sy = kind === 'sports' ? 0.88 : 1;
+    const body = new THREE.Mesh(prof([[-2, .3], [2, .3], [2, .62], [1.7, .82], [.7, .95], [-1.5, .95], [-1.9, .88], [-2, .65]], 1.75, 0.05), paint);
+    const cab = new THREE.Mesh(prof(gh, 1.5, 0.02), sm.glass);
+    body.scale.y = sy; cab.scale.y = sy; g.add(body); g.add(cab);
+    const topY = gh[1][1] * sy, rz = (gh[1][0] + gh[2][0]) / 2;
+    box(1.4, 0.05, gh[1][0] - gh[2][0], paint, 0, topY + 0.02, rz);
+    box(1.8, 0.16, 0.14, sm.dark, 0, 0.38, 2.0); box(1.8, 0.16, 0.14, sm.dark, 0, 0.38, -2.0);
+    if (kind === 'sports') box(1.5, 0.05, 0.3, sm.dark, 0, 1.1, -1.85);
+    [[-0.88, 1.25], [0.88, 1.25], [-0.88, -1.25], [0.88, -1.25]].forEach(([x, z]) => wheel(x, z, 0.34, 0.24));
+    [-0.55, 0.55].forEach(x => lamp(x, 0.55, 2.08, 0.34, sm.hl));
+    [-0.58, 0.58].forEach(x => lamp(x, 0.6, -2.08, 0.4, sm.tl));
+    shadow(2, 4.3, 0);
+    return g;
+  }
   const g = new THREE.Group();
   // Random finish variation so traffic cars don't share identical materials
   const gloss = 0.55 + Math.random() * 0.4;
@@ -2530,12 +2633,26 @@ function spawnTraffic() {
   }
 }
 
-function getP(tt) { tt = ((tt % 1) + 1) % 1; return curve.getPointAt(tt); }
-function getT(tt) { tt = ((tt % 1) + 1) % 1; return curve.getTangentAt(tt).normalize(); }
+function getP(tt) {
+  if (!lutP) { tt = ((tt % 1) + 1) % 1; return curve.getPointAt(tt); }
+  const f = (((tt % 1) + 1) % 1) * LUT_N;
+  const i0 = f | 0, i1 = (i0 + 1) & (LUT_N - 1), a = f - i0;
+  return lutP[i0].clone().lerp(lutP[i1], a);
+}
+function getT(tt) {
+  if (!lutT) { tt = ((tt % 1) + 1) % 1; return curve.getTangentAt(tt).normalize(); }
+  const f = (((tt % 1) + 1) % 1) * LUT_N;
+  const i0 = f | 0, i1 = (i0 + 1) & (LUT_N - 1), a = f - i0;
+  return lutT[i0].clone().lerp(lutT[i1], a).normalize();
+}
 function getKappa(tt) {
-  const ds = 6, dT = ds / trackLen;
-  const t1 = getT(tt), t2 = getT(tt + dT);
-  return (t1.x * t2.z - t1.z * t2.x) / ds;
+  if (!lutK) {
+    const ds = 6, dT = ds / trackLen;
+    const t1 = getT(tt), t2 = getT(tt + dT);
+    return (t1.x * t2.z - t1.z * t2.x) / ds;
+  }
+  const i = ((((tt % 1) + 1) % 1) * LUT_N) | 0;
+  return lutK[i];
 }
 function place(mesh, tt, lateral) {
   const p = getP(tt), tang = getT(tt);
@@ -2715,7 +2832,7 @@ function updateDash() {
   const dsh = document.getElementById('dash');
   dsh.style.transformOrigin = '50% 100%';
   dsh.style.transform = `translate(${sx.toFixed(2)}px,${sy.toFixed(2)}px) rotate(${(-motion.lat * 1.8).toFixed(3)}deg) scale(1.02)`;
-  dsh.style.setProperty('--bg', motion.bg.toFixed(3));
+  if (!isMobile || Math.abs((dsh._bg || 0) - motion.bg) > 0.02) { dsh._bg = motion.bg; dsh.style.setProperty('--bg', motion.bg.toFixed(2)); }
   const brk = Math.min(1, Math.max(0, -motion.acc) / 30);          // hard braking makes the needles shudder
   const rpm = Math.min(1, rpmOf() + (boosting ? 0.06 : 0));
   needleSet('spd-needle', Math.min(220, mph) / 220 + Math.sin(now0 * 0.045) * 0.010 * brk, ndt, -120, 240);
@@ -2725,9 +2842,10 @@ function updateDash() {
   needleSet('temp-needle', tempState, ndt, -65, 130);
   needleSet('boost-needle', boost / 100, ndt, -65, 130);
   // dial backlight comes up as the light goes (dawn .5, sunrise .2, day/noon 0, evening .35, dusk .75, night 1)
-  document.getElementById('dash').style.setProperty('--sun', [0.2, 0.5, 0.85, 1, 0.55, 0.15, 0][timeMode] || 0);
-  document.getElementById('dash').style.setProperty('--steer', steerValue.toFixed(3));
-  document.getElementById('dash').style.setProperty('--night', [0.5, 0.2, 0, 0, 0.35, 0.75, 1][timeMode] || 0);
+  const setVar = (k, v) => { if (!isMobile || dsh._v?.[k] !== v) { (dsh._v || (dsh._v = {}))[k] = v; dsh.style.setProperty(k, v); } };
+  setVar('--sun', String([0.2, 0.5, 0.85, 1, 0.55, 0.15, 0][timeMode] || 0));
+  setVar('--steer', steerValue.toFixed(isMobile ? 2 : 3));
+  setVar('--night', String([0.5, 0.2, 0, 0, 0.35, 0.75, 1][timeMode] || 0));
   // Proper cockpit wheel math:
   // 1) Position + perspective
   // 2) rotateX = tilt the wheel face toward the driver
@@ -2761,11 +2879,11 @@ function updateDash() {
       }
     }
   }
-  dsh.style.setProperty('--headlight', hlSweep.toFixed(3));
-  dsh.style.setProperty('--sweep-x', sweepX.toFixed(3));
-  dsh.style.setProperty('--brake-bounce', brakeGlow.toFixed(3));
+  setVar('--headlight', hlSweep.toFixed(2));
+  setVar('--sweep-x', sweepX.toFixed(2));
+  setVar('--brake-bounce', brakeGlow.toFixed(2));
   const skyHex = ['#9fb4d8', '#f2b88a', '#b6e2f8', '#d2eeff', '#f0a672', '#7a689c', '#2b4670'][timeMode] || '#b6e2f8';
-  dsh.style.setProperty('--sky-rim', skyHex);
+  setVar('--sky-rim', skyHex);
 
   // Hood roll & pitch coupling
   const hoodEl = document.getElementById('hood');
@@ -3085,7 +3203,8 @@ function update(dt) {
   else if (boosting) { tip.textContent = 'BOOST'; tip.style.opacity = '0.7'; }
   else tip.style.opacity = '0';
 
-  updateDash(); tickAudio(); drawMap();
+  updateDash(); tickAudio();
+  if (!isMobile || ((update._mf = ((update._mf || 0) + 1) % 3) === 0)) drawMap();
   }
 }
 
@@ -3138,9 +3257,23 @@ function frame() {
   pollPad();
   // Physics runs in steps of at most 25 ms. On a fast device that is a single step per frame (same as before);
   // on a slow phone a long frame is split into several steps, so the game keeps real-time speed instead of slow motion.
-  const rawDt = Math.min(clock.getDelta(), 0.2);
-  if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(rawDt, 0.04)); }
-  else {
+  const nowMs = performance.now();
+  const realDt = frame._last ? Math.min((nowMs - frame._last) * 0.001, 0.5) : 0.016;
+  frame._last = nowMs;
+  clock.getDelta();
+  if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(realDt, 0.05)); }
+  else if (isMobile) {
+    // Advance full real elapsed time in at most 2 lightweight steps so slow frames never cause slow-motion
+    const n = realDt > 0.055 ? 2 : 1;
+    const h = realDt / n;
+    for (let i = 0; i < n; i++) {
+      renderStep = (i === n - 1);
+      update(h);
+      if (!run || dead || paused) break;
+    }
+    renderStep = true;
+  } else {
+    const rawDt = Math.min(realDt, 0.2);
     const n = Math.max(1, Math.ceil(rawDt / 0.025)), h = rawDt / n;
     for (let i = 0; i < n; i++) {
       renderStep = (i === n - 1);
@@ -3182,7 +3315,7 @@ function showUI(on) {
   document.getElementById('car-btn').style.display = d;
   document.getElementById('track-btn').style.display = d;
   const touch = document.getElementById('touch-controls');
-  touch.style.display = on && matchMedia('(hover: none), (pointer: coarse)').matches ? 'flex' : 'none';
+  touch.style.display = 'none';
   if (speedGlow) speedGlow.style.opacity = '0';
 }
 
@@ -3225,8 +3358,12 @@ function start() {
 function init() {
   const canvas = document.getElementById('c');
   const pixels = innerWidth * innerHeight;
-  visualQuality = pixels > 2400000 && (globalThis.devicePixelRatio || 1) <= 2 ? 'high' : pixels > 1000000 ? 'medium' : 'low';
-  renderer = createRenderer(canvas, { antialias: visualQuality !== 'low', shadows: true, maxPixelRatio: visualQuality === 'high' ? 2 : 1.35 });
+  visualQuality = isMobile ? 'low' : (pixels > 2400000 && (globalThis.devicePixelRatio || 1) <= 2 ? 'high' : pixels > 1000000 ? 'medium' : 'low');
+  renderer = createRenderer(canvas, {
+    antialias: !isMobile && visualQuality !== 'low',
+    shadows: !isMobile,
+    maxPixelRatio: isMobile ? 1.0 : (visualQuality === 'high' ? 2 : 1.35)
+  });
   renderer.setSize(innerWidth, innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -3243,7 +3380,7 @@ function init() {
   scene.add(new THREE.AmbientLight(0x9ab8c8, 0.12));
   sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
   sun.position.set(40, 70, 30);
-  sun.castShadow = visualQuality !== 'low';
+  sun.castShadow = !isMobile && visualQuality !== 'low';
   sun.shadow.mapSize.set(visualQuality === 'high' ? 2048 : 1024, visualQuality === 'high' ? 2048 : 1024);
   sun.shadow.camera.near = 10;
   sun.shadow.camera.far = 320;
@@ -3312,7 +3449,7 @@ function init() {
   canvas.addEventListener('touchmove', e => {
     if (tx == null) return;
     const d = e.touches[0].clientX - tx;
-    kL = d < -24; kR = d > 24;
+    kL = d < -14; kR = d > 14;
   }, { passive: true });
   canvas.addEventListener('touchend', e => {
     tx = null; kL = kR = kU = false;
