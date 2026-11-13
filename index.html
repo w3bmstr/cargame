@@ -167,7 +167,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #touch-boost{color:#6cf}
 @media (pointer:coarse){#touch-controls{display:flex}.touch-control:focus-visible{outline:2px solid #8feaff;outline-offset:3px}}
 @media (hover:hover) and (pointer:fine){#touch-controls{display:none!important}}
-#start,#crash{
+#start,#crash,#win,#levels{
   position:absolute;inset:0;
   background:
     linear-gradient(90deg,rgba(1,5,9,.9) 0%,rgba(1,5,9,.52) 42%,rgba(1,5,9,.78) 100%),
@@ -197,7 +197,39 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #start .main:hover{box-shadow:0 0 26px rgba(255,126,56,.55),0 6px 18px rgba(255,40,0,.4)}
 .landing-kicker{margin-bottom:10px;font-size:clamp(9px,1.5vw,12px);letter-spacing:.38em;color:#ffbd83;text-shadow:0 2px 8px #000;font-weight:800}
 .landing-rule{width:min(280px,55vw);height:2px;margin:2px 0 18px;background:linear-gradient(90deg,transparent,#ff7747,#ffd295,transparent);box-shadow:0 0 14px rgba(255,125,70,.7)}
-#crash{display:none}
+#crash,#win,#levels{display:none}
+#win h2{color:#ffd36e;text-shadow:0 0 26px rgba(255,190,80,.55)}
+#win .stamp{font-size:clamp(46px,10vw,84px);line-height:1;margin-bottom:6px;filter:drop-shadow(0 0 18px rgba(255,200,120,.6))}
+#win .kick,#levels .kick{font-size:11px;letter-spacing:.32em;color:#ffbd83;font-weight:800;margin-bottom:8px}
+#win p{max-width:520px}
+#win .row,#crash .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+button.sub{padding:10px 26px;font-size:13px;font-weight:700;background:#26303f;border:1px solid #4a5b70;border-radius:10px;color:#dfeaf5;cursor:pointer}
+button.sub:hover{background:#34445a}
+#levels{justify-content:flex-start;overflow:auto;padding-top:26px}
+#levels h2{color:#f5eee0;margin-bottom:4px}
+#levels p{margin-bottom:14px}
+#lv-grid{width:min(1000px,96vw);display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.lv-ch{text-align:left}
+.lv-ch h3{font-size:13px;letter-spacing:.24em;color:#ffd295;margin:0 0 6px 4px;font-weight:800}
+.lv-ch h3 small{color:#9fb4c4;letter-spacing:.1em;font-weight:600;margin-left:8px}
+.lv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:640px){.lv-row{grid-template-columns:1fr}}
+button.lv{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid #3a4a5c;background:rgba(10,18,28,.82);color:#e8f1f8;cursor:pointer;font-size:12px;line-height:1.35}
+button.lv b{font-size:14px;letter-spacing:.04em}
+button.lv span{opacity:.82}
+button.lv .st{font-weight:800;color:#ffd36e;opacity:1}
+button.lv:hover:not(:disabled),button.lv.sel{border-color:#ffb36a;background:rgba(40,28,18,.9);box-shadow:0 0 18px rgba(255,150,70,.35)}
+button.lv:disabled{opacity:.45;cursor:not-allowed}
+button.pfocus{outline:3px solid #ffd36e!important;outline-offset:3px;box-shadow:0 0 22px rgba(255,211,110,.75)!important}
+button.lv.done{border-color:#4f8f6a}
+#mission{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:8;display:none;padding:6px 16px 8px;background:rgba(0,0,0,.58);border:1px solid #4a6a7a;border-radius:16px;color:#e8f5ff;font-size:12px;letter-spacing:.08em;text-align:center;white-space:nowrap}
+#mission-bar{height:4px;margin-top:5px;background:#1d2a36;border-radius:3px;overflow:hidden}
+#mission-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff9a4a,#ffd36e)}
+#brief{position:absolute;top:20%;left:50%;transform:translateX(-50%);z-index:7;text-align:center;pointer-events:none;opacity:0;transition:opacity .6s;color:#fff;text-shadow:0 2px 14px #000;width:min(560px,92vw)}
+#brief small{display:block;font-size:11px;letter-spacing:.34em;color:#ffbd83;font-weight:800}
+#brief b{display:block;font-size:clamp(26px,6vw,46px);letter-spacing:.08em;margin:4px 0}
+#brief span{display:block;font-size:14px;opacity:.9}
+#brief em{display:block;font-size:12px;opacity:.7;margin-top:6px;font-style:normal}
 h1{font-size:clamp(32px,7vw,52px);font-weight:800;color:#ff3c00;letter-spacing:3px;text-shadow:0 0 28px rgba(255,60,0,.5);margin-bottom:6px}
 h2{font-size:clamp(26px,5.5vw,40px);color:#ff3c00;margin-bottom:10px}
 p{opacity:.75;margin-bottom:20px;font-size:clamp(13px,2.2vw,15px);max-width:400px}
@@ -299,6 +331,8 @@ body.endurance #dash #wheel{border-color:#211912;box-shadow:inset 0 0 0 2px #9d7
   <div>Lap <span id="lap">1</span> &middot; <span id="laptime">0:00</span> &middot; <span id="dist">0</span> m &middot; &#9201; <span id="tl">60</span>s</div>
   <div>Score <span id="score">0</span> &middot; Best <span id="best">0</span> &middot; OT <span id="over">0</span></div>
 </div>
+<div id="mission"><span id="mission-txt"></span><div id="mission-bar"><i></i></div></div>
+<div id="brief"></div>
 <div id="tip"></div>
 <div id="combo"></div>
 <div id="minimap"><canvas id="mc" width="90" height="90"></canvas></div>
@@ -342,13 +376,30 @@ body.endurance #dash #wheel{border-color:#211912;box-shadow:inset 0 0 0 2px #9d7
   <div class="landing-rule"></div>
   <p>Beat the clock: 60 s to start, +25 s every lap, overtakes add bonus time. Stay on the road.</p>
   <div style="display:flex;gap:10px;margin-bottom:14px"><button class="main" id="start-car" style="padding:8px 16px;font-size:12px">CAR</button><button class="main" id="start-track" style="padding:8px 16px;font-size:12px">TRACK</button></div>
-  <button class="main" id="start-btn">START ENGINE</button>
-  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: hold &larr; / &rarr; to steer, hold &uarr; for gas, hold &darr; to brake, hold &#9889; for boost<br>C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain</div>
+  <button class="main" id="story-btn" style="margin-bottom:10px">THE YEAR ROAD</button>
+  <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
+  <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
+  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: hold &larr; / &rarr; to steer, hold &uarr; for gas, hold &darr; to brake, hold &#9889; for boost<br>C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
   <p>Score: <span id="final">0</span> &middot; Best lap: <span id="final-lap">&mdash;</span><br><span id="final-stats"></span></p>
-  <button class="main" id="restart-btn">PLAY AGAIN</button>
+  <div class="row"><button class="main" id="restart-btn">PLAY AGAIN</button><button class="sub" id="crash-menu">MENU</button></div>
+</div>
+<div id="win">
+  <div class="kick" id="win-kick"></div>
+  <div class="stamp" id="win-stamp"></div>
+  <h2 id="win-h"></h2>
+  <p id="win-p"></p>
+  <p id="win-stats" style="opacity:.9"></p>
+  <div class="row"><button class="main" id="next-btn">NEXT</button><button class="sub" id="replay-btn">REPLAY</button><button class="sub" id="win-menu">CHAPTERS</button></div>
+</div>
+<div id="levels">
+  <div class="kick">THE YEAR ROAD</div>
+  <h2>FOUR SEASONS &middot; TWELVE LEGS</h2>
+  <p>One road through a whole year. Finish each leg's mission to unlock the next.</p>
+  <div id="lv-grid"></div>
+  <button class="sub" id="lv-close">BACK</button>
 </div>
 <div id="pause" aria-live="polite">
   <h2>PAUSED</h2>
@@ -399,6 +450,240 @@ let visualQuality = 'high';
 let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1;
 let boost = 100, boosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
+
+
+// ======================= THE YEAR ROAD (chapter mode) =======================
+// 4 chapters (one per season) x 3 legs. Every leg is a different road + scene, and the scene itself changes
+// as you make progress (time of day, rain, snow), so every season / weather / time-of-day in the game is used.
+const SEASON_NAMES = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
+const TIME_NAMES = ['DAWN', 'SUNRISE', 'DAY', 'NOON', 'EVENING', 'DUSK', 'NIGHT'];
+const CHAPTERS = [
+  { name: 'THAW', season: 0, stamp: '\uD83C\uDF27\uFE0F', outro: 'The rain eases and the first road of the year is behind you.' },
+  { name: 'HIGH SUN', season: 1, stamp: '\u2600\uFE0F', outro: 'The heat haze fades. Summer is over.' },
+  { name: 'LAST LIGHT', season: 2, stamp: '\uD83C\uDF42', outro: 'The last light drops behind the redwoods. Dark ahead.' },
+  { name: 'THE LONG NIGHT', season: 3, stamp: '\u2744\uFE0F', outro: '' }
+];
+// track ids: 0 Grand Loop, 1 Clover Run, 2 Alpine Pass, 3 Desert Canyon, 4 Coastal Sprint, 5 Redwood Rally,
+//            6 Neon Night, 7 Snake Pass, 8 Figure Eight, 9 Grand Prix, 10 Suzuka Circuit
+// times: time-of-day stage(s) the leg moves through as you progress. rain: matching weather per stage.
+const LEGS = [
+  // CH1 THAW (spring, rain)
+  { title: 'FIRST LIGHT', track: 1, car: 1, times: [0, 1], rain: [1, 1], mission: { type: 'laps', n: 2 }, time: 70, note: 'Dawn over wet clover. Reach the farm before the rain does.' },
+  { title: 'WET ROADS HOME', track: 0, car: 1, times: [1, 2], rain: [1, 1], mission: { type: 'overtakes', n: 12 }, time: 75, note: 'Slick roads and morning traffic. Brake early.' },
+  { title: 'BREAK IN THE CLOUDS', track: 8, car: 1, times: [2, 3], rain: [1, 0], mission: { type: 'distance', n: 4000 }, time: 70, note: 'The rain clears halfway. Watch the grip come back.' },
+  // CH2 HIGH SUN (summer, clear)
+  { title: 'COASTAL RUN', track: 4, car: 2, times: [3], rain: [0], mission: { type: 'overtakes', n: 15 }, time: 75, note: 'Bright noon, open road, heavy traffic.' },
+  { title: 'HEAT HAZE', track: 3, car: 2, times: [3, 3], rain: [0, 0], mission: { type: 'laps', n: 3 }, time: 70, note: 'Desert canyon at noon. No shade, no mercy.' },
+  { title: 'GOLDEN HOUR', track: 7, car: 2, times: [4], rain: [0], mission: { type: 'distance', n: 4500 }, time: 70, note: 'Snake Pass in the evening sun.' },
+  // CH3 LAST LIGHT (autumn)
+  { title: 'FALLING LEAVES', track: 5, car: 0, times: [2, 4], rain: [0, 0], mission: { type: 'laps', n: 3 }, time: 70, note: 'Redwoods turn from day to evening as you drive.' },
+  { title: 'DUSK RUSH', track: 9, car: 0, times: [4, 5], rain: [0, 0], mission: { type: 'overtakes', n: 20 }, time: 80, note: 'The Grand Prix circuit as the light goes.' },
+  { title: 'AUTUMN STORM', track: 10, car: 0, times: [5, 6], rain: [1, 1], mission: { type: 'distance', n: 5000 }, time: 75, note: 'Suzuka at dusk, then night, in a storm.' },
+  // CH4 THE LONG NIGHT (winter, snow) -> finale turns back into spring
+  { title: 'SNOWBOUND', track: 2, car: 3, times: [6], rain: [0], mission: { type: 'laps', n: 3 }, time: 75, note: 'Alpine Pass in snow and the dark.' },
+  { title: 'NEON SNOW', track: 6, car: 3, times: [6], rain: [0], mission: { type: 'overtakes', n: 25 }, time: 80, note: 'City lights in falling snow.' },
+  { title: 'HOME BY DAWN', track: 0, car: 3, times: [6, 0, 1], seasons: [3, 3, 0], rain: [0, 0, 1], mission: { type: 'distance', n: 6500 }, time: 80, note: 'Night, then dawn. The snow melts into spring rain and the year comes full circle.' }
+];
+let padOv = null, padFocus = 0, padSd = 0;
+let story = null, won = false, legBucket = 0, yearDone = [], yearBest = [], lvSel = 0, briefT = 0;
+const $ = id => document.getElementById(id);
+function loadYear() {
+  try { const d = JSON.parse(localStorage.getItem('cd3_year') || '{}'); yearDone = d.done || []; yearBest = d.best || []; } catch (e) { yearDone = []; yearBest = []; }
+}
+function saveYear() { try { localStorage.setItem('cd3_year', JSON.stringify({ done: yearDone, best: yearBest })); } catch (e) {} }
+const legUnlocked = i => i === 0 || !!yearDone[i - 1];
+const nextLeg = () => { for (let i = 0; i < LEGS.length; i++) if (!yearDone[i]) return i; return 0; };
+const legSeason = (L, b) => L.seasons ? L.seasons[b] : CHAPTERS[Math.floor(LEGS.indexOf(L) / 3)].season;
+const weatherOf = (L, b) => L.rain[b] ? 'RAIN' : legSeason(L, b) === 3 ? 'SNOW' : 'CLEAR';
+const seqUniq = a => a.filter((v, i) => i === 0 || v !== a[i - 1]);
+function missionText(m) { return m.type === 'laps' ? 'Complete ' + m.n + ' laps' : m.type === 'overtakes' ? 'Overtake ' + m.n + ' cars' : m.type === 'distance' ? 'Drive ' + m.n + ' m' : 'Score ' + m.n; }
+function legScene(L) {
+  const idx = L.times.map((_, b) => b);
+  return SEASON_NAMES[legSeason(L, 0)] + ((L.seasons && L.seasons[L.seasons.length - 1] !== L.seasons[0]) ? ' \u2192 ' + SEASON_NAMES[L.seasons[L.seasons.length - 1]] : '') + ' \u00B7 ' +
+    seqUniq(L.times.map(t => TIME_NAMES[t])).join(' \u2192 ') + ' \u00B7 ' + seqUniq(idx.map(b => weatherOf(L, b))).join(' \u2192 ');
+}
+function setLegScene(L, b) {
+  season = legSeason(L, b); timeMode = L.times[b];
+  applyDayNight(); applySeason(); setRain(!!L.rain[b]);
+}
+function goFS() {
+  const t = document.documentElement;
+  if (!document.fullscreenElement && t.requestFullscreen) t.requestFullscreen().catch(() => {});
+}
+function hideHud() {
+  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'touch-controls', 'mission'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
+  $('pause').style.display = 'none';
+}
+function legLocked() { if (story) { flash('LOCKED IN CHAPTER'); return true; } return false; }
+function toggleRain() { if (legLocked()) return; setRain(!rainOn); flash(rainOn ? 'RAIN' : 'CLEAR'); }
+function showBrief(L, i) {
+  const ch = CHAPTERS[Math.floor(i / 3)], b = $('brief');
+  b.innerHTML = '<small>CHAPTER ' + (Math.floor(i / 3) + 1) + ' \u00B7 ' + ch.name + ' \u00B7 LEG ' + (i % 3 + 1) + '</small><b>' + L.title + '</b><span>' + missionText(L.mission) + '</span><em>' + L.note + '</em>';
+  b.style.opacity = 1; clearTimeout(briefT); briefT = setTimeout(() => b.style.opacity = 0, 4200);
+}
+function beginLeg(i, e) {
+  if (e && e.preventDefault) e.preventDefault();
+  goFS();
+  const L = LEGS[i];
+  story = { leg: i }; won = false;
+  ['levels', 'win', 'crash'].forEach(id => $(id).style.display = 'none');
+  const rebuild = trackId !== L.track;
+  trackId = L.track; carId = L.car;
+  if (rebuild) buildTrackWorld();
+  applyCar();
+  legBucket = 0; setLegScene(L, 0);
+  start();
+  timeLeft = L.time || 60;
+  ['mode-btn', 'car-btn', 'track-btn'].forEach(id => $(id).style.display = 'none');
+  $('mission').style.display = 'block';
+  showBrief(L, i);
+}
+function storyTick() {
+  const L = LEGS[story.leg], m = L.mission;
+  const cur = m.type === 'laps' ? (lap - 1) + t : m.type === 'overtakes' ? overs : m.type === 'distance' ? dist : score;
+  const p = Math.min(1, cur / m.n);
+  const b = Math.min(L.times.length - 1, Math.floor(p * L.times.length));
+  if (b !== legBucket) {
+    legBucket = b; setLegScene(L, b);
+    flash(TIME_NAMES[timeMode] + ' \u00B7 ' + weatherOf(L, b));
+  }
+  const txt = m.type === 'laps' ? 'LAP ' + Math.min(m.n, lap) + ' / ' + m.n : m.type === 'overtakes' ? 'OVERTAKES ' + Math.min(m.n, overs) + ' / ' + m.n : m.type === 'distance' ? Math.min(m.n, Math.floor(dist)) + ' / ' + m.n + ' m' : 'SCORE ' + Math.min(m.n, Math.floor(score)) + ' / ' + m.n;
+  const el = $('mission-txt'); const full = L.title + ' \u00B7 ' + txt;
+  if (el.textContent !== full) el.textContent = full;
+  $('mission-bar').firstElementChild.style.width = (p * 100).toFixed(1) + '%';
+  if (p >= 1) completeLeg();
+}
+function completeLeg() {
+  const i = story.leg, L = LEGS[i], ci = Math.floor(i / 3), ch = CHAPTERS[ci];
+  run = false; won = true; kL = kR = kU = kD = kB = false; shake = 0; chime(880); setTimeout(() => chime(1100), 160);
+  yearDone[i] = true; yearBest[i] = Math.max(yearBest[i] || 0, Math.floor(score)); saveYear();
+  hideHud();
+  const final = i === LEGS.length - 1, chapterEnd = i % 3 === 2;
+  $('win-kick').textContent = 'CHAPTER ' + (ci + 1) + ' \u00B7 ' + ch.name + ' \u00B7 LEG ' + (i % 3 + 1) + ' OF 3';
+  $('win-stamp').textContent = final ? '\uD83C\uDFC6' : chapterEnd ? ch.stamp : '\u2714\uFE0F';
+  $('win-h').textContent = final ? 'WINNER' : chapterEnd ? 'CHAPTER COMPLETE' : 'LEG COMPLETE';
+  $('win-p').textContent = final ? 'You drove the whole year: spring rain, summer noon, autumn storm, winter night, and back to dawn. THE YEAR ROAD is complete.' : chapterEnd ? ch.name + ' (' + SEASON_NAMES[ch.season] + ') done. ' + ch.outro : L.title + ' done.';
+  $('win-stats').textContent = 'Score ' + Math.floor(score) + ' \u00B7 Overtakes ' + overs + ' \u00B7 Top ' + Math.round(topSpd * 2.237) + ' mph \u00B7 ' + Math.ceil(timeLeft) + 's left';
+  const nx = $('next-btn');
+  nx.style.display = final ? 'none' : '';
+  nx.textContent = chapterEnd ? 'NEXT CHAPTER' : 'NEXT LEG';
+  $('win').style.display = 'flex';
+}
+function toMenu() {
+  story = null; won = false; dead = false; run = false; paused = false;
+  ['win', 'crash', 'levels'].forEach(id => $(id).style.display = 'none');
+  $('start').style.display = 'flex';
+  showUI(false); $('mission').style.display = 'none';
+  renderStoryBtn();
+}
+function renderStoryBtn() {
+  const b = $('story-btn'); if (!b) return;
+  const done = yearDone.filter(Boolean).length;
+  b.textContent = done === 0 ? 'THE YEAR ROAD' : done >= LEGS.length ? 'THE YEAR ROAD \u00B7 REPLAY' : 'CONTINUE \u00B7 LEG ' + (nextLeg() + 1) + ' OF ' + LEGS.length;
+}
+function renderLevels() {
+  const g = $('lv-grid'); g.innerHTML = '';
+  CHAPTERS.forEach((ch, ci) => {
+    const sec = document.createElement('div'); sec.className = 'lv-ch';
+    sec.innerHTML = '<h3>' + ch.stamp + ' CHAPTER ' + (ci + 1) + ' \u00B7 ' + ch.name + '<small>' + SEASON_NAMES[ch.season] + '</small></h3>';
+    const row = document.createElement('div'); row.className = 'lv-row';
+    for (let k = 0; k < 3; k++) {
+      const i = ci * 3 + k, L = LEGS[i], ok = legUnlocked(i);
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'lv' + (yearDone[i] ? ' done' : ''); b.dataset.i = i; b.disabled = !ok;
+      b.innerHTML = '<b>' + (i + 1) + ' \u00B7 ' + L.title + '</b><span>' + TRACKS[L.track] + ' \u00B7 ' + CARS[L.car].n + '</span><span>' + legScene(L) + '</span><span>Mission: ' + missionText(L.mission) + '</span><span class="st">' + (yearDone[i] ? '\u2714 DONE' + (yearBest[i] ? ' \u00B7 BEST ' + yearBest[i] : '') : ok ? '\u25B6 READY' : '\uD83D\uDD12 LOCKED') + '</span>';
+      b.onclick = ev => { if (legUnlocked(i)) beginLeg(i, ev); };
+      row.appendChild(b);
+    }
+    sec.appendChild(row); g.appendChild(sec);
+  });
+}
+const levelsOpen = () => $('levels').style.display === 'flex';
+function markLevel(k) {
+  lvSel = Math.max(0, Math.min(LEGS.length - 1, k));
+  document.querySelectorAll('button.lv').forEach(b => b.classList.toggle('sel', +b.dataset.i === lvSel));
+  const sel = document.querySelector('button.lv.sel'); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+}
+function openLevels() {
+  renderLevels(); $('levels').style.display = 'flex';
+  markLevel(nextLeg());
+}
+function closeLevels() { $('levels').style.display = 'none'; }
+
+// ---- gamepad (standard mapping: Xbox / PlayStation / Switch Pro / most pads) ----
+// Left stick or D-pad L/R steer (analog) | RT or A gas | LT or B brake | X or RB boost
+// Y track | LB car | D-pad up day/night | D-pad down rain | Back mute | Start (or A on menus) start / restart / pause
+let padSteer = 0, padGas = 0, padBrake = 0, padBoost = false, padPrev = [], padWasDead = false, padRumbleT = 0;
+function padRumble(g, strong, weak, ms) {
+  try { const a = g.vibrationActuator; if (a && a.playEffect) a.playEffect('dual-rumble', { startDelay: 0, duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch (e) {}
+}
+function pollPad() {
+  const list = navigator.getGamepads ? navigator.getGamepads() : [];
+  let g = null;
+  for (const p of list) { if (p && p.connected) { g = p; break; } }
+  if (!g) { padSteer = padGas = padBrake = 0; padBoost = false; padPrev = []; return; }
+  const val = i => { const b = g.buttons[i]; return b ? (b.value > 0 ? b.value : (b.pressed ? 1 : 0)) : 0; };
+  const on = i => val(i) > 0.5;
+  const tz = v => v < 0.08 ? 0 : v;
+  const now = g.buttons.map((_, i) => on(i));
+  const edge = i => now[i] && !padPrev[i];
+  let ax = g.axes[0] || 0;
+  const m = Math.abs(ax);
+  ax = m < 0.14 ? 0 : Math.sign(ax) * Math.min(1, (m - 0.14) / 0.86);
+  const dpad = (now[14] ? 1 : 0) - (now[15] ? 1 : 0); // left = +1, same as the game's kL
+  padSteer = dpad || -ax;
+  padGas = Math.max(tz(val(7)), val(0));
+  padBrake = Math.max(tz(val(6)), val(1));
+  padBoost = on(2) || on(5);
+
+  const playing = run && !dead;
+  if (levelsOpen()) { // chapter list: D-pad / stick move, A starts, B closes
+    const moved = edge(14) ? -1 : edge(15) ? 1 : edge(12) ? -3 : edge(13) ? 3 : 0;
+    if (moved) { let k = lvSel + moved; if (k >= 0 && k < LEGS.length) markLevel(k); }
+    if ((edge(0) || edge(9)) && legUnlocked(lvSel)) beginLeg(lvSel);
+    if (edge(1)) closeLevels();
+    padSteer = padGas = padBrake = 0; padBoost = false; padPrev = now; return;
+  }
+  const ov = won ? 'win' : dead ? 'crash' : (!run ? 'start' : null);
+  if (ov) { // start menu / leg finished / crashed: stick or D-pad moves the highlight, A or Start picks it
+    const btns = [...document.getElementById(ov).querySelectorAll('button')].filter(b => b.offsetParent !== null);
+    if (padOv !== ov) { padOv = ov; padFocus = Math.max(0, btns.findIndex(b => b.id === 'story-btn')); }
+    const sx = g.axes[0] || 0, sy = g.axes[1] || 0, sd = (sy < -0.6 || sx < -0.6) ? -1 : (sy > 0.6 || sx > 0.6) ? 1 : 0;
+    const mv = (edge(12) || edge(14)) ? -1 : (edge(13) || edge(15)) ? 1 : (sd && sd !== padSd ? sd : 0);
+    padSd = sd;
+    if (mv && btns.length) padFocus = (padFocus + mv + btns.length) % btns.length;
+    btns.forEach((b, i) => b.classList.toggle('pfocus', i === padFocus));
+    if ((edge(0) || edge(9)) && btns[padFocus]) { const b = btns[padFocus]; btns.forEach(x => x.classList.remove('pfocus')); padOv = null; b.click(); }
+    else if (edge(1) && ov !== 'start') document.getElementById(ov === 'win' ? 'win-menu' : 'crash-menu').click();
+    padSteer = padGas = padBrake = 0; padBoost = false; padPrev = now; return;
+  }
+  const startScreen = !run && !dead && !won;
+  if (edge(9) || (edge(0) && (!playing || paused))) {
+    if (dead) document.getElementById('restart-btn').click();
+    else if (won) { const nb = document.getElementById('next-btn'); (nb.style.display === 'none' ? document.getElementById('replay-btn') : nb).click(); }
+    else if (!run) document.getElementById('story-btn').click();
+    else togglePause();
+  }
+  if ((dead || won) && edge(1)) document.getElementById(dead ? 'crash-menu' : 'win-menu').click();
+  if (startScreen) {
+    if (edge(2)) document.getElementById('levels-btn').click();
+    if (edge(5)) document.getElementById('start-btn').click();
+  }
+  if (edge(4)) switchCar();
+  if (edge(3)) switchTrack();
+  if (edge(12)) document.getElementById('mode-btn').click();
+  if (edge(13)) toggleRain();
+  if (edge(8)) { muted = !muted; flash(muted ? 'SOUND OFF' : 'SOUND ON'); }
+
+  // rumble: crash, boost, and rolling off the road
+  const t = performance.now();
+  if (dead && !padWasDead) padRumble(g, 1, 0.6, 350);
+  padWasDead = dead;
+  if (playing && !paused && t - padRumbleT > 140) {
+    if (boosting) { padRumble(g, 0, 0.35, 160); padRumbleT = t; }
+    else if (Math.abs(px) >= ROAD_W * 0.5 && spd > 4) { padRumble(g, 0.35, 0.1, 160); padRumbleT = t; }
+  }
+  padPrev = now;
+}
 let shake = 0, t = 0, slide = 0, prevT = 0, combo = 0, comboT = 0, nearT = 0;
 let actx, engOsc, engGain, nGain, mctx, wheelAngle = 0;
 let headlightL, headlightR, beamL, beamR, snowMesh;
@@ -525,8 +810,9 @@ function buildTrackWorld() {
   try { buildTrack(); createRoad(); createWorld(); } finally { delete scene.add; }
   applyDayNight(); applySeason();
 }
-function switchCar() { carId = (carId + 1) % CARS.length; applyCar(); flash(CARS[carId].n); }
+function switchCar() { if (legLocked()) return; carId = (carId + 1) % CARS.length; applyCar(); flash(CARS[carId].n); }
 function switchTrack() {
+  if (legLocked()) return;
   trackId = (trackId + 1) % TRACKS.length;
   buildTrackWorld(); spawnTraffic(); applyCar();
   t = 0; prevT = 0; px = 0; pvx = 0; steerValue = 0; lapTime = 0;
@@ -1539,11 +1825,12 @@ function update(dt) {
     if (countdown > 0) { tickAudio(); return; }
   }
 
-  boosting = kB && boost > 5 && spd > 8;
+  boosting = (kB || padBoost) && boost > 5 && spd > 8;
   if (boosting) { boost = Math.max(0, boost - 22 * dt); spd += ACCEL * 1.55 * dt; }
   else boost = Math.min(100, boost + 10 * dt);
-  if (kU) spd += ACCEL * (1 - 0.65 * Math.pow(spd / MAX_SPD, 2)) * dt;
-  else if (kD) spd += BRAKE * (rainOn ? 0.8 : 1) * dt;
+  const gasIn = kU ? 1 : padGas, brakeIn = kD ? 1 : padBrake;
+  if (gasIn > 0) spd += ACCEL * gasIn * (1 - 0.65 * Math.pow(spd / MAX_SPD, 2)) * dt;
+  else if (brakeIn > 0) spd += BRAKE * brakeIn * (rainOn ? 0.8 : 1) * dt;
   else spd += COAST * dt;
 
   const maxS = boosting ? BOOST_SPD : MAX_SPD;
@@ -1571,7 +1858,7 @@ function update(dt) {
   spd -= getT(t).y * 25 * dt;
   spd = THREE.MathUtils.clamp(spd, 0, maxS);
 
-  const steerTarget = (kL ? 1 : 0) + (kR ? -1 : 0);
+  const steerTarget = THREE.MathUtils.clamp((kL ? 1 : 0) + (kR ? -1 : 0) + padSteer, -1, 1);
   steerValue += (steerTarget - steerValue) * Math.min(1, 13 * dt);
   const steerIn = steerValue;
   pvx += steerIn * STEER_ACCEL * Math.min(1, spd / 10) * (1 - 0.3 * Math.min(1, spd / MAX_SPD)) * dt;
@@ -1598,13 +1885,12 @@ function update(dt) {
   if (timeLeft <= 0) { doCrash('TIME UP!'); return; }
   if (prevT > 0.9 && t < 0.1) {
     // proper order each lap: dawnâ†’sunriseâ†’dayâ†’noonâ†’eveningâ†’duskâ†’nightâ†’...
-    timeMode = (timeMode + 1) % 7;
-    applyDayNight();
+    if (!story) { timeMode = (timeMode + 1) % 7; applyDayNight(); }
     // after a full day cycle (back to same slot from start), shift season
     // advance season every 7 laps
     const newBest = bestLap <= 0 || lapTime < bestLap;
     if (newBest) bestLap = lapTime;
-    if (lap % 7 === 0) {
+    if (!story && lap % 7 === 0) {
       season = (season + 1) % 4;
       applySeason();
       const sn = ['SPRING','SUMMER','AUTUMN','WINTER'][season];
@@ -1621,6 +1907,8 @@ function update(dt) {
   dist += spd * dt; topSpd = Math.max(topSpd, spd);
   score += Math.floor(spd * dt * 1.1);
   if (boosting) score += Math.floor(spd * dt * 0.35);
+  if (story) storyTick();
+  if (!run) return;
 
   tickSmoke(dt); tickSnow(dt); tickRain(dt);
   nearT = Math.max(0, nearT - dt);
@@ -1815,10 +2103,7 @@ function doCrash(why) {
   if (fl) fl.textContent = bestLap > 0 ? formatTime(bestLap) : '—';
   document.getElementById('final-stats').textContent = 'Laps ' + (lap - 1) + ' · Overtakes ' + overs + ' · Top ' + Math.round(topSpd * 2.237) + ' mph';
   document.getElementById('crash').style.display = 'flex';
-  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'touch-controls'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
-  });
-  document.getElementById('pause').style.display = 'none';
+  hideHud();
 }
 
 function frame() {
@@ -1840,6 +2125,7 @@ function frame() {
       moonGlow.position.copy(moonDisc.position);
     }
   }
+  pollPad();
   update(Math.min(0.04, clock.getDelta()));
   renderer.render(scene, camera);
 }
@@ -1858,7 +2144,7 @@ function onKey(e, down) {
     case 'KeyC': if (down && !e.repeat) switchCar(); break;
     case 'KeyV': if (down && !e.repeat) switchTrack(); break;
     case 'KeyM': if (down && !e.repeat) { muted = !muted; flash(muted ? 'SOUND OFF' : 'SOUND ON'); } break;
-    case 'KeyR': if (down && !e.repeat) { setRain(!rainOn); flash(rainOn ? 'RAIN' : 'CLEAR'); } break;
+    case 'KeyR': if (down && !e.repeat) toggleRain(); break;
   }
 }
 
@@ -1899,7 +2185,10 @@ function start() {
   }
   document.getElementById('start').style.display = 'none';
   document.getElementById('crash').style.display = 'none';
+  document.getElementById('win').style.display = 'none';
+  won = false;
   showUI(true);
+  document.getElementById('mission').style.display = 'none';
   spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; lap = 1;
   boost = 100; dead = false; run = true; shake = 0; slide = 0; combo = 0; prevT = 0; wheelAngle = 0;
   paused = false; lapTime = 0; timeLeft = 60; offT = 0;
@@ -2027,16 +2316,26 @@ function init() {
     }
     start();
   };
-  document.getElementById('start-btn').onclick = startGame;
-  document.getElementById('restart-btn').onclick = startGame;
+  document.getElementById('start-btn').onclick = e => { story = null; ['mode-btn', 'car-btn', 'track-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
+  document.getElementById('restart-btn').onclick = e => story ? beginLeg(story.leg, e) : startGame(e);
+  loadYear(); renderStoryBtn();
+  document.getElementById('story-btn').onclick = e => beginLeg(nextLeg(), e);
+  document.getElementById('levels-btn').onclick = openLevels;
+  document.getElementById('lv-close').onclick = closeLevels;
+  document.getElementById('next-btn').onclick = e => beginLeg(Math.min(LEGS.length - 1, story.leg + 1), e);
+  document.getElementById('replay-btn').onclick = e => beginLeg(story.leg, e);
+  document.getElementById('win-menu').onclick = () => { toMenu(); openLevels(); };
+  document.getElementById('crash-menu').onclick = () => toMenu();
   document.getElementById('pause-btn').onclick = togglePause;
   document.getElementById('resume-btn').onclick = togglePause;
   document.getElementById('mode-btn').onclick = () => {
+    if (legLocked()) return;
     timeMode = (timeMode + 1) % 7;
     applyDayNight();
   };
   document.getElementById('mode-btn').oncontextmenu = (e) => {
     e.preventDefault();
+    if (legLocked()) return;
     season = (season + 1) % 4;
     applySeason();
   };
