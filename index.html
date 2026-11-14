@@ -1583,6 +1583,13 @@ const gfxMobile = isMobile && !MOBILE_FULL_GFX;
 let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1;
 let boost = 100, boosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
+// Phone driving assist: analog drag-steering, gentler corner push, a soft guard-rail instead of instant run-off crashes.
+// Add ?hard to the URL to turn it off.
+const ASSIST = isMobile && !/[?&]hard\b/.test(location.search);
+let touchOn = false, touchSteer = 0, btnRamp = 0;
+// ?debug shows a small readout: fps, speed, time left, and how many game-seconds pass per real second (should be ~1.00).
+const DEBUG = /[?&]debug\b/.test(location.search);
+let dbgGame = 0, dbgReal = 0, dbgFrames = 0, dbgAcc = 0, dbgEl = null;
 
 
 // ======================= THE YEAR ROAD (chapter mode) =======================
@@ -3568,7 +3575,9 @@ function update(dt) {
   spd -= getT(t).y * 25 * dt;
   spd = THREE.MathUtils.clamp(spd, 0, maxS);
 
-  const steerTarget = THREE.MathUtils.clamp((kL ? 1 : 0) + (kR ? -1 : 0) + padSteer, -1, 1);
+  let keySteer = (kL ? 1 : 0) + (kR ? -1 : 0);
+  if (ASSIST) { btnRamp += (keySteer - btnRamp) * Math.min(1, (keySteer === 0 ? 12 : 4.5) * dt); keySteer = btnRamp; } // buttons ease in, so taps make small corrections
+  const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer, -1, 1);
   steerValue += (steerTarget - steerValue) * Math.min(1, 13 * dt);
   const steerIn = steerValue;
   pvx += steerIn * STEER_ACCEL * Math.min(1, spd / 10) * (1 - 0.3 * Math.min(1, spd / MAX_SPD)) * dt;
@@ -3576,23 +3585,30 @@ function update(dt) {
   // Curvature creates an outward lateral load. Its sign follows the track
   // direction, while its magnitude is identical for mirrored left/right bends.
   const cornerLoad = spd * spd * Math.abs(kappa);
-  pvx += -spd * spd * kappa * CURVE_FORCE * dt;
+  pvx += -spd * spd * kappa * CURVE_FORCE * (ASSIST ? 0.55 : 1) * dt;
   // A small speed penalty models tire load without making one turn direction
   // easier than the other.
   if (cornerLoad > 18) spd -= Math.min(7, (cornerLoad - 18) * 0.018) * dt;
-  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - 3) * CENTER_SPRING * 0.5 * dt;
+  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - 3) * CENTER_SPRING * 0.5 * (ASSIST ? 2.4 : 1) * dt;
   pvx -= pvx * LAT_FRICTION * (rainOn ? 0.75 : 1) * dt;
   pvx = THREE.MathUtils.clamp(pvx, -MAX_LAT_VEL, MAX_LAT_VEL);
   px += pvx * dt;
   px = THREE.MathUtils.clamp(px, -ROAD_W * 0.9, ROAD_W * 0.9);
+  if (ASSIST) {
+    // Soft guard-rail just outside the edge line: you scrape and lose speed, but you are not thrown off the road.
+    const lim = ROAD_W * 0.5 + 0.9, sgn = Math.sign(px);
+    if (Math.abs(px) > lim) { px = sgn * lim; if (pvx * sgn > 0) pvx = 0; spd -= spd * 0.5 * dt; }
+  }
 
   slide = Math.min(1, Math.max(0, (Math.abs(spd * spd * kappa) - 20) / 30));
 
   prevT = t;
   t = (t + (spd * dt) / trackLen) % 1;
   lapTime += dt;
-  timeLeft -= dt;
-  if (timeLeft <= 0) { doCrash('TIME UP!'); return; }
+  dbgGame += dt;
+  // Free drive (START ENGINE) has no clock at all. Only THE YEAR ROAD legs are timed.
+  if (story) { timeLeft -= dt; if (timeLeft <= 0) { doCrash('TIME UP!'); return; } }
+  else timeLeft = 60;
   if (prevT > 0.9 && t < 0.1) {
     // proper order each lap: dawnâ†’sunriseâ†’dayâ†’noonâ†’eveningâ†’duskâ†’nightâ†’...
     if (!story) { timeMode = (timeMode + 1) % 7; applyDayNight(); }
@@ -3744,7 +3760,7 @@ function update(dt) {
   }
 
   if (Math.abs(px) > ROAD_W * 0.5 + 0.6 && spd > 28) offT += dt; else offT = Math.max(0, offT - dt * 2);
-  if (offT > 0.9 || (Math.abs(px) > ROAD_W * 0.8 && spd > MAX_SPD * 0.4)) { doCrash('RAN OFF THE ROAD!'); return; }
+  if (!ASSIST && (offT > 0.9 || (Math.abs(px) > ROAD_W * 0.8 && spd > MAX_SPD * 0.4))) { doCrash('RAN OFF THE ROAD!'); return; }
 
   const lean = THREE.MathUtils.clamp(-pvx * 0.02 - steerIn * 0.04, -0.12, 0.12);
   const camUp = up.clone().applyAxisAngle(tang, lean);
@@ -3779,7 +3795,7 @@ function update(dt) {
   if (renderStep) { // HUD, dash, audio and minimap: once per drawn frame, not once per physics step
   document.getElementById('dist').textContent = Math.floor(dist);
   const tle = document.getElementById('tl');
-  tle.textContent = Math.ceil(timeLeft); tle.style.color = timeLeft < 10 ? '#f55' : '';
+  tle.textContent = story ? Math.ceil(timeLeft) : '\u221E'; tle.style.color = story && timeLeft < 10 ? '#f55' : '';
   document.getElementById('lines').style.opacity = Math.max(0, (spd - 45) / 50);
   document.getElementById('score').textContent = Math.floor(score);
   document.getElementById('over').textContent = overs;
@@ -3853,11 +3869,23 @@ function frame() {
   const realDt = frame._last ? Math.min((nowMs - frame._last) * 0.001, 0.5) : 0.016;
   frame._last = nowMs;
   clock.getDelta();
-  if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(realDt, 0.05)); }
+  if (DEBUG) {
+    if (run && !dead && !paused && countdown <= 0) { dbgReal += realDt; dbgFrames++; }
+    dbgAcc += realDt;
+    if (dbgAcc > 0.5) {
+      dbgAcc = 0;
+      if (!dbgEl) { dbgEl = document.createElement('div'); dbgEl.style.cssText = 'position:fixed;left:6px;top:6px;z-index:99999;font:11px/1.3 monospace;color:#9ff;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre'; document.body.appendChild(dbgEl); }
+      const fps = dbgReal > 0 ? dbgFrames / dbgReal : 0, ratio = dbgReal > 0 ? dbgGame / dbgReal : 0;
+      dbgEl.textContent = 'fps ' + fps.toFixed(0) + '  clock x' + ratio.toFixed(2) + '\nspeed ' + Math.round(spd * 2.237) + ' mph  time ' + timeLeft.toFixed(1) + '\nlap ' + lap + '  off-road ' + (Math.abs(px) >= ROAD_W * 0.5 ? 'YES' : 'no') + '  assist ' + (ASSIST ? 'on' : 'off');
+      if (dbgReal > 3) { dbgReal = dbgGame = dbgFrames = 0; }
+    }
+  }
+  if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(realDt, 0.1)); }
   else if (isMobile) {
-    // Advance full real elapsed time in at most 2 lightweight steps so slow frames never cause slow-motion
-    const n = realDt > 0.055 ? 2 : 1;
-    const h = realDt / n;
+    // Same fixed-step idea as desktop, with slightly bigger steps (max 34 ms): physics stays stable on slow frames
+    // and the clock keeps real-time pace instead of using one huge step.
+    const rawDt = Math.min(realDt, 0.2);
+    const n = Math.max(1, Math.ceil(rawDt / 0.034)), h = rawDt / n;
     for (let i = 0; i < n; i++) {
       renderStep = (i === n - 1);
       update(h);
@@ -3918,7 +3946,7 @@ function togglePause() {
   document.getElementById('pause').style.display = paused ? 'flex' : 'none';
   document.getElementById('pause-btn').textContent = paused ? 'RESUME' : 'PAUSE';
   if (paused) {
-    kL = kR = kU = kD = kB = false;
+    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0;
     document.querySelectorAll('.touch-control').forEach(button => button.classList.remove('active'));
   }
 }
@@ -4049,23 +4077,37 @@ function init() {
   addEventListener('keyup', e => onKey(e, false));
   document.addEventListener('visibilitychange', () => { if (document.hidden && run && !dead && !paused) togglePause(); });
 
-  let tx = null;
+  // Touch driving: put a finger down anywhere = auto-gas; drag left/right for smooth analog steering (the further you drag,
+  // the harder you turn). The drag origin follows your finger, so you never run out of screen. A second finger = boost.
+  let tx = null, tid = null;
+  const TOUCH_RANGE = 70, TOUCH_DEAD = 4;
+  const findTouch = (list, id) => { for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i]; return null; };
+  const touchRelease = () => { tx = tid = null; touchOn = false; touchSteer = 0; };
   canvas.addEventListener('touchstart', e => {
     if (!run || dead || paused) return;
-    tx = e.touches[0].clientX; kU = true;
+    if (tid == null) { const t0 = e.changedTouches[0]; tid = t0.identifier; tx = t0.clientX; touchSteer = 0; touchOn = true; }
+    kU = true;
     if (e.touches.length >= 2) kB = true;
   }, { passive: true });
   canvas.addEventListener('touchmove', e => {
-    if (tx == null) return;
-    const d = e.touches[0].clientX - tx;
-    kL = d < -14; kR = d > 14;
+    if (tid == null || !run || dead || paused) return;
+    const t0 = findTouch(e.touches, tid); if (!t0) return;
+    touchOn = true; kU = true;
+    let d = t0.clientX - tx;
+    const maxD = TOUCH_RANGE * 1.4;
+    if (d > maxD) { tx += d - maxD; d = maxD; } else if (d < -maxD) { tx += d + maxD; d = -maxD; }
+    const mag = Math.max(0, Math.abs(d) - TOUCH_DEAD) / (TOUCH_RANGE - TOUCH_DEAD);
+    touchSteer = -Math.sign(d) * Math.pow(Math.min(1, mag), 1.35); // finger right = steer right (negative), like the keys
   }, { passive: true });
   canvas.addEventListener('touchend', e => {
-    tx = null; kL = kR = kU = false;
+    if (tid != null && !findTouch(e.touches, tid)) {
+      if (e.touches.length) { const n0 = e.touches[0]; tid = n0.identifier; tx = n0.clientX; touchSteer = 0; } // hand steering to the finger still down
+      else { touchRelease(); kU = false; }
+    }
     if (e.touches.length < 2) kB = false;
   });
   canvas.addEventListener('touchcancel', () => {
-    tx = null; kL = kR = kU = kB = false;
+    touchRelease(); kL = kR = kU = kB = false;
   }, { passive: true });
 
   document.getElementById('start-car').onclick = switchCar;
