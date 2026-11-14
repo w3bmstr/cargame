@@ -1576,6 +1576,10 @@ let groundMesh = null, treeLeafList = [], skyMesh = null, starMesh = null, hillM
 let cloudGroup = null, sunGlow = null, horizonGlow = null;
 let visualQuality = 'high';
 const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches;
+// Phones render the same full-quality graphics as desktop. Add ?lite to the URL (or set this to false) to get the old
+// lightweight phone look back. Touch controls and frame-pacing tweaks stay mobile-specific.
+const MOBILE_FULL_GFX = !/[?&]lite\b/.test(location.search);
+const gfxMobile = isMobile && !MOBILE_FULL_GFX;
 let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1;
 let boost = 100, boosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
@@ -2319,7 +2323,7 @@ function createWorld() {
   const groundTexture = grassTex();
   groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(1800, 1800),
-    isMobile ? new THREE.MeshLambertMaterial({ color: visual.ground, map: groundTexture }) : new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.24 })
+    gfxMobile ? new THREE.MeshLambertMaterial({ color: visual.ground, map: groundTexture }) : new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.24 })
   );
   groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.y = -6; groundMesh.receiveShadow = true; scene.add(groundMesh);
 
@@ -2386,7 +2390,7 @@ function createWorld() {
     color: 0xe8f1f8, roughness: 1, transparent: true, opacity: 0.34,
     depthWrite: false, fog: true, emissive: 0x6a7e90, emissiveIntensity: 0.1
   });
-  const cloudCount = isMobile ? 6 : (visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16);
+  const cloudCount = gfxMobile ? 6 : (visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16);
   for (let i = 0; i < cloudCount; i++) {
     const cloud = new THREE.Group();
     const puffs = 4 + (i % 4);
@@ -2411,7 +2415,7 @@ function createWorld() {
   // stars (night only visibility toggled)
   const starGeo = new THREE.BufferGeometry();
   const starPos = [];
-  for (let i = 0; i < (isMobile ? 160 : visualQuality === 'low' ? 180 : visualQuality === 'medium' ? 300 : 500); i++) {
+  for (let i = 0; i < (gfxMobile ? 160 : visualQuality === 'low' ? 180 : visualQuality === 'medium' ? 300 : 500); i++) {
     const r = 380;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(Math.random() * 0.85 + 0.05); // upper hemisphere-ish
@@ -2803,7 +2807,7 @@ function tickRain(dt) {
 }
 
 function initSnow() {
-  const count = isMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
+  const count = gfxMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
   const p = new Float32Array(count * 3);
   for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * 70;
   const g = new THREE.BufferGeometry();
@@ -2871,7 +2875,7 @@ function getMobileCarMats() {
   return _mobMats;
 }
 function makeCar(color, big) {
-  if (isMobile) {
+  if (gfxMobile) {
     const g = new THREE.Group();
     const sm = getMobileCarMats();
     const paint = sm.paints[color] || (sm.paints[color] = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.35 }));
@@ -3948,11 +3952,11 @@ function init() {
   const canvas = document.getElementById('c');
   const pixels = innerWidth * innerHeight;
   // Use the sharper desktop profile on ordinary 1080p displays too; keep mobile adaptive.
-  visualQuality = isMobile ? 'low' : (pixels >= 1200000 ? 'high' : pixels >= 650000 ? 'medium' : 'low');
+  visualQuality = gfxMobile ? 'low' : isMobile ? 'high' : (pixels >= 1200000 ? 'high' : pixels >= 650000 ? 'medium' : 'low');
   renderer = createRenderer(canvas, {
-    antialias: !isMobile && visualQuality !== 'low',
-    shadows: !isMobile,
-    maxPixelRatio: isMobile ? 1.0 : (visualQuality === 'high' ? 2.25 : visualQuality === 'medium' ? 1.65 : 1.2)
+    antialias: !gfxMobile && visualQuality !== 'low',
+    shadows: !gfxMobile,
+    maxPixelRatio: gfxMobile ? 1.0 : isMobile ? 2 : (visualQuality === 'high' ? 2.25 : visualQuality === 'medium' ? 1.65 : 1.2)
   });
   renderer.setSize(innerWidth, innerHeight);
   initNexusOverlay();
@@ -3961,7 +3965,7 @@ function init() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
-  if (!isMobile) {
+  if (!gfxMobile) {
     const nexusEnvironment = createNexusEnvironment();
     scene.environment = nexusEnvironment;
     scene.environmentIntensity = visualQuality === 'high' ? 1.25 : 0.9;
@@ -3976,8 +3980,9 @@ function init() {
   scene.add(new THREE.AmbientLight(0x9ab8c8, 0.12));
   sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
   sun.position.set(40, 70, 30);
-  sun.castShadow = !isMobile && visualQuality !== 'low';
-  sun.shadow.mapSize.set(visualQuality === 'high' ? 4096 : 2048, visualQuality === 'high' ? 4096 : 2048);
+  sun.castShadow = !gfxMobile && visualQuality !== 'low';
+  const shadowRes = (visualQuality === 'high' && !isMobile) ? 4096 : 2048; // phones cap at 2048 to avoid GPU memory issues
+  sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.camera.near = 10;
   sun.shadow.camera.far = 320;
   sun.shadow.camera.left = -180;
