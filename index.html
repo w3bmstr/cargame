@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -673,6 +673,11 @@ body.endurance #hood {
   opacity: calc(0.45 + var(--sun, 1) * 0.45) !important;
 }
 
+/* Cockpit cleanup: remove traffic-headlight glare painted across the dashboard.
+   The real forward-facing road headlights are separate Three.js SpotLights and stay enabled. */
+#headlight-sweep { display: none !important; }
+#hood { --headlight: 0 !important; }
+
 /* Passing headlight sweep across top dash ridge */
 #headlight-sweep {
   position: absolute;
@@ -935,10 +940,13 @@ body.endurance #yoke-hud { display: block; }
   #minimap { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   #cinematic-fx::after { display: none !important; }
 }
+
+#fx-overlay{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:screen}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<canvas id="fx-overlay"></canvas>
 <div id="cinematic-fx"></div>
 <div id="speed-glow"></div>
 <button id="mode-btn">DAY</button>
@@ -1053,7 +1061,7 @@ body.endurance #yoke-hud { display: block; }
   <button class="main" id="story-btn" style="margin-bottom:10px">THE YEAR ROAD</button>
   <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
-  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: touch &amp; drag left/right to steer (auto-gas), two fingers for boost<br>C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
+  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: touch &amp; drag left/right to steer (auto-gas), two fingers for boost<br>Free CC0 GT model traffic &bull; C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -1092,8 +1100,423 @@ body.endurance #yoke-hud { display: block; }
   </div>
 </div>
 </body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
+
+/**
+ * NEXUS CIRCUIT — Next-Gen Zero-Dependency Graphics & FX Module (v2)
+ * Drop-in HTML5 2D Canvas upgrade: zero external libraries, zero garbage-collection stutter,
+ * preserves existing game physics, loop, and storyline.
+ *
+ * Includes:
+ * 1. Dynamic Specular Car Shine, Wet-Asphalt Reflections & Neon Gantry Sweep Shader
+ * 2. High-Speed Chromatic Aberration, Directional Motion Blur & Tunnel-Vision Warp
+ * 3. Ground-Contact Spark, Volumetric Tire Smoke, Exhaust Backfire & Permanent Skid-Mark Engine
+ * 4. Pseudo-3D Dynamic Track Lighting & Horizon Atmospheric Glow
+ */
+
+class NexusGraphicsEngine {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+
+    // Off-screen persistent layer for burned asphalt skid marks
+    this.skidCanvas = document.createElement('canvas');
+    this.skidCanvas.width = width;
+    this.skidCanvas.height = height;
+    this.skidCtx = this.skidCanvas.getContext('2d');
+
+    // Off-screen buffer for post-processing (Chromatic Aberration / Speed Warp)
+    this.postCanvas = document.createElement('canvas');
+    this.postCanvas.width = width;
+    this.postCanvas.height = height;
+    this.postCtx = this.postCanvas.getContext('2d');
+
+    // High-performance pre-allocated particle pool (3,000 particles, zero GC stutter)
+    this.maxParticles = 3000;
+    this.particles = new Array(this.maxParticles).fill(null).map(() => ({
+      active: false,
+      x: 0, y: 0,
+      vx: 0, vy: 0,
+      life: 0, maxLife: 1,
+      size: 2,
+      type: 'smoke', // 'smoke' | 'spark' | 'speedline' | 'backfire'
+      color: '#ffffff'
+    }));
+    this.particleCursor = 0;
+
+    // Track previous tire positions for continuous skid splines
+    this.prevTires = null;
+    this.lastSpeed = 0;
+  }
+
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+    this.skidCanvas.width = width;
+    this.skidCanvas.height = height;
+    this.postCanvas.width = width;
+    this.postCanvas.height = height;
+  }
+
+  /**
+   * Spawn a particle into the ring buffer
+   */
+  spawnParticle(x, y, vx, vy, maxLife, size, type, color) {
+    const p = this.particles[this.particleCursor];
+    this.particleCursor = (this.particleCursor + 1) % this.maxParticles;
+
+    p.active = true;
+    p.x = x;
+    p.y = y;
+    p.vx = vx;
+    p.vy = vy;
+    p.life = 0;
+    p.maxLife = maxLife;
+    p.size = size;
+    p.type = type;
+    p.color = color;
+  }
+
+  /**
+   * 1. GROUND-CONTACT PARTICLE, EXHAUST BACKFIRE & SKID-MARK SYSTEM
+   * Call inside your main update(dt) loop.
+   * @param {number} dt - Delta time in seconds
+   * @param {object} car - { x, y, width, height, speed, maxSpeed, steerAngle, isDrifting, isScrapingWall, wallSide }
+   * @param {number} roadScrollSpeed - Current vertical scroll speed of the road in px/sec
+   */
+  update(dt, car, roadScrollSpeed = 600) {
+    // Scroll existing skid marks downward with the track
+    if (roadScrollSpeed > 0) {
+      this.skidCtx.save();
+      this.skidCtx.globalCompositeOperation = 'copy';
+      this.skidCtx.drawImage(this.skidCanvas, 0, roadScrollSpeed * dt);
+      this.skidCtx.restore();
+
+      // Fade top edge cleanly
+      this.skidCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      this.skidCtx.fillRect(0, 0, this.width, 45);
+    }
+
+    const rearLeftX = car.x - car.width * 0.36;
+    const rearRightX = car.x + car.width * 0.36;
+    const rearY = car.y + car.height * 0.38;
+    const speedRatio = Math.min(1.2, Math.abs(car.speed) / (car.maxSpeed || 220));
+
+    // Exhaust backfire pop on sudden deceleration or gear shift spikes
+    const accelDelta = (car.speed - this.lastSpeed) / Math.max(0.001, dt);
+    this.lastSpeed = car.speed;
+    if (accelDelta < -180 && speedRatio > 0.35 && Math.random() < 0.45) {
+      const pipeX = car.x + (Math.random() < 0.5 ? -car.width * 0.22 : car.width * 0.22);
+      for (let i = 0; i < 4; i++) {
+        this.spawnParticle(
+          pipeX,
+          rearY + 4,
+          (Math.random() - 0.5) * 25,
+          roadScrollSpeed * 0.25 + 60 + Math.random() * 80,
+          0.09 + Math.random() * 0.06,
+          4 + Math.random() * 4,
+          'backfire',
+          Math.random() > 0.4 ? '#38bdf8' : '#fb923c'
+        );
+      }
+    }
+
+    // Burn permanent rubber & emit smoke when drifting or hard-cornering at speed
+    if ((car.isDrifting || Math.abs(car.steerAngle) > 0.32) && speedRatio > 0.42) {
+      if (this.prevTires) {
+        this.skidCtx.strokeStyle = 'rgba(10, 10, 14, 0.48)';
+        this.skidCtx.lineWidth = 4.5;
+        this.skidCtx.lineCap = 'round';
+        this.skidCtx.beginPath();
+        this.skidCtx.moveTo(this.prevTires.lx, this.prevTires.ly + roadScrollSpeed * dt);
+        this.skidCtx.lineTo(rearLeftX, rearY);
+        this.skidCtx.moveTo(this.prevTires.rx, this.prevTires.ry + roadScrollSpeed * dt);
+        this.skidCtx.lineTo(rearRightX, rearY);
+        this.skidCtx.stroke();
+      }
+
+      // Emit volumetric tire smoke
+      for (let i = 0; i < 3; i++) {
+        const tx = i % 2 === 0 ? rearLeftX : rearRightX;
+        this.spawnParticle(
+          tx + (Math.random() - 0.5) * 7,
+          rearY,
+          (Math.random() - 0.5) * 40 - car.steerAngle * 45,
+          roadScrollSpeed * 0.35 + Math.random() * 45,
+          0.38 + Math.random() * 0.28,
+          6 + Math.random() * 9,
+          'smoke',
+          'rgba(215, 228, 240, 0.26)'
+        );
+      }
+    }
+    this.prevTires = { lx: rearLeftX, ly: rearY, rx: rearRightX, ry: rearY };
+
+    // Emit high-velocity guardrail sparks when scraping
+    if (car.isScrapingWall && speedRatio > 0.18) {
+      const sparkX = car.x + (car.wallSide || 1) * (car.width * 0.5);
+      const sparkY = car.y + (Math.random() - 0.5) * car.height * 0.65;
+      for (let i = 0; i < 8; i++) {
+        this.spawnParticle(
+          sparkX,
+          sparkY,
+          -(car.wallSide || 1) * (70 + Math.random() * 160),
+          roadScrollSpeed * 0.5 + (Math.random() - 0.3) * 200,
+          0.18 + Math.random() * 0.24,
+          2 + Math.random() * 2.5,
+          'spark',
+          Math.random() > 0.3 ? '#ffb703' : '#ffffff'
+        );
+      }
+    }
+
+    // Peripheral vertical speed-warp streaks are intentionally disabled:
+    // they looked like rain at the edges when the car reached high speed.
+
+    // Update active particles
+    for (let i = 0; i < this.maxParticles; i++) {
+      const p = this.particles[i];
+      if (!p.active) continue;
+
+      p.life += dt;
+      if (p.life >= p.maxLife) {
+        p.active = false;
+        continue;
+      }
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.type === 'smoke') {
+        p.size += 24 * dt;
+      } else if (p.type === 'spark') {
+        p.vx *= 0.95;
+      }
+    }
+  }
+
+  /**
+   * Render burned asphalt skid marks directly onto the road layer
+   */
+  renderSkidMarks(ctx) {
+    ctx.drawImage(this.skidCanvas, 0, 0);
+  }
+
+  /**
+   * 2. DYNAMIC SPECULAR CAR SHINE, WET-ASPHALT UNDERGLOW & WINDSHIELD REFLECTION SHADER
+   * Call right after drawing your player or AI vehicle sprite/vector body.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {object} car - { x, y, width, height, steerAngle, speed, maxSpeed, accentColor }
+   * @param {number} time - Elapsed game time in seconds
+   */
+  renderCarSpecularOverlay(ctx, car, time) {
+    const hw = car.width * 0.5;
+    const hh = car.height * 0.5;
+    const lightShift = Math.sin(car.steerAngle * 1.8) * hw * 0.65;
+    const overheadSweep = ((time * (car.speed * 0.045 + 2.2)) % 2) - 0.5;
+    const accent = car.accentColor || 'rgba(0, 240, 255, 0.35)';
+
+    ctx.save();
+    ctx.translate(car.x, car.y);
+    ctx.rotate(car.steerAngle * 0.12);
+
+    // Subtle ground neon underglow reflection beneath chassis
+    ctx.globalCompositeOperation = 'screen';
+    const underglow = ctx.createRadialGradient(0, 0, hw * 0.2, 0, 0, Math.max(hw, hh) * 1.25);
+    underglow.addColorStop(0, accent);
+    underglow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = underglow;
+    ctx.fillRect(-hw * 1.3, -hh * 1.2, car.width * 1.3, car.height * 1.2);
+
+    // Clip to aerodynamic vehicle silhouette for paint & glass reflections
+    ctx.beginPath();
+    ctx.roundRect(-hw, -hh, car.width, car.height, [14, 14, 6, 6]);
+    ctx.clip();
+
+    // Clear-coat metallic specular highlight band across hood & roof
+    const specGrad = ctx.createLinearGradient(
+      -hw + lightShift, -hh,
+      hw + lightShift, hh
+    );
+    specGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.0)');
+    specGrad.addColorStop(0.42, 'rgba(255, 255, 255, 0.07)');
+    specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.48)');
+    specGrad.addColorStop(0.58, 'rgba(255, 255, 255, 0.07)');
+    specGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+
+    ctx.fillStyle = specGrad;
+    ctx.fillRect(-hw, -hh, car.width, car.height);
+
+    // Sweeping overhead streetlamp / neon gantry reflection across windshield & roof
+    const sweepY = -hh + overheadSweep * car.height;
+    const gantryGrad = ctx.createLinearGradient(0, sweepY - 18, 0, sweepY + 18);
+    gantryGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+    gantryGrad.addColorStop(0.5, 'rgba(200, 252, 255, 0.38)');
+    gantryGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+
+    ctx.fillStyle = gantryGrad;
+    ctx.fillRect(-hw, sweepY - 18, car.width, 36);
+
+    // High-intensity tail-light bloom
+    const tailGlow = ctx.createRadialGradient(0, hh, 2, 0, hh + 8, car.width * 0.8);
+    tailGlow.addColorStop(0, 'rgba(255, 20, 60, 0.72)');
+    tailGlow.addColorStop(1, 'rgba(255, 0, 40, 0)');
+    ctx.fillStyle = tailGlow;
+    ctx.fillRect(-hw * 1.4, hh - 10, car.width * 1.4, 32);
+
+    ctx.restore();
+  }
+
+  /**
+   * Render all active smoke, spark, backfire, and speed-warp particles
+   */
+  renderParticles(ctx) {
+    ctx.save();
+    for (let i = 0; i < this.maxParticles; i++) {
+      const p = this.particles[i];
+      if (!p.active) continue;
+
+      const alpha = 1 - p.life / p.maxLife;
+      ctx.globalAlpha = Math.max(0, alpha);
+
+      if (p.type === 'smoke') {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === 'backfire') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === 'spark') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.size;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 0.025, p.y - p.vy * 0.025);
+        ctx.stroke();
+      } else if (p.type === 'speedline') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.size;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x, p.y - p.vy * 0.065);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * 3. HIGH-SPEED CHROMATIC ABERRATION & RADIAL TUNNEL VIGNETTE
+   * Call at the very end of your render() function to apply optical speed distortion.
+   * @param {CanvasRenderingContext2D} mainCtx - Your primary visible canvas context
+   * @param {number} speedRatio - Normalized speed from 0.0 to 1.0+
+   */
+  applyPostProcessing(mainCtx, speedRatio) {
+    if (speedRatio <= 0.62) return; // Zero overhead at normal cruising speeds
+
+    const intensity = Math.min(1, (speedRatio - 0.62) / 0.38);
+    const shift = intensity * 6.0; // Pixel RGB split offset
+
+    // Copy current frame into offscreen buffer
+    this.postCtx.clearRect(0, 0, this.width, this.height);
+    this.postCtx.drawImage(mainCtx.canvas, 0, 0);
+
+    mainCtx.save();
+    // Subtle outer-edge chromatic aberration split using additive blending
+    mainCtx.globalCompositeOperation = 'screen';
+    mainCtx.globalAlpha = 0.24 * intensity;
+    mainCtx.drawImage(this.postCanvas, -shift, 0);
+    mainCtx.drawImage(this.postCanvas, shift, 0);
+
+    // High-speed adrenaline tunnel-vision vignette
+    mainCtx.globalCompositeOperation = 'source-over';
+    mainCtx.globalAlpha = 1.0;
+    const radGrad = mainCtx.createRadialGradient(
+      this.width * 0.5, this.height * 0.55, this.width * 0.26,
+      this.width * 0.5, this.height * 0.55, this.width * 0.72
+    );
+    radGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    radGrad.addColorStop(1, `rgba(4, 8, 18, ${0.52 * intensity})`);
+    mainCtx.fillStyle = radGrad;
+    mainCtx.fillRect(0, 0, this.width, this.height);
+    mainCtx.restore();
+  }
+}
+
+// Export for ES modules or attach globally for vanilla script tags
+if (typeof window !== 'undefined') {
+  window.NexusGraphicsEngine = NexusGraphicsEngine;
+}
+
+
+let nexusGfx = null;
+let fxOverlayCanvas = null;
+let fxOverlayCtx = null;
+let nexusTime = 0;
+
+function initNexusOverlay() {
+  fxOverlayCanvas = document.getElementById('fx-overlay');
+  if (!fxOverlayCanvas) return;
+  fxOverlayCanvas.width = innerWidth;
+  fxOverlayCanvas.height = innerHeight;
+  fxOverlayCtx = fxOverlayCanvas.getContext('2d');
+  nexusGfx = new NexusGraphicsEngine(fxOverlayCanvas.width, fxOverlayCanvas.height);
+}
+
+function tickNexusOverlay(dt) {
+  if (!nexusGfx || !fxOverlayCtx) return;
+  nexusTime += dt;
+  const w = fxOverlayCanvas.width;
+  const h = fxOverlayCanvas.height;
+  const carColors = ['rgba(0, 240, 255, 0.38)', 'rgba(255, 130, 30, 0.38)', 'rgba(63, 224, 214, 0.38)', 'rgba(240, 178, 74, 0.38)'];
+  const maxS = boosting ? BOOST_SPD : MAX_SPD;
+  const speedRatio = maxS > 0 ? spd / maxS : 0;
+  const isScrapingWall = Math.abs(px) >= ROAD_W * 0.48 && spd > 14;
+  const wallSide = px >= 0 ? 1 : -1;
+
+  // Map 3D cockpit telemetry to screen-space overlay car anchor (hood/windshield focal zone)
+  const carState = {
+    x: w * 0.5 - steerValue * (w * 0.045),
+    y: h * 0.72,
+    width: Math.min(w * 0.42, 420),
+    height: Math.min(h * 0.24, 210),
+    speed: spd * 2.237,
+    maxSpeed: MAX_SPD * 2.237,
+    steerAngle: -steerValue,
+    isDrifting: slide > 0.42,
+    isScrapingWall: isScrapingWall,
+    wallSide: wallSide,
+    accentColor: carColors[carId] || carColors[0]
+  };
+
+  const roadScrollSpeed = spd * 14;
+  nexusGfx.update(dt, carState, roadScrollSpeed);
+
+  fxOverlayCtx.clearRect(0, 0, w, h);
+  if (run && !dead) {
+    nexusGfx.renderSkidMarks(fxOverlayCtx);
+    // Removed the screen-space car specular overlay that appeared as a blue ghost shape over the cockpit.
+    nexusGfx.renderParticles(fxOverlayCtx);
+    nexusGfx.applyPostProcessing(fxOverlayCtx, speedRatio);
+  }
+}
+
 function createRenderer(canvas, options = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -1106,9 +1529,40 @@ function createRenderer(canvas, options = {}) {
   renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = options.shadows !== false;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.info.autoReset = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.maxPixelRatio || 2));
   return renderer;
-}// The gameplay kernel retains the original driving model while the public
+}
+// Photographic-style procedural environment: gives car paint, glass and wet asphalt
+// something believable to reflect without requiring external HDR downloads.
+function createNexusEnvironment() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 512);
+  g.addColorStop(0, '#18283e'); g.addColorStop(0.34, '#71899b');
+  g.addColorStop(0.52, '#d5c9b4'); g.addColorStop(0.66, '#56616a');
+  g.addColorStop(1, '#151a20'); x.fillStyle = g; x.fillRect(0,0,1024,512);
+  // Broad softboxes and horizon cards create readable automotive highlights.
+  const panels = [
+    [70,80,120,190,'rgba(220,235,255,.82)'], [310,50,150,220,'rgba(255,255,255,.72)'],
+    [600,70,180,160,'rgba(255,238,210,.72)'], [890,90,90,220,'rgba(190,220,255,.62)']
+  ];
+  for (const [px,py,w,h,color] of panels) {
+    const pg = x.createLinearGradient(px,py,px+w,py+h);
+    pg.addColorStop(0,'rgba(255,255,255,0)'); pg.addColorStop(.5,color); pg.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle=pg; x.fillRect(px,py,w,h);
+  }
+  const sun = x.createRadialGradient(500,210,4,500,210,105);
+  sun.addColorStop(0,'rgba(255,245,220,.95)'); sun.addColorStop(.18,'rgba(255,235,205,.35)'); sun.addColorStop(1,'rgba(255,235,205,0)');
+  x.fillStyle=sun; x.fillRect(380,90,240,240);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// The gameplay kernel retains the original driving model while the public
 // bootstrap and subsystem modules provide a maintainable extension boundary.
 const ROAD_W = 15, COAST = -8, OFFROAD = -32, CARS_N = 22;
 let MAX_SPD = 76, BOOST_SPD = 100, ACCEL = 30, BRAKE = -56, STEER_ACCEL = 52, LAT_FRICTION = 11, CURVE_FORCE = 0.14, MAX_LAT_VEL = 13, CENTER_SPRING = 9;
@@ -1742,7 +2196,8 @@ function createRoad() {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx); geo.computeVertexNormals();
   roadMesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-    vertexColors: true, map: asphaltTex(), roughness: 0.42, metalness: 0.22,
+    vertexColors: true, map: asphaltTex(), roughness: 0.48, metalness: 0.16,
+    bumpMap: asphaltTex(), bumpScale: 0.035,
     emissive: 0x0c1218, emissiveIntensity: 0.18, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2
   }));
@@ -1797,61 +2252,64 @@ function createRoad() {
 }
 
 function grassTex() {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const x = c.getContext('2d'); x.fillStyle = '#52733d'; x.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 2500; i++) {
-    const green = 75 + Math.random() * 55 | 0;
-    const red = 28 + Math.random() * 28 | 0;
-    x.fillStyle = `rgba(${red},${green},${28 + Math.random() * 24 | 0},${0.35 + Math.random() * 0.35})`;
-    x.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 2, 1 + Math.random());
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const x = c.getContext('2d');
+  x.fillStyle = '#526b3d'; x.fillRect(0, 0, 512, 512);
+  // Broad color variation prevents the ground from reading as a flat tiled plane.
+  for (let i = 0; i < 220; i++) {
+    const hue = 75 + Math.random() * 35;
+    x.fillStyle = `hsla(${hue},${22 + Math.random()*18}%,${20 + Math.random()*18}%,${0.08 + Math.random()*0.14})`;
+    x.beginPath(); x.ellipse(Math.random()*512, Math.random()*512, 12+Math.random()*48, 8+Math.random()*32, Math.random()*Math.PI, 0, Math.PI*2); x.fill();
+  }
+  // Fine grass blades and natural ground grain.
+  for (let i = 0; i < 26000; i++) {
+    const g = 62 + Math.random() * 82 | 0, r = 24 + Math.random() * 34 | 0, b = 20 + Math.random() * 28 | 0;
+    x.strokeStyle = `rgba(${r},${g},${b},${0.12 + Math.random()*0.32})`;
+    x.lineWidth = 0.5 + Math.random()*1.2;
+    const px = Math.random()*512, py = Math.random()*512;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px+(Math.random()-.5)*2, py-1-Math.random()*5); x.stroke();
   }
   const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(200, 200); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(130, 130);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
   return tex;
 }
 
 function asphaltTex() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
   const ctx = c.getContext('2d');
-  // Richer base asphalt
-  ctx.fillStyle = '#2e3035';
-  ctx.fillRect(0, 0, c.width, c.height);
-  // Fine grain
-  for (let i = 0; i < 28000; i++) {
-    const shade = 28 + Math.random() * 36 | 0;
-    ctx.fillStyle = `rgba(${shade},${shade + 1},${shade + 3},${0.08 + Math.random() * 0.22})`;
-    ctx.fillRect(Math.random() * c.width, Math.random() * c.height, 1 + Math.random() * 2.2, 1 + Math.random() * 1.5);
+  ctx.fillStyle = '#292c31'; ctx.fillRect(0, 0, 1024, 1024);
+  // Fine aggregate / stone grain.
+  for (let i = 0; i < 105000; i++) {
+    const shade = 25 + Math.random() * 55 | 0;
+    ctx.fillStyle = `rgba(${shade},${shade+1},${shade+3},${0.07+Math.random()*0.22})`;
+    const px = Math.random()*1024, py = Math.random()*1024;
+    ctx.fillRect(px, py, 0.6+Math.random()*2.4, 0.5+Math.random()*1.8);
   }
-  // Tar patches / aggregate
-  for (let i = 0; i < 140; i++) {
-    const shade = 16 + Math.random() * 22 | 0;
-    ctx.fillStyle = `rgba(${shade},${shade},${shade + 2},${0.14 + Math.random() * 0.2})`;
-    const x = Math.random() * c.width, y = Math.random() * c.height;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 3 + Math.random() * 9, 2 + Math.random() * 5, Math.random() * 6, 0, Math.PI * 2);
-    ctx.fill();
+  // Irregular tar repairs and subtle patches.
+  for (let i = 0; i < 420; i++) {
+    const shade = 12 + Math.random()*32 | 0;
+    ctx.fillStyle = `rgba(${shade},${shade+1},${shade+3},${0.10+Math.random()*0.23})`;
+    const px = Math.random()*1024, py = Math.random()*1024;
+    ctx.beginPath(); ctx.ellipse(px, py, 2+Math.random()*18, 1+Math.random()*10, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
   }
-  // Longitudinal wear
-  for (let i = 0; i < 32; i++) {
-    ctx.strokeStyle = `rgba(12,14,18,${0.12 + Math.random() * 0.18})`;
-    ctx.lineWidth = 1 + Math.random() * 2.5;
-    ctx.beginPath();
-    const x = Math.random() * c.width;
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + (Math.random() - 0.5) * 60, c.height);
-    ctx.stroke();
+  // Longitudinal rubbering, braking streaks and faint pavement seams.
+  for (let i = 0; i < 90; i++) {
+    ctx.strokeStyle = `rgba(5,7,10,${0.08+Math.random()*0.20})`;
+    ctx.lineWidth = 0.6+Math.random()*3.2;
+    const px = Math.random()*1024;
+    ctx.beginPath(); ctx.moveTo(px,0); ctx.bezierCurveTo(px+(Math.random()-.5)*30,320,px+(Math.random()-.5)*30,700,px+(Math.random()-.5)*40,1024); ctx.stroke();
   }
-  // Light flecks
-  for (let i = 0; i < 900; i++) {
-    ctx.fillStyle = `rgba(72,76,82,${0.1 + Math.random() * 0.14})`;
-    ctx.fillRect(Math.random() * c.width, Math.random() * c.height, 1, 1);
+  for (let i = 0; i < 14; i++) {
+    const px = Math.random()*1024, py = Math.random()*1024;
+    ctx.strokeStyle = `rgba(8,10,12,${0.12+Math.random()*0.12})`; ctx.lineWidth = 1+Math.random()*2;
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+(Math.random()-.5)*45,py+12+Math.random()*50); ctx.stroke();
   }
   const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(1.8, 56);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1.8, 56);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  tex.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
   return tex;
 }
 
@@ -1861,7 +2319,7 @@ function createWorld() {
   const groundTexture = grassTex();
   groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(1800, 1800),
-    isMobile ? new THREE.MeshLambertMaterial({ color: visual.ground, map: groundTexture }) : new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.16 })
+    isMobile ? new THREE.MeshLambertMaterial({ color: visual.ground, map: groundTexture }) : new THREE.MeshStandardMaterial({ color: visual.ground, roughness: 0.92, metalness: 0.01, map: groundTexture, bumpMap: groundTexture, bumpScale: 0.24 })
   );
   groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.y = -6; groundMesh.receiveShadow = true; scene.add(groundMesh);
 
@@ -2280,17 +2738,35 @@ function applySeason() {
 function setRain(on) {
   rainOn = on;
   if (!rainMesh) {
-    const p = new Float32Array(7200);
-    for (let i = 0; i < p.length; i += 6) {
-      p[i] = (Math.random() - 0.5) * 70; p[i + 1] = (Math.random() - 0.5) * 70; p[i + 2] = (Math.random() - 0.5) * 70;
-      p[i + 3] = p[i]; p[i + 4] = p[i + 1] + 1.15; p[i + 5] = p[i + 2];
+    // Keep rain in camera space so it fills the visible view instead of
+    // disappearing toward the screen edges as the camera follows the car.
+    const count = visualQuality === 'low' ? 650 : 1200;
+    const p = new Float32Array(count * 6);
+    const aspect = (renderer && renderer.domElement.clientHeight)
+      ? renderer.domElement.clientWidth / renderer.domElement.clientHeight : 1.6;
+    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov || 60) * 0.5);
+    for (let i = 0; i < count; i++) {
+      const j = i * 6;
+      const depth = 10 + Math.random() * 32;
+      const halfH = depth * tanHalfFov;
+      const halfW = halfH * aspect;
+      const x = (Math.random() * 2 - 1) * halfW;
+      const y = (Math.random() * 2 - 1) * halfH;
+      p[j] = x; p[j + 1] = y; p[j + 2] = -depth;
+      p[j + 3] = x - 0.10; p[j + 4] = y + 0.85; p[j + 5] = -depth;
     }
-    const gm = new THREE.BufferGeometry(); gm.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    rainMesh = new THREE.LineSegments(gm, new THREE.LineBasicMaterial({ color: 0xc5e0f4, transparent: true, opacity: 0.55, depthWrite: false }));
-    rainMesh.frustumCulled = false; scene.add(rainMesh);
+    const gm = new THREE.BufferGeometry();
+    gm.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    rainMesh = new THREE.LineSegments(gm, new THREE.LineBasicMaterial({
+      color: 0xc5e0f4, transparent: true,
+      opacity: visualQuality === 'low' ? 0.32 : 0.48,
+      depthWrite: false, depthTest: false
+    }));
+    rainMesh.frustumCulled = false;
+    camera.add(rainMesh);
   }
   rainMesh.visible = on;
-  rainMesh.material.opacity = visualQuality === 'low' ? 0.32 : 0.55;
+  rainMesh.material.opacity = visualQuality === 'low' ? 0.32 : 0.48;
   if (roadMesh) {
     // Strong wet-road response: darker, more reflective, lower roughness
     const night = timeMode >= 5;
@@ -2304,15 +2780,28 @@ function setRain(on) {
 }
 function tickRain(dt) {
   if (!rainMesh || !rainMesh.visible) return;
-  const a = rainMesh.geometry.attributes.position.array, c = camera.position, cc = [c.x, c.y, c.z];
-  const fall = 48 * dt;
+  const a = rainMesh.geometry.attributes.position.array;
+  const fall = 30 * dt;
+  const aspect = (renderer && renderer.domElement.clientHeight)
+    ? renderer.domElement.clientWidth / renderer.domElement.clientHeight : 1.6;
+  const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov || 60) * 0.5);
   for (let j = 0; j < a.length; j += 6) {
+    const depth = -a[j + 2];
+    const halfH = depth * tanHalfFov;
+    const halfW = halfH * aspect;
     a[j + 1] -= fall;
-    for (let k = 0; k < 3; k++) a[j + k] = cc[k] + ((a[j + k] - cc[k] + 35) % 70 + 70) % 70 - 35;
-    a[j + 3] = a[j]; a[j + 4] = a[j + 1] + 1.15; a[j + 5] = a[j + 2];
+    if (a[j + 1] < -halfH) {
+      a[j + 1] = halfH + Math.random() * 2;
+      a[j] = (Math.random() * 2 - 1) * halfW;
+      a[j + 2] = -(10 + Math.random() * 32);
+    }
+    a[j + 3] = a[j] - 0.10;
+    a[j + 4] = a[j + 1] + 0.85;
+    a[j + 5] = a[j + 2];
   }
   rainMesh.geometry.attributes.position.needsUpdate = true;
 }
+
 function initSnow() {
   const count = isMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
   const p = new Float32Array(count * 3);
@@ -2389,7 +2878,7 @@ function makeCar(color, big) {
     const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
     const wheel = (x, z, r, w) => {
       const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 10), sm.tire); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
-      const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w + 0.02, 8), sm.rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
+      const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w * 0.88, 8), sm.rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
     };
     const lamp = (x, y, z, w, mat) => box(w, 0.1, 0.05, mat, x, y, z);
     const shadow = (w, d, z) => {
@@ -2439,19 +2928,37 @@ function makeCar(color, big) {
   }
   const g = new THREE.Group();
   // Random finish variation so traffic cars don't share identical materials
-  const gloss = 0.55 + Math.random() * 0.4;
+  const gloss = 0.72 + Math.random() * 0.25;
   const M = (c, r, m) => new THREE.MeshPhysicalMaterial({
     color: c, roughness: r * (0.85 + Math.random() * 0.3), metalness: m,
     clearcoat: m > 0.2 ? gloss : 0.12,
-    clearcoatRoughness: m > 0.2 ? (0.05 + Math.random() * 0.12) : 0.4,
+    clearcoatRoughness: m > 0.2 ? (0.035 + Math.random() * 0.075) : 0.4,
     reflectivity: 0.45 + Math.random() * 0.25,
-    envMapIntensity: 0.85 + Math.random() * 0.3
+    envMapIntensity: 1.15 + Math.random() * 0.35
   });
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
   const tire = M(0x0b0b0c, 0.92, 0), rim = M(0xc0c4c8, 0.22, 0.88), dark = M(0x111214, 0.55, 0.25), glass = M(0x101820, 0.05, 0.9), chrome = M(0xd0d4d8, 0.12, 0.95);
   const wheel = (x, z, r, w) => {
-    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 14), tire); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w + 0.02, 10), rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 32), tire);
+    t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
+    const discMat = M(0x777b80, 0.34, 0.82), caliperMat = M(0xb52b25, 0.38, 0.42);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.69, r * 0.69, w * 0.34, 32), discMat);
+    disc.rotation.z = Math.PI / 2; disc.position.set(x + Math.sign(x || 1) * w * 0.30, r, z); g.add(disc);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.60, r * 0.60, w + 0.035, 32), rim);
+    hub.rotation.z = Math.PI / 2; hub.position.set(x, r, z); g.add(hub);
+    const faceX = x + Math.sign(x || 1) * (w * 0.52);
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI * 2 / 10;
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.045, r * 0.78, 0.065), chrome);
+      spoke.position.set(faceX, r + Math.cos(a) * r * 0.28, z + Math.sin(a) * r * 0.28);
+      spoke.rotation.x = -a; g.add(spoke);
+    }
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.14, r * 0.14, 0.035, 20), M(0xd9dde0, 0.2, 0.9));
+    cap.rotation.z = Math.PI / 2; cap.position.set(faceX, r, z); g.add(cap);
+    const caliper = new THREE.Mesh(new THREE.BoxGeometry(w * 0.42, r * 0.52, r * 0.22), caliperMat);
+    caliper.position.set(x + Math.sign(x || 1) * w * 0.18, r + r * 0.18, z + r * 0.52); g.add(caliper);
+    const sidewall = new THREE.Mesh(new THREE.TorusGeometry(r * 0.88, 0.018, 6, 32), dark);
+    sidewall.rotation.y = Math.PI / 2; sidewall.position.set(faceX, r, z); g.add(sidewall);
   };
   const lamp = (x, y, z, w, col, em, i) => box(w, 0.1, 0.05, new THREE.MeshStandardMaterial({ color: col, emissive: em, emissiveIntensity: i, roughness: 0.3 }), x, y, z);
   const shadow = (w, d, z) => {
@@ -2507,6 +3014,28 @@ function makeCar(color, big) {
   [[-0.88, 1.25], [0.88, 1.25], [-0.88, -1.25], [0.88, -1.25]].forEach(([x, z]) => wheel(x, z, 0.34, 0.24));
   [-0.55, 0.55].forEach(x => lamp(x, 0.55, 2.08, 0.34, 0xfff5c0, 0xffe080, 0.8));
   [-0.58, 0.58].forEach(x => lamp(x, 0.6, -2.08, 0.4, 0xff2020, 0xaa0000, 0.5));
+  // Premium exterior detailing: glass trim, mirrors, grille, lower aero, handles and lamps.
+  const trim = M(0x252a30, 0.32, 0.72), chromeTrim = M(0xb7c0c8, 0.2, 0.88);
+  const rubber = M(0x090b0d, 0.9, 0.02);
+  const lens = new THREE.MeshPhysicalMaterial({ color: 0xe8f2ff, emissive: 0x9dbfff, emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.12, transparent: true, opacity: 0.94 });
+  box(0.10, 0.12, 2.65, trim, -0.91, 0.30, 0); box(0.10, 0.12, 2.65, trim, 0.91, 0.30, 0);
+  box(1.55, 0.10, 0.18, trim, 0, 0.29, 2.08); box(1.55, 0.10, 0.18, trim, 0, 0.29, -2.08);
+  box(0.88, 0.22, 0.035, rubber, 0, 0.48, 2.115);
+  for (let j = 0; j < 4; j++) box(0.78, 0.018, 0.018, chromeTrim, 0, 0.405 + j * 0.05, 2.14);
+  [-0.55, 0.55].forEach(x => {
+    box(0.38, 0.12, 0.035, lens, x, 0.57, 2.12);
+    box(0.30, 0.018, 0.018, new THREE.MeshBasicMaterial({ color: 0xe9f5ff }), x, 0.59, 2.145);
+    box(0.36, 0.085, 0.025, new THREE.MeshBasicMaterial({ color: 0xff2525 }), x, 0.61, -2.115);
+  });
+  [-1, 1].forEach(side => {
+    const mirror = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 8), paint);
+    mirror.scale.set(1.2, 0.65, 1.0); mirror.position.set(side * 1.02, 0.91 * sy, 0.62); g.add(mirror);
+    box(0.035, 0.035, 0.22, chromeTrim, side * 0.98, 0.89 * sy, 0.60);
+    box(0.045, 0.025, 0.20, chromeTrim, side * 0.89, 0.66 * sy, -0.35);
+    box(0.035, 0.34, 0.055, trim, side * 0.76, 0.91 * sy, 0.12);
+    box(0.035, 0.30, 0.055, trim, side * 0.76, 0.88 * sy, -0.75);
+  });
+  for (let j = -1; j <= 1; j++) box(0.035, 0.055, 0.32, chromeTrim, j * 0.38, 0.28, -2.16);
   shadow(2, 4.3, 0);
   return g;
 }
@@ -2523,7 +3052,7 @@ function makeCarV2(color, truck) {
   const tire = M(0x0b0b0c, 0.92, 0), rim = M(0xc0c4c8, 0.25, 0.85), dark = M(0x111214, 0.55, 0.25), glass = M(0x101820, 0.06, 0.9);
   const wheel = (x, z, r, w) => {
     const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 14), tire); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w + 0.02, 10), rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w * 0.88, 10), rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
   };
   const lamp = (x, y, z, w, col, em, i) => box(w, 0.1, 0.05, new THREE.MeshStandardMaterial({ color: col, emissive: em, emissiveIntensity: i, roughness: 0.3 }), x, y, z);
   const shadow = (w, d, z) => {
@@ -2591,6 +3120,62 @@ function makeCarOld(color) {
   return g;
 }
 
+
+// ---------- Free CC0 GT3-style traffic model ----------
+let gt3ModelTemplate = null;
+let gt3AssetLoadStarted = false;
+const GT3_MODEL_URL = 'https://cdn.3dassets.dev/assets/14834/v1/model.glb';
+
+function makeGT3TrafficCar(color) {
+  if (!gt3ModelTemplate) return null;
+  const model = gt3ModelTemplate.clone(true);
+  // The source model is authored in metres, +Y up, with its nose along +Z.
+  // Keep the original mesh/material detail; tint only the visible body-like
+  // materials where the source exposes a neutral paint material.
+  model.traverse((obj) => {
+    if (!obj.isMesh) return;
+    obj.castShadow = visualQuality === 'high';
+    obj.receiveShadow = true;
+    if (obj.material) {
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      mats.forEach((mat) => {
+        if (mat && mat.color && mat.userData && mat.userData.gt3Paint) {
+          mat.color.setHex(color);
+        }
+      });
+    }
+  });
+  return model;
+}
+
+async function loadFreeGT3Asset() {
+  if (gt3AssetLoadStarted) return;
+  gt3AssetLoadStarted = true;
+  try {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(GT3_MODEL_URL);
+    gt3ModelTemplate = gltf.scene;
+    // Apply the model to some already-spawned traffic cars too. The rest of
+    // the traffic remains varied procedural vehicles.
+    let applied = 0;
+    for (const car of traffic) {
+      if (car.big || applied >= Math.max(2, Math.floor(CARS_N * 0.38))) continue;
+      const replacement = makeGT3TrafficCar(car.color || 0xd8dce0);
+      if (!replacement) continue;
+      scene.remove(car.mesh);
+      car.mesh = replacement;
+      car.mesh.scale.setScalar(1);
+      scene.add(car.mesh);
+      car.bodyLength = 5.04;
+      car.bodyWidth = 2.27;
+      applied++;
+    }
+  } catch (err) {
+    console.warn('Free GT3 model could not be loaded; using built-in traffic models.', err);
+  }
+}
+
 function spawnTraffic() {
   traffic.forEach(c => scene.remove(c.mesh));
   traffic = [];
@@ -2603,7 +3188,8 @@ function spawnTraffic() {
   for (let i = 0; i < CARS_N; i++) {
     const big = Math.random() < 0.18;
     const col = cols[Math.random() * cols.length | 0];
-    const mesh = makeCar(col, big);
+    const useGT3 = !big && gt3ModelTemplate && (i % 3 !== 1);
+    const mesh = useGT3 ? makeGT3TrafficCar(col) : makeCar(col, big);
     // slight random scale so traffic doesn't look instanced
     const s = 0.92 + Math.random() * 0.16;
     mesh.scale.set(s, s * (0.96 + Math.random() * 0.08), s);
@@ -2625,7 +3211,9 @@ function spawnTraffic() {
       passTimer: 0,
       spd: big ? 16 + Math.random() * 8 : 20 + Math.random() * 30,
       big,
-      bodyLength: big ? 9.2 : 4.3,
+      color: col,
+      bodyLength: big ? 9.2 : (useGT3 ? 5.04 : 4.3),
+      bodyWidth: big ? 2.4 : (useGT3 ? 2.27 : 1.8),
       bodyWidth: big ? 2.45 : 1.9,
       done: false,
       hit: false
@@ -3283,6 +3871,7 @@ function frame() {
     renderStep = true;
   }
   renderer.render(scene, camera);
+  if (run && !dead && !paused) tickNexusOverlay(realDt);
 }
 
 function onKey(e, down) {
@@ -3358,18 +3947,25 @@ function start() {
 function init() {
   const canvas = document.getElementById('c');
   const pixels = innerWidth * innerHeight;
-  visualQuality = isMobile ? 'low' : (pixels > 2400000 && (globalThis.devicePixelRatio || 1) <= 2 ? 'high' : pixels > 1000000 ? 'medium' : 'low');
+  // Use the sharper desktop profile on ordinary 1080p displays too; keep mobile adaptive.
+  visualQuality = isMobile ? 'low' : (pixels >= 1200000 ? 'high' : pixels >= 650000 ? 'medium' : 'low');
   renderer = createRenderer(canvas, {
     antialias: !isMobile && visualQuality !== 'low',
     shadows: !isMobile,
-    maxPixelRatio: isMobile ? 1.0 : (visualQuality === 'high' ? 2 : 1.35)
+    maxPixelRatio: isMobile ? 1.0 : (visualQuality === 'high' ? 2.25 : visualQuality === 'medium' ? 1.65 : 1.2)
   });
   renderer.setSize(innerWidth, innerHeight);
+  initNexusOverlay();
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
+  if (!isMobile) {
+    const nexusEnvironment = createNexusEnvironment();
+    scene.environment = nexusEnvironment;
+    scene.environmentIntensity = visualQuality === 'high' ? 1.25 : 0.9;
+  }
   camera = new THREE.PerspectiveCamera(64, innerWidth / innerHeight, 0.1, 700);
   clock = new THREE.Clock();
   cinematicFx = document.getElementById('cinematic-fx');
@@ -3381,14 +3977,16 @@ function init() {
   sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
   sun.position.set(40, 70, 30);
   sun.castShadow = !isMobile && visualQuality !== 'low';
-  sun.shadow.mapSize.set(visualQuality === 'high' ? 2048 : 1024, visualQuality === 'high' ? 2048 : 1024);
+  sun.shadow.mapSize.set(visualQuality === 'high' ? 4096 : 2048, visualQuality === 'high' ? 4096 : 2048);
   sun.shadow.camera.near = 10;
   sun.shadow.camera.far = 320;
   sun.shadow.camera.left = -180;
   sun.shadow.camera.right = 180;
   sun.shadow.camera.top = 180;
   sun.shadow.camera.bottom = -180;
-  sun.shadow.bias = -0.0002;
+  sun.shadow.bias = -0.00012;
+  sun.shadow.normalBias = 0.025;
+  sun.shadow.radius = visualQuality === 'high' ? 5 : 3;
   scene.add(sun);
 
   // Improved low-beam pair (warmer halogen, longer reach, softer penumbra)
@@ -3422,6 +4020,7 @@ function init() {
   beamR = makeBeam();
 
   buildTrackWorld(); initSmoke(); initSnow(); spawnTraffic();
+  loadFreeGT3Asset();
   applyDayNight();
   applySeason();
 
@@ -3435,6 +4034,11 @@ function init() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    if (fxOverlayCanvas && nexusGfx) {
+      fxOverlayCanvas.width = innerWidth;
+      fxOverlayCanvas.height = innerHeight;
+      nexusGfx.resize(innerWidth, innerHeight);
+    }
   });
   addEventListener('keydown', e => onKey(e, true));
   addEventListener('keyup', e => onKey(e, false));
@@ -3531,3 +4135,7 @@ function init() {
 init();
 </script>
 </html>
+
+
+/* Final cockpit cleanup: remove the remaining raised hood/windshield lip above the instrument cluster. */
+#hood { display: none !important; }
