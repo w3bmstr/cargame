@@ -1671,6 +1671,7 @@ function legScene(L) {
     seqUniq(L.times.map(t => TIME_NAMES[t])).join(' \u2192 ') + ' \u00B7 ' + seqUniq(idx.map(b => weatherOf(L, b))).join(' \u2192 ');
 }
 function setLegScene(L, b) {
+  resetGlass();
   season = legSeason(L, b); timeMode = L.times[b];
   applyDayNight(); applySeason(); setRain(!!L.rain[b]);
 }
@@ -1738,6 +1739,7 @@ function completeLeg() {
   $('win').style.display = 'flex';
 }
 function toMenu() {
+  resetGlass();
   story = null; won = false; dead = false; run = false; paused = false;
   ['win', 'crash', 'levels'].forEach(id => $(id).style.display = 'none');
   $('start').style.display = 'flex';
@@ -2071,6 +2073,7 @@ function applyCar() {
   if (st) st.textContent = 'TRACK: ' + TRACKS[trackId];
 }
 function buildTrackWorld() {
+  resetGlass();
   if (trackG) { scene.remove(trackG); trackG.traverse(o => {
       if (o.geometry) o.geometry.dispose();
       if (o.isInstancedMesh) o.dispose();
@@ -2486,13 +2489,23 @@ function buildCrownGeo(nBlobs, detail, spread, cy, rScale) {
   return smoothNormals(mergeGeos(geos), 80);
 }
 const SEASON_LEAF = [[0x3a9a30, 0x50b040, 0x2a8020], [0x145c12, 0x1a7018, 0x0e4a0e], [0xc45a18, 0xd4a020, 0xa03010], [0xe8eef4, 0xd0d8e0, 0xc0c8d0]];
-const _leafCol = new THREE.Color();
+const _leafCol = new THREE.Color(), _hsl = { h: 0, s: 0, l: 0 };
+function treeHash(k, salt) { const x = Math.sin(k * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); }
 function paintLeaves(sIdx) {
   const pal = SEASON_LEAF[sIdx] || SEASON_LEAF[0];
+  const hueRange = [0.05, 0.035, 0.1, 0.012][sIdx] || 0.04;   // autumn gets the widest spread (reds, oranges, yellows)
   for (const m of treeLeafList) {
     const jit = m.userData.jit; if (!jit) continue;
+    let salt = 1; for (const ch of String(m.userData.kind)) salt += ch.charCodeAt(0);
     for (let k = 0; k < jit.length; k++) {
-      _leafCol.setHex(pal[k % pal.length]);
+      _leafCol.setHex(pal[(treeHash(k, salt + 5.3) * pal.length) | 0]);
+      // every tree gets its own hue, saturation and lightness, so a forest stops looking like copies of one tree
+      _leafCol.getHSL(_hsl);
+      _leafCol.setHSL(
+        _hsl.h + (treeHash(k, salt) - 0.5) * hueRange,
+        Math.min(1, _hsl.s * (0.78 + treeHash(k, salt + 1.7) * 0.34)),
+        Math.min(0.95, _hsl.l * (0.88 + treeHash(k, salt + 3.1) * 0.24))
+      );
       const j = jit[k];
       _leafCol.setRGB(Math.min(1, _leafCol.r * j * 1.25), Math.min(1, _leafCol.g * j * 1.25), Math.min(1, _leafCol.b * j * 1.25));
       m.setColorAt(k, _leafCol);
@@ -2585,18 +2598,19 @@ function createWorld() {
     `
   }));
   scene.add(skyMesh);
-  sunDisc = new THREE.Mesh(new THREE.SphereGeometry(18, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff0c0, fog: false, depthWrite: false }));
+  // soft glowing discs: a bright core with a feathered edge, plus a big additive halo (no hard-edged ball)
+  const spriteMat = (tex, color, add, opacity) => new THREE.SpriteMaterial({
+    map: tex, color, transparent: true, opacity, fog: false, depthWrite: false,
+    blending: add ? THREE.AdditiveBlending : THREE.NormalBlending
+  });
+  const discTex = softTex([[0, 1], [0.2, 1], [0.3, 0.55], [0.5, 0.14], [1, 0]]);
+  const haloTex = softTex([[0, 0.55], [0.25, 0.25], [0.6, 0.06], [1, 0]]);
+  sunDisc = new THREE.Sprite(spriteMat(discTex, 0xfff0c0, false, 1)); sunDisc.scale.set(150, 150, 1);
   scene.add(sunDisc);
-  sunGlow = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 12), new THREE.MeshBasicMaterial({
-    color: 0xffb866, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, fog: false, depthWrite: false
-  }));
+  sunGlow = new THREE.Sprite(spriteMat(haloTex, 0xffb866, true, 0.32)); sunGlow.scale.set(SUN_GLOW_SIZE, SUN_GLOW_SIZE, 1);
   scene.add(sunGlow);
-  moonDisc = new THREE.Mesh(new THREE.SphereGeometry(15, 20, 16), new THREE.MeshBasicMaterial({
-    color: 0xe2ecff, fog: false, depthWrite: false
-  }));
-  moonGlow = new THREE.Mesh(new THREE.SphereGeometry(32, 20, 16), new THREE.MeshBasicMaterial({
-    color: 0xb4d0ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, fog: false, depthWrite: false
-  }));
+  moonDisc = new THREE.Sprite(spriteMat(discTex, 0xe2ecff, false, 1)); moonDisc.scale.set(120, 120, 1);
+  moonGlow = new THREE.Sprite(spriteMat(haloTex, 0xb4d0ff, true, 0.3)); moonGlow.scale.set(300, 300, 1);
   scene.add(moonDisc, moonGlow);
   horizonGlow = new THREE.Mesh(new THREE.SphereGeometry(280, 28, 14), new THREE.MeshBasicMaterial({
     color: 0x7eb4d0, transparent: true, opacity: 0.11, side: THREE.BackSide, fog: false, depthWrite: false
@@ -2622,17 +2636,23 @@ function createWorld() {
     color: 0xe8f1f8, roughness: 1, transparent: true, opacity: 0.34,
     depthWrite: false, fog: true, emissive: 0x6a7e90, emissiveIntensity: 0.1
   });
+  cloudMat.onBeforeCompile = sh => {   // fade the cloud out toward its silhouette, so edges are soft instead of hard polygons
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>',
+      '#include <normal_fragment_begin>\n float cloudRim = abs(dot(normalize(normal), normalize(vViewPosition)));\n diffuseColor.a *= 1.4 * smoothstep(0.02, 0.7, cloudRim);');
+  };
+  cloudMat.customProgramCacheKey = () => 'cloud-softrim';
   const cloudCount = gfxMobile ? 6 : (visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16);
   for (let i = 0; i < cloudCount; i++) {
     const puffs = 5 + (i % 4), parts = [];
     for (let j = 0; j < puffs; j++) {
       const size = 11 + (j % 3) * 6 + Math.random() * 4;
-      const g = new THREE.SphereGeometry(size, 10, 7);
+      const g = new THREE.SphereGeometry(size, gfxMobile ? 10 : 14, gfxMobile ? 7 : 9);
       g.applyMatrix4(mk((j - puffs / 2) * (9 + Math.random() * 4), (Math.random() - 0.3) * 5, (Math.random() - 0.5) * 10,
         0, Math.random() * Math.PI, 0, 1 + Math.random() * 0.4, 0.28 + Math.random() * 0.18, 0.9 + Math.random() * 0.35));
       parts.push(g);
     }
-    const cloud = new THREE.Mesh(mergeGeos(parts), cloudMat.clone());
+    const cm = cloudMat.clone(); cm.onBeforeCompile = cloudMat.onBeforeCompile; cm.customProgramCacheKey = cloudMat.customProgramCacheKey;
+    const cloud = new THREE.Mesh(smoothNormals(mergeGeos(parts), 100), cm);
     parts.forEach(g => g.dispose());
     const a = (i / cloudCount) * Math.PI * 2 + Math.random() * 0.2;
     const radius = 220 + (i % 5) * 38 + Math.random() * 25;
@@ -2662,7 +2682,8 @@ function createWorld() {
   starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
   starGeo.setAttribute('color', new THREE.Float32BufferAttribute(starCol, 3));
   starMesh = new THREE.Points(starGeo, new THREE.PointsMaterial({
-    color: 0xffffff, vertexColors: true, size: 2.4, sizeAttenuation: true, transparent: true, opacity: 1.0, depthWrite: false, fog: false
+    color: 0xffffff, vertexColors: true, size: 3.0, sizeAttenuation: true, transparent: true, opacity: 1.0, depthWrite: false, fog: false,
+    map: softTex([[0, 1], [0.35, 0.85], [1, 0]])
   }));
   starMesh.visible = false;
   scene.add(starMesh);
@@ -2751,9 +2772,13 @@ function createWorld() {
   };
   const tl = { trunkPine: [], trunkBroad: [], pineHi: [], pineMid: [], pineLo: [], broadHi: [], broadMid: [], broadLo: [], bush: [] };
   const jit = { pineHi: [], pineMid: [], pineLo: [], broadHi: [], broadMid: [], broadLo: [], bush: [] };
+  const shadowBlobs = [];
   const tryTree = (x, z, sc, broad, lod, minD) => {
     if (!clearOfRoad(x, z, minD)) return;
-    const y = groundH(x, z), ry = Math.random() * Math.PI * 2, tilt = (Math.random() - 0.5) * 0.07, sx = sc * (0.88 + Math.random() * 0.24), sy = sc * (0.9 + Math.random() * 0.3);
+    const rr = Math.random();
+    const vsc = rr < 0.08 ? (lod === 'Hi' ? 1.0 : 1.3) : rr < 0.2 ? 0.7 + Math.random() * 0.14 : 1;   // a few giants (background only) and young trees
+    const y = groundH(x, z), ry = Math.random() * Math.PI * 2, tilt = (Math.random() - 0.5) * 0.07, sx = sc * vsc * (0.88 + Math.random() * 0.24), sy = sc * vsc * (0.88 + Math.random() * 0.36);
+    if (lod !== 'Lo' && !(isMobile && lod !== 'Hi')) shadowBlobs.push(mk(x, y + 0.07, z, 0, 0, 0, sx * (broad ? 3.7 : 2.7), 1, sx * (broad ? 3.7 : 2.7)));
     tl[broad ? 'trunkBroad' : 'trunkPine'].push(mk(x, y, z, 0, ry, 0, sx, sy, sx));
     const f = (broad ? 'broad' : 'pine') + lod;
     tl[f].push(mk(x, y, z, tilt, ry, tilt * 0.7, sx, sy, sx)); jit[f].push(0.82 + Math.random() * 0.36);
@@ -2789,8 +2814,25 @@ function createWorld() {
     tl.bush.push(mk(x, groundH(x, z) - 0.05, z, 0, Math.random() * 6.28, 0, sc * (1 + Math.random() * 0.3), sc * (0.8 + Math.random() * 0.4), sc)); jit.bush.push(0.75 + Math.random() * 0.5);
   }
   const shadowTrees = visualQuality === 'high' && !isMobile;
-  addInst(inst(trunkPineGeo, barkMat, tl.trunkPine, visualQuality !== 'low', true));
-  addInst(inst(trunkBroadGeo, barkMat, tl.trunkBroad, visualQuality !== 'low', true));
+  const tintTrunks = tm => {
+    if (!tm) return;
+    for (let i = 0; i < tm.count; i++) {
+      const f = 0.72 + treeHash(i, 9.1) * 0.55;
+      tm.setColorAt(i, _leafCol.setRGB(f * (0.95 + treeHash(i, 2.2) * 0.14), f * (0.95 + treeHash(i, 4.4) * 0.08), f * (0.9 + treeHash(i, 6.6) * 0.14)));
+    }
+    if (tm.instanceColor) tm.instanceColor.needsUpdate = true;
+  };
+  tintTrunks(addInst(inst(trunkPineGeo, barkMat, tl.trunkPine, visualQuality !== 'low', true)));
+  tintTrunks(addInst(inst(trunkBroadGeo, barkMat, tl.trunkBroad, visualQuality !== 'low', true)));
+  {
+    // soft dark patch on the ground under each tree: grounds the trees (cheap ambient occlusion), one draw call
+    const blobGeo = new THREE.PlaneGeometry(2, 2); blobGeo.rotateX(-Math.PI / 2);
+    const blobMat = new THREE.MeshBasicMaterial({
+      map: softTex([[0, 0.9], [0.45, 0.55], [1, 0]]), color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+    });
+    addInst(inst(blobGeo, blobMat, shadowBlobs, false, false));
+  }
   treeLeafList = [];
   Object.keys(geoLib).forEach(k => {
     const m = addInst(inst(geoLib[k], leafMat, tl[k], shadowTrees && k.endsWith('Hi'), true));
@@ -3154,13 +3196,17 @@ function createWorld() {
       addInst(inst(poleGeo, poleMat, lm, false, false));
       addInst(inst(headGeo, headMat, lm, false, false));
       const poolI = addInst(inst(poolGeo, poolMat, lm, false, false)); poolI.renderOrder = 2;
+      // in rain each lamp also reflects as a long streak on the wet road
+      const streakMat = new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xffc98a, transparent: true, opacity: 0, depthWrite: false,
+        blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 });
+      const streakI = addInst(inst(_gp(new THREE.PlaneGeometry(2.4, 40), -4.4, 0.075, 0, -Math.PI / 2), streakMat, lm, false, false)); streakI.renderOrder = 2; streakI.visible = false;
       const gp = new Float32Array(headWorld.length * 3);
       headWorld.forEach((v, k) => { gp[k * 3] = v.x; gp[k * 3 + 1] = v.y - 0.1; gp[k * 3 + 2] = v.z; });
       const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(gp, 3));
       const glowMat = new THREE.PointsMaterial({ map: glowTex(), color: 0xffc27a, size: 7, transparent: true, opacity: 0, depthWrite: false,
         blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false });
       const glowPts = new THREE.Points(gg, glowMat); glowPts.frustumCulled = false; scene.add(glowPts);
-      lampFx = { pool: poolMat, glow: glowMat, head: headMat, poolI, glowPts };
+      lampFx = { pool: poolMat, glow: glowMat, head: headMat, poolI, glowPts, streak: streakMat, streakI };
     }
   }
   if (trackId === 10) createSuzukaDetails();
@@ -3285,6 +3331,7 @@ function applyDayNight() {
     cloudGroup.traverse(o => {
       if (o.material && o.material.opacity !== undefined) {
         o.material.opacity = opac;
+        o.material.userData.baseOp = opac; o.material.userData.baseCol = col;
         o.material.color.setHex(col);
         o.material.emissive.setHex(timeMode >= 5 ? 0x2a3040 : 0x6a7e90);
       }
@@ -3293,12 +3340,12 @@ function applyDayNight() {
   if (sunGlow) {
     sunGlow.visible = timeMode < 6;
     sunGlow.material.color.set(m.sunCol);
-    sunGlow.material.opacity = timeMode <= 1 ? 0.22 : 0.13;
+    sunGlow.material.opacity = timeMode <= 1 ? 0.55 : 0.32;
   }
   if (starMesh) {
     starMesh.visible = timeMode >= 5; // dusk + night
     starMesh.material.opacity = timeMode === 6 ? 1.0 : 0.6;
-    starMesh.material.size = timeMode === 6 ? 2.6 : 2.0;
+    starMesh.material.size = timeMode === 6 ? 3.3 : 2.5;
   }
   if (moonDisc) {
     moonDisc.visible = timeMode >= 5;
@@ -3314,6 +3361,12 @@ function applyDayNight() {
   hemi.groundColor.set(m.hemiGnd);
   sun.intensity = m.sunI;
   sun.color.set(m.sunCol);
+  dayBase = {
+    sunI: m.sunI, hemiI: m.hemiI,
+    fogColor: scene.fog.color.clone(), fogNear: scene.fog.near, fogFar: scene.fog.far,
+    horizon: skyMesh ? skyMesh.material.uniforms.horizon.value.clone() : null,
+    zenith: skyMesh ? skyMesh.material.uniforms.zenith.value.clone() : null
+  };
   if (roadMesh?.material?.emissiveIntensity !== undefined && !rainOn) {
     roadMesh.material.emissiveIntensity = m.lights ? 0.52 : 0.18;
   }
@@ -3333,6 +3386,7 @@ function applyDayNight() {
     headlightR.penumbra = nightish ? 0.7 : 0.82;
   }
   updateBeamLevel();
+  applyOvercast();
   // Wet asphalt + glowing paint under headlights at night
   if (roadMesh && roadMesh.material) {
     const nightish = timeMode >= 5;
@@ -3398,12 +3452,55 @@ function applySeason() {
   if (scene.fog) {
     const modeFogNear = [50, 55, 60, 70, 55, 50, 45][timeMode];
     scene.fog.near = season === 3 ? modeFogNear * 0.85 : modeFogNear;
+    if (dayBase) dayBase.fogNear = scene.fog.near;
   }
   if (snowMesh) snowMesh.visible = season === 3;
   setRain(season === 0);
   updateModeLabel();
 }
 
+const SUN_GLOW_SIZE = 420;
+function softTex(stops) {   // radial alpha gradient, white, used for glows / round points
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  stops.forEach(([p, a]) => g.addColorStop(p, `rgba(255,255,255,${a})`));
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+let dayBase = null;
+const _gc = new THREE.Color();
+function greyOf(col) { const l = col.r * 0.3 + col.g * 0.59 + col.b * 0.11; return _gc.setRGB(l, l, l); }
+// Rain = overcast: dimmer sun, greyer + closer fog, greyer/denser clouds, the sun and moon hide behind cloud, stars fade,
+// foliage dulls. Always computed from the clear-weather values saved by applyDayNight, so toggling is exact and reversible.
+function applyOvercast() {
+  if (!dayBase || !scene || !scene.fog) return;
+  const r = rainOn ? 1 : 0, b = dayBase;
+  sun.intensity = b.sunI * (1 - 0.5 * r);
+  hemi.intensity = b.hemiI * (1 + 0.12 * r);
+  scene.fog.color.copy(b.fogColor).lerp(greyOf(b.fogColor), 0.4 * r);
+  scene.fog.near = b.fogNear * (1 - 0.3 * r);
+  scene.fog.far = b.fogFar * (1 - 0.25 * r);
+  if (skyMesh && b.horizon) {
+    const u = skyMesh.material.uniforms;
+    u.horizon.value.copy(b.horizon).lerp(greyOf(b.horizon), 0.5 * r);
+    u.zenith.value.copy(b.zenith).lerp(greyOf(b.zenith), 0.5 * r);
+  }
+  if (cloudGroup) cloudGroup.traverse(o => {
+    const d = o.material && o.material.userData;
+    if (!d || d.baseOp === undefined) return;
+    o.material.opacity = Math.min(0.7, d.baseOp * (1 + 1.6 * r));
+    o.material.color.setHex(d.baseCol).lerp(_gc.setHex(0x7f8793), 0.6 * r);
+  });
+  if (sunDisc) { sunDisc.material.opacity = 1 - 0.82 * r; sunGlow.material.opacity = (timeMode <= 1 ? 0.55 : 0.32) * (1 - 0.7 * r); }
+  if (moonDisc) { moonDisc.material.opacity = 1 - 0.65 * r; moonGlow.material.opacity = 0.3 * (1 - 0.6 * r); }
+  if (starMesh) starMesh.material.opacity = (timeMode === 6 ? 1.0 : 0.6) * (1 - 0.8 * r);
+  const k = (1 - 0.2 * r) * [1, 1, 1, 1, 0.96, 0.9, 0.86][timeMode];
+  for (const m of treeLeafList) {
+    const mat = m.material; if (!mat || !mat.color) continue;
+    if (!mat.userData.baseTint) mat.userData.baseTint = mat.color.clone();
+    mat.color.copy(mat.userData.baseTint).multiplyScalar(k);
+  }
+}
 const BEAM_LEN = 38;
 const BEAM_LEVEL = [0.5, 0, 0, 0, 0.15, 0.7, 1];   // by timeMode: dawn, sunrise, day, noon, evening, dusk, night
 function updateBeamLevel() {
@@ -3484,6 +3581,201 @@ function setRain(on) {
   }
   applyRoadWetness();
   updateBeamLevel();
+  applyOvercast();
+}
+let glassCv = null, glassCx = null, glassDrops = [], glassSpawn = 0;
+// ---- windshield: raindrops, a wet film and two wipers (2D canvases under the dash). Everything here exists ONLY while it rains. ----
+const WIPE_PARK = 178 * Math.PI / 180, WIPE_SPAN = 136 * Math.PI / 180, WIPE_SQ = 0.82;   // WIPE_SQ squashes the arcs vertically (tilted glass)
+const WIPE_UP = 0.46, WIPE_HOLD = 0.08, WIPE_LAG = 0.04;                                   // fraction of a sweep going up / pausing at the top / passenger-arm lag
+let wipeMode = 1;                                     // 0 off, 1 auto, 2 fast (X cycles)
+let wipeT = -1, wipeGap = 1.5, wipeDur = 1.05, wipeFlung = false, wiperA = 0, glassFrame = 0, dashEdge = null, filmAmt = 0, filmTick = 0;
+const wipePhi = [WIPE_PARK, WIPE_PARK], wipeDir = [0, 0], wipePh = [0, 0], flung = [];
+let filmCv = null, filmCx = null;
+function resetGlass() {   // called on every scene / track / leg change and on menu or restart: nothing carries into a dry scene
+  glassDrops.length = 0; glassSpawn = 0; wipeT = -1; wipeGap = 1.2; wipePhi[0] = wipePhi[1] = WIPE_PARK; wipeDir[0] = wipeDir[1] = 0; wipePh[0] = wipePh[1] = 0;
+  flung.length = 0; wipeFlung = false; wiperA = 0; glassFrame = 0; filmAmt = 0; filmTick = 0;
+  if (filmCx) filmCx.clearRect(0, 0, filmCv.width, filmCv.height);
+  if (glassCv) glassCv.style.display = 'none';
+}
+function wipePhase(u) {   // 0..1..0 with an eased start and stop and a short pause at the top
+  if (u <= 0 || u >= 1) return 0;
+  if (u < WIPE_UP) return 0.5 - 0.5 * Math.cos(Math.PI * u / WIPE_UP);
+  if (u < WIPE_UP + WIPE_HOLD) return 1;
+  return 0.5 + 0.5 * Math.cos(Math.PI * (u - WIPE_UP - WIPE_HOLD) / (1 - WIPE_UP - WIPE_HOLD));
+}
+// the visible top edge of the dash artwork, sampled from its SVG outline, so the wiper pivots sit exactly on it at any screen size / car style
+function measureDashEdge() {
+  dashEdge = null;
+  const sh = document.getElementById('dash-shell');
+  if (sh) {
+    const r = sh.getBoundingClientRect(), path = sh.querySelectorAll('path')[1];
+    if (r.width > 50 && r.height > 20 && path && path.getTotalLength) {
+      const n = 60, len = path.getTotalLength(), xs = [], ys = [];
+      for (let i = 0; i <= n; i++) { const p = path.getPointAtLength(len * i / n); xs.push((r.left + p.x / 1200 * r.width) / 2); ys.push((r.top + p.y / 320 * r.height) / 2); }
+      dashEdge = { xs, ys };
+    }
+  }
+  if (!dashEdge) { const de = document.getElementById('dash'); dashEdge = { flat: de && de.offsetHeight ? de.getBoundingClientRect().top / 2 : null }; }
+}
+function edgeYAt(px, H) {
+  const e = dashEdge;
+  if (!e) return H * 0.73;
+  if (e.flat !== undefined) return e.flat === null ? H * 0.73 : e.flat;
+  const xs = e.xs, ys = e.ys;
+  if (px <= xs[0]) return ys[0];
+  for (let i = 1; i < xs.length; i++) if (px <= xs[i]) { const t = (px - xs[i - 1]) / ((xs[i] - xs[i - 1]) || 1); return ys[i - 1] + (ys[i] - ys[i - 1]) * t; }
+  return ys[ys.length - 1];
+}
+function bladeEnds(px, py, L, phi) {
+  const dx = Math.cos(phi), dy = -Math.sin(phi) * WIPE_SQ;
+  return [px + dx * 0.3 * L, py + dy * 0.3 * L, px + dx * 0.99 * L, py + dy * 0.99 * L];
+}
+function drawWiper(x, px, py, L, phi, dayK, nightK, ds) {
+  const dx = Math.cos(phi), dy = -Math.sin(phi) * WIPE_SQ, dl = Math.hypot(dx, dy), ux = dx / dl, uy = dy / dl, nx = -uy, ny = ux;
+  const K = Math.max(0.8, Math.min(1.5, L / 340)), c = Math.max(-1, Math.min(1, ds * 2.5)), bo = (-3.4 * c - 2.0 * (1 - Math.min(1, Math.abs(c)))) * K;   // the blade trails the arm (flips side when the direction reverses)
+  const at = (r, o) => [px + dx * r * L + nx * o, py + dy * r * L + ny * o];
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  // pivot cap (half hidden behind the dash)
+  x.fillStyle = 'rgba(28,30,35,0.95)'; x.beginPath(); x.arc(px, py, 3.4, 0, 6.283); x.fill();
+  x.fillStyle = 'rgba(150,158,168,' + (0.25 + 0.4 * dayK).toFixed(2) + ')'; x.beginPath(); x.arc(px - 0.8, py - 0.8, 1.3, 0, 6.283); x.fill();
+  // tapered metal arm with a slight bend
+  const e = at(0.5, 1.6), t = at(0.76, 0.4), a0 = at(0, 0);
+  x.strokeStyle = 'rgba(30,33,39,0.96)'; x.lineWidth = 2.4 * K; x.beginPath(); x.moveTo(a0[0], a0[1]); x.lineTo(e[0], e[1]); x.stroke();
+  x.lineWidth = 1.7 * K; x.beginPath(); x.moveTo(e[0], e[1]); x.lineTo(t[0], t[1]); x.stroke();
+  x.strokeStyle = 'rgba(165,172,182,' + (0.12 + 0.5 * dayK).toFixed(2) + ')'; x.lineWidth = 0.7;     // thin highlight along the arm
+  x.beginPath(); x.moveTo(a0[0] - nx * 0.7, a0[1] - ny * 0.7); x.lineTo(e[0] - nx * 0.7, e[1] - ny * 0.7); x.lineTo(t[0] - nx * 0.5, t[1] - ny * 0.5); x.stroke();
+  // blade: rubber on a metal spine, joined to the arm by a bracket
+  const b0 = at(0.3, bo), b1 = at(0.99, bo), br = at(0.76, bo);
+  x.strokeStyle = 'rgba(30,33,39,0.96)'; x.lineWidth = 1.3 * K; x.beginPath(); x.moveTo(t[0], t[1]); x.lineTo(br[0], br[1]); x.stroke();
+  x.strokeStyle = 'rgba(0,0,0,0.22)'; x.lineWidth = 3.4 * K; x.beginPath(); x.moveTo(b0[0] + 1.6, b0[1] + 2.2); x.lineTo(b1[0] + 1.6, b1[1] + 2.2); x.stroke();
+  x.strokeStyle = 'rgba(8,9,11,0.97)'; x.lineWidth = 3.4 * K; x.beginPath(); x.moveTo(b0[0], b0[1]); x.lineTo(b1[0], b1[1]); x.stroke();
+  x.strokeStyle = 'rgba(95,102,112,' + (0.2 + 0.45 * dayK).toFixed(2) + ')'; x.lineWidth = 0.8;
+  x.beginPath(); x.moveTo(b0[0] - nx, b0[1] - ny); x.lineTo(b1[0] - nx, b1[1] - ny); x.stroke();
+  if (nightK > 0.05) { x.strokeStyle = 'rgba(255,238,205,' + (0.3 * nightK).toFixed(2) + ')'; x.lineWidth = 0.9;    // headlight / lamp glint on the rubber
+    x.beginPath(); x.moveTo(b0[0] + nx * 0.8, b0[1] + ny * 0.8); x.lineTo(b1[0] + nx * 0.8, b1[1] + ny * 0.8); x.stroke(); }
+  if (Math.abs(c) > 0.4) {   // a little bead of water pushed along ahead of a moving blade
+    x.fillStyle = 'rgba(225,238,255,0.55)';
+    for (let i = 0; i < 6; i++) { const p = at(0.36 + i * 0.1, -bo * 0.9 + (i % 2 ? 0.7 : -0.7)); x.beginPath(); x.arc(p[0], p[1], 0.9 + (i % 3) * 0.3, 0, 6.283); x.fill(); }
+  }
+}
+function tickGlass(dt) {
+  const hideGlass = () => { if (glassCv && glassCv.style.display !== 'none') glassCv.style.display = 'none'; };
+  if (!run || dead || paused) { hideGlass(); return; }   // menus, pause, crash: nothing on the glass
+  const wantWipers = rainOn && wipeMode > 0;
+  if (wantWipers) wiperA = Math.min(1, wiperA + dt * 2.5);                    // fade in parked when rain starts
+  else if (wipeT < 0) wiperA = Math.max(0, wiperA - dt * 2.5);                // after rain stops: finish the sweep, park, then fade away
+  if (!rainOn && !glassDrops.length && wipeT < 0 && wiperA <= 0.01 && filmAmt <= 0.02 && !flung.length) { hideGlass(); return; }
+  if (!glassCv) {
+    glassCv = document.createElement('canvas');
+    glassCv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4';
+    document.body.appendChild(glassCv); glassCx = glassCv.getContext('2d');
+  }
+  glassCv.style.display = 'block';
+  const W = Math.max(2, Math.round(innerWidth / 2)), H = Math.max(2, Math.round(innerHeight / 2));   // half resolution: cheap
+  if (glassCv.width !== W || glassCv.height !== H) { glassCv.width = W; glassCv.height = H; glassFrame = 0; }
+  const x = glassCx; x.clearRect(0, 0, W, H);
+  if ((glassFrame++ % 45) === 0) measureDashEdge();
+  const nightK = BEAM_LEVEL[timeMode] || 0, dayK = 1 - nightK;
+  // pivots sit just under the visible dash edge; arm length is limited so the blades never reach the top of the glass
+  const wPx = [W * 0.27, W * 0.68], wPy = [edgeYAt(wPx[0], H) + 7, edgeYAt(wPx[1], H) + 7];
+  const wL = Math.min(W * 0.46, 0.88 * ((wPy[0] + wPy[1]) / 2) / WIPE_SQ);
+
+  // ---- sweep timing and motion ----
+  if (wipeT < 0 && wantWipers && wiperA > 0.9) { wipeGap -= dt; if (wipeGap <= 0) { wipeT = 0; wipeDur = wipeMode === 2 ? 0.62 : 1.05; wipeFlung = false; } }
+  const filmW = filmCv ? filmCv.width / W : 0.5;
+  if (!filmCv) { filmCv = document.createElement('canvas'); filmCx = filmCv.getContext('2d'); }
+  const fw = Math.ceil(W / 2), fh = Math.ceil(H / 2), fs = fw / W;
+  if (filmCv.width !== fw || filmCv.height !== fh) { filmCv.width = fw; filmCv.height = fh; }
+  if (wipeT >= 0) {
+    wipeT += dt;
+    const u = wipeT / wipeDur;
+    for (let k = 0; k < 2; k++) {
+      const prevPhi = wipePhi[k], prevPh = wipePh[k];
+      const ph = wipePhase(Math.min(1, (u - k * WIPE_LAG)) ), phi = WIPE_PARK - WIPE_SPAN * ph;
+      wipePh[k] = ph; wipePhi[k] = phi;
+      wipeDir[k] += (Math.max(-1, Math.min(1, (ph - prevPh) / Math.max(dt, 1e-3) * 0.9)) - wipeDir[k]) * Math.min(1, dt * 14);
+      // clear drops the blade passed over this frame
+      const lo = Math.min(prevPhi, phi) - 0.05, hi = Math.max(prevPhi, phi) + 0.05;
+      for (let i = glassDrops.length - 1; i >= 0; i--) {
+        const d = glassDrops[i], ddx = d.x - wPx[k], ddy = (wPy[k] - d.y) / WIPE_SQ, dist = Math.hypot(ddx, ddy);
+        if (ddy > 0 && dist > wL * 0.25 && dist < wL + 4) { const an = Math.atan2(ddy, ddx); if (an >= lo && an <= hi) glassDrops.splice(i, 1); }
+      }
+      // wipe the wet film clean along the whole fan the blade swept
+      if (filmCx && prevPhi !== phi) {
+        const p0 = bladeEnds(wPx[k], wPy[k], wL, prevPhi), p1 = bladeEnds(wPx[k], wPy[k], wL, phi);
+        filmCx.globalCompositeOperation = 'destination-out'; filmCx.fillStyle = '#000'; filmCx.beginPath();
+        filmCx.moveTo(p0[0] * fs, p0[1] * fs); filmCx.lineTo(p0[2] * fs, p0[3] * fs); filmCx.lineTo(p1[2] * fs, p1[3] * fs); filmCx.lineTo(p1[0] * fs, p1[1] * fs); filmCx.closePath(); filmCx.fill();
+        filmCx.globalCompositeOperation = 'source-over';
+      }
+    }
+    // at the top of the sweep a few drops get flung off the blade tips
+    if (!wipeFlung && u >= WIPE_UP) {
+      wipeFlung = true;
+      for (let k = 0; k < 2; k++) { const e = bladeEnds(wPx[k], wPy[k], wL, wipePhi[k]); for (let i = 0; i < 4; i++) flung.push({ x: e[2] - (e[2] - e[0]) * Math.random() * 0.25, y: e[3], vx: 50 + Math.random() * 110, vy: -(40 + Math.random() * 90), life: 0.4 + Math.random() * 0.25, age: 0 }); }
+    }
+    if (u >= 1 + WIPE_LAG) {   // finished: park, then wait for the next sweep (auto: quicker when you drive faster)
+      wipeT = -1; wipePhi[0] = wipePhi[1] = WIPE_PARK; wipePh[0] = wipePh[1] = 0; wipeDir[0] = wipeDir[1] = 0;
+      wipeGap = wipeMode === 2 ? 0.25 : 5.8 - 3.0 * Math.min(1, spd / (MAX_SPD || 100));
+      for (let i = 0; i < 8; i++) { const dx = W * (0.08 + Math.random() * 0.8); glassDrops.push({ x: dx, y: edgeYAt(dx, H) - 6 - Math.random() * 28, r: 1.0 + Math.random() * 1.2, age: 0, life: 6 + Math.random() * 5, vy: 0, y0: 0 }); }
+    }
+  }
+
+  // ---- wet film: builds up between sweeps, cleared in a fan by each blade, fades away when the rain stops ----
+  filmTick += dt;
+  if (filmTick >= 0.25) {     // applied in small chunks (8-bit alpha would round tiny per-frame amounts to nothing)
+    if (rainOn) {
+      filmCx.fillStyle = 'rgba(' + ((176 - 66 * nightK) | 0) + ',' + ((194 - 70 * nightK) | 0) + ',' + ((214 - 72 * nightK) | 0) + ',' + (1 - Math.exp(-filmTick / 3.5)).toFixed(3) + ')';
+      filmCx.fillRect(0, 0, fw, fh);
+    } else {
+      filmCx.globalCompositeOperation = 'destination-out'; filmCx.fillStyle = 'rgba(0,0,0,' + (1 - Math.exp(-filmTick / 1.5)).toFixed(3) + ')';
+      filmCx.fillRect(0, 0, fw, fh); filmCx.globalCompositeOperation = 'source-over';
+    }
+    filmTick = 0;
+  }
+  filmAmt = rainOn ? Math.min(1, filmAmt + dt / 3.5) : Math.max(0, filmAmt - dt / 1.5);
+  if (filmAmt > 0.02) { x.globalAlpha = 0.38; x.drawImage(filmCv, 0, 0, W, H); x.globalAlpha = 1; }
+
+  // ---- drops ----
+  const maxDrops = gfxMobile ? 45 : 90;
+  if (rainOn) {
+    glassSpawn += dt * 6;
+    while (glassSpawn >= 1) { glassSpawn -= 1; if (glassDrops.length < maxDrops) glassDrops.push({ x: Math.random() * W, y: Math.random() * H * 0.78, r: 1.4 + Math.random() * Math.random() * 5, age: 0, life: 9 + Math.random() * 14, vy: 0, y0: 0 }); }
+  }
+  for (let i = glassDrops.length - 1; i >= 0; i--) {
+    const d = glassDrops[i];
+    d.age += dt * (rainOn ? 1 : 4);                       // drops dry up quickly once the rain stops
+    if (d.age > d.life || d.y > H) { glassDrops.splice(i, 1); continue; }
+    if (!d.vy) {
+      if (d.r < 6.5) d.r += dt * 0.12;                    // slowly merge with the mist
+      if (d.r > 4.6 && Math.random() < dt * 0.35) { d.vy = 4; d.y0 = d.y; }   // big drops start to run
+    } else {
+      d.vy = Math.min(60, d.vy + dt * 14);
+      d.y += (d.vy - Math.min(40, spd * 0.12)) * dt;      // airflow pushes drops back up at speed
+      d.r -= dt * 0.22;
+      if (d.r < 1.5) { glassDrops.splice(i, 1); continue; }
+    }
+    const a = Math.min(1, (d.life - d.age) / 2, d.age / 0.4);
+    x.globalAlpha = a;
+    if (d.vy) { x.strokeStyle = 'rgba(200,218,235,0.16)'; x.lineWidth = d.r * 0.8; x.beginPath(); x.moveTo(d.x, d.y0); x.lineTo(d.x, d.y); x.stroke(); }
+    x.fillStyle = 'rgba(22,32,46,0.30)'; x.beginPath(); x.arc(d.x, d.y, d.r, 0, 6.283); x.fill();
+    x.strokeStyle = 'rgba(225,238,255,0.5)'; x.lineWidth = 1; x.beginPath(); x.arc(d.x, d.y, d.r * 0.88, 0.6, 2.3); x.stroke();
+    x.fillStyle = 'rgba(255,' + ((255 - 22 * nightK) | 0) + ',' + ((255 - 55 * nightK) | 0) + ',0.85)'; x.beginPath(); x.arc(d.x - d.r * 0.32, d.y - d.r * 0.32, Math.max(0.6, d.r * 0.22), 0, 6.283); x.fill();
+  }
+  x.globalAlpha = 1;
+  // drops flung off the blades
+  for (let i = flung.length - 1; i >= 0; i--) {
+    const f = flung[i]; f.age += dt;
+    if (f.age > f.life) { flung.splice(i, 1); continue; }
+    f.vy += 260 * dt; f.x += f.vx * dt; f.y += f.vy * dt;
+    x.strokeStyle = 'rgba(225,238,255,' + (0.6 * (1 - f.age / f.life)).toFixed(2) + ')'; x.lineWidth = 1.1;
+    x.beginPath(); x.moveTo(f.x, f.y); x.lineTo(f.x - f.vx * 0.025, f.y - f.vy * 0.025); x.stroke();
+  }
+  // wipers on top
+  if (wiperA > 0.01) {
+    x.save(); x.globalAlpha = 0.85 * wiperA;
+    for (let k = 0; k < 2; k++) drawWiper(x, wPx[k], wPy[k], wL, wipePhi[k], dayK, nightK, wipeDir[k]);
+    x.restore();
+  }
 }
 function tickRain(dt) {
   if (!rainMesh || !rainMesh.visible) return;
@@ -3996,6 +4288,7 @@ function updateLampFx(night) {
   lampFx.poolI.visible = on; lampFx.glowPts.visible = on;
   lampFx.pool.opacity = 0.85 * k; lampFx.glow.opacity = k;
   lampFx.head.color.copy(_lampOff).lerp(_lampWarm, k);
+  if (lampFx.streakI) { lampFx.streakI.visible = on && rainOn; lampFx.streak.opacity = 0.75 * k; }
 }
 const _gv = new THREE.Vector3();
 function tickTrafficGlow() {
@@ -4630,7 +4923,7 @@ function update(dt) {
   if (story) storyTick();
   if (!run) return;
 
-  tickSmoke(dt); tickSnow(dt); tickRain(dt);
+  tickSmoke(dt); tickSnow(dt); tickRain(dt); tickGlass(dt);
   nearT = Math.max(0, nearT - dt);
   comboT = Math.max(0, comboT - dt);
   if (comboT <= 0) combo = 0;
@@ -4777,7 +5070,7 @@ function update(dt) {
     if (sunGlow) {
       sunGlow.visible = sunDisc.visible;
       sunGlow.position.copy(sunDisc.position);
-      sunGlow.scale.setScalar(1 + Math.sin(performance.now() * 0.001) * 0.03);
+      sunGlow.scale.setScalar(SUN_GLOW_SIZE * (1 + Math.sin(performance.now() * 0.001) * 0.03));
     }
     if (moonDisc) {
       const moonHeight = timeMode === 6 ? 0.62 : 0.48;
@@ -4930,6 +5223,7 @@ function onKey(e, down) {
     case 'KeyV': if (down && !e.repeat) switchTrack(); break;
     case 'KeyM': if (down && !e.repeat) { muted = !muted; flash(muted ? 'SOUND OFF' : 'SOUND ON'); } break;
     case 'KeyR': if (down && !e.repeat) toggleRain(); break;
+    case 'KeyX': if (down && !e.repeat) { wipeMode = (wipeMode + 1) % 3; flash(['WIPERS OFF', 'WIPERS AUTO', 'WIPERS FAST'][wipeMode]); } break;
   }
 }
 
@@ -4977,6 +5271,7 @@ function start() {
   spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; lap = 1;
   boost = 100; dead = false; run = true; shake = 0; slide = 0; combo = 0; prevT = 0; wheelAngle = 0;
   paused = false; lapTime = 0; timeLeft = 60; offT = 0;
+  resetGlass();
   countdown = 3; cdShown = -1; topSpd = 0;
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
   kL = kR = kU = kD = kB = false;
