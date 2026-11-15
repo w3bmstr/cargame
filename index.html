@@ -1859,7 +1859,7 @@ let trackG = null, trackId = 10, carId = 0;
 let timeLeft = 60, offT = 0, countdown = 0, cdShown = -1, topSpd = 0;
 let drafting = false, sunDisc = null, moonDisc = null, moonGlow = null;
 let windowLitMat = null;
-let rainOn = false, rainMesh = null, muted = false;
+let rainOn = false, rainMesh = null, rainSplash = null, lightningEl = null, lightT = 0, lightNext = 6, lightFlash = 0, muted = false;
 let cinematicFx = null, speedGlow = null;
 
 function initAudio() {
@@ -2240,6 +2240,8 @@ function createRoad() {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx); geo.computeVertexNormals();
   const roadTex = asphaltTex(); // generated once and shared by the colour and bump maps (it used to be generated twice)
+  // tile in metres: the old repeat (1.8 along x 56 across) stretched the grain ~100x along the road, which made the streaky look
+  roadTex.repeat.set(trackLen / (48 * 3), (ROAD_W + 2.4) / 3);
   roadMesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
     vertexColors: true, map: roadTex, roughness: 0.38, metalness: 0.28,
     bumpMap: roadTex, bumpScale: 0.05,
@@ -2248,6 +2250,7 @@ function createRoad() {
     polygonOffset: true, polygonOffsetFactor: -2
   }));
   roadMesh.material.userData.puddle = puddleTex();
+  roadMesh.material.userData.puddle.repeat.set(trackLen / (48 * 7), (ROAD_W + 2.4) / 7);
   roadMesh.receiveShadow = true;
   scene.add(roadMesh);
 
@@ -2356,7 +2359,7 @@ function puddleTex() {
     for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) { // wrap around so the texture tiles without seams
       ctx.save(); ctx.translate(x + ox * S, y + oy * S); ctx.scale(sx, 1);
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, 'rgba(18,18,18,0.97)'); g.addColorStop(0.55, 'rgba(18,18,18,0.7)'); g.addColorStop(1, 'rgba(18,18,18,0)');
+      g.addColorStop(0, 'rgba(46,46,46,0.9)'); g.addColorStop(0.55, 'rgba(46,46,46,0.55)'); g.addColorStop(1, 'rgba(46,46,46,0)');
       ctx.fillStyle = g; ctx.fillRect(-r, -r, r * 2, r * 2); ctx.restore();
     }
   }
@@ -3329,13 +3332,7 @@ function applyDayNight() {
     headlightL.penumbra = nightish ? 0.7 : 0.82;
     headlightR.penumbra = nightish ? 0.7 : 0.82;
   }
-  if (beamL) {
-    beamL.visible = m.lights;
-    beamR.visible = m.lights;
-    const op = m.lights ? Math.min(0.28, 0.06 + m.lightPow * 0.0022) : 0;
-    beamL.material.opacity = op;
-    beamR.material.opacity = op;
-  }
+  updateBeamLevel();
   // Wet asphalt + glowing paint under headlights at night
   if (roadMesh && roadMesh.material) {
     const nightish = timeMode >= 5;
@@ -3344,9 +3341,9 @@ function applyDayNight() {
     roadMesh.material.metalness = nightish ? 0.45 : (duskish ? 0.32 : 0.28);
     roadMesh.material.emissiveIntensity = nightish ? 0.38 : (duskish ? 0.28 : 0.2);
     if (roadMesh.material.clearcoat !== undefined) {
-      roadMesh.material.clearcoat = nightish ? 0.85 : (duskish ? 0.5 : 0.35);
       roadMesh.material.clearcoatRoughness = nightish ? 0.12 : 0.28;
     }
+    applyRoadWetness();
   }
   if (typeof trackG !== 'undefined' && trackG) {
     trackG.traverse(o => {
@@ -3407,6 +3404,21 @@ function applySeason() {
   updateModeLabel();
 }
 
+const BEAM_LEN = 38;
+const BEAM_LEVEL = [0.5, 0, 0, 0, 0.15, 0.7, 1];   // by timeMode: dawn, sunrise, day, noon, evening, dusk, night
+function updateBeamLevel() {
+  if (!beamL) return;
+  const op = 0.17 * (BEAM_LEVEL[timeMode] || 0) * (rainOn ? 1.35 : 1);
+  for (const b of [beamL, beamR]) { b.material.uniforms.uOpacity.value = op; b.visible = op > 0.004; }
+}
+// road: reflect much less of the (always bright) environment map, especially in the dark, and a bit more when wet
+const ROAD_ENV = [0.5, 0.6, 0.55, 0.6, 0.4, 0.22, 0.12];
+function applyRoadWetness() {
+  if (!roadMesh || !roadMesh.material) return;
+  const m = roadMesh.material, night = timeMode >= 5, dusk = timeMode >= 4;
+  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 0.85 : 1);
+  if (m.clearcoat !== undefined) m.clearcoat = (night ? 0.5 : dusk ? 0.4 : 0.3) + (rainOn ? 0.15 : 0);
+}
 function setRain(on) {
   rainOn = on;
   if (!rainMesh) {
@@ -3431,14 +3443,33 @@ function setRain(on) {
     gm.setAttribute('position', new THREE.BufferAttribute(p, 3));
     rainMesh = new THREE.LineSegments(gm, new THREE.LineBasicMaterial({
       color: 0xc5e0f4, transparent: true,
-      opacity: visualQuality === 'low' ? 0.32 : 0.48,
-      depthWrite: false, depthTest: false
+      opacity: visualQuality === 'low' ? 0.42 : 0.6,
+      depthWrite: false, depthTest: false, fog: false
     }));
+    rainMesh.renderOrder = 50;
     rainMesh.frustumCulled = false;
     camera.add(rainMesh);
   }
+  if (!rainSplash) {
+    const n = gfxMobile ? 40 : (visualQuality === 'low' ? 70 : 140);
+    const sp = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { sp[i * 3] = (Math.random() * 2 - 1) * 7; sp[i * 3 + 1] = -1.1; sp[i * 3 + 2] = -(4 + Math.random() * 26); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    rainSplash = new THREE.Points(sg, new THREE.PointsMaterial({
+      color: 0xdff0ff, size: 0.07, transparent: true, opacity: 0.55, depthWrite: false, fog: false, sizeAttenuation: true
+    }));
+    rainSplash.frustumCulled = false; rainSplash.renderOrder = 49;
+    camera.add(rainSplash);
+  }
+  rainSplash.visible = on;
+  if (!lightningEl) {
+    lightningEl = document.createElement('div');
+    lightningEl.style.cssText = 'position:fixed;inset:0;background:#dbe8ff;opacity:0;pointer-events:none;z-index:3;mix-blend-mode:screen';
+    document.body.appendChild(lightningEl);
+  }
+  if (!on) { lightningEl.style.opacity = 0; lightT = 0; }
   rainMesh.visible = on;
-  rainMesh.material.opacity = visualQuality === 'low' ? 0.32 : 0.48;
+  rainMesh.material.opacity = visualQuality === 'low' ? 0.42 : 0.6;
   if (roadMesh) {
     // Strong wet-road response: darker, more reflective, lower roughness
     const night = timeMode >= 5;
@@ -3448,14 +3479,17 @@ function setRain(on) {
     if (roadMesh.material.roughnessMap !== pud) { roadMesh.material.roughnessMap = pud; roadMesh.material.needsUpdate = true; }
     roadMesh.material.emissiveIntensity = on ? (night ? 0.14 : 0.08) : (night ? 0.55 : 0.18);
     if (roadMesh.material.color) {
-      roadMesh.material.color.setHex(on ? (night ? 0x6c7078 : 0x80848c) : 0xffffff);
+      roadMesh.material.color.setHex(on ? (night ? 0x50545c : 0x62666e) : 0xffffff);   // wet asphalt is darker
     }
   }
+  applyRoadWetness();
+  updateBeamLevel();
 }
 function tickRain(dt) {
   if (!rainMesh || !rainMesh.visible) return;
   const a = rainMesh.geometry.attributes.position.array;
-  const fall = 30 * dt;
+  const fall = (30 + Math.min(40, spd * 0.35)) * dt;
+  const lean = Math.min(1.1, 0.10 + spd * 0.008), len = 0.85 + Math.min(0.9, spd * 0.01);
   const aspect = (renderer && renderer.domElement.clientHeight)
     ? renderer.domElement.clientWidth / renderer.domElement.clientHeight : 1.6;
   const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov || 60) * 0.5);
@@ -3469,11 +3503,33 @@ function tickRain(dt) {
       a[j] = (Math.random() * 2 - 1) * halfW;
       a[j + 2] = -(10 + Math.random() * 32);
     }
-    a[j + 3] = a[j] - 0.10;
-    a[j + 4] = a[j + 1] + 0.85;
+    a[j + 3] = a[j] - lean;
+    a[j + 4] = a[j + 1] + len;
     a[j + 5] = a[j + 2];
   }
   rainMesh.geometry.attributes.position.needsUpdate = true;
+
+  // splashes: random spots on the road ahead flicker in and out
+  if (rainSplash && rainSplash.visible) {
+    const sp = rainSplash.geometry.attributes.position.array;
+    for (let i = 0; i < sp.length; i += 3) {
+      if (Math.random() < 0.12) { sp[i] = (Math.random() * 2 - 1) * 7; sp[i + 1] = -1.12; sp[i + 2] = -(4 + Math.random() * 26); }
+    }
+    rainSplash.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // lightning in the evening/night storms (dusk or later)
+  if (lightningEl && timeMode >= 5) {
+    lightT += dt;
+    if (lightT > lightNext) { lightT = 0; lightNext = 5 + Math.random() * 9; lightFlash = 1; }
+  }
+  if (lightningEl) {
+    if (lightFlash > 0) {
+      lightFlash = Math.max(0, lightFlash - dt * 3.2);
+      const f = lightFlash > 0.55 ? 0.55 : (lightFlash > 0.4 ? 0.1 : (lightFlash > 0.25 ? 0.4 : lightFlash * 0.5));
+      lightningEl.style.opacity = f.toFixed(2);
+    } else if (lightningEl.style.opacity !== '0') lightningEl.style.opacity = 0;
+  }
 }
 
 function initSnow() {
@@ -4603,10 +4659,11 @@ function update(dt) {
 
     if (beamL && beamR) {
       for (const [beam, from, to] of [[beamL, posL, aimL], [beamR, posR, aimR]]) {
-        const mid = from.clone().add(to).multiplyScalar(0.5);
-        beam.position.copy(mid);
+        const dir = to.clone().sub(from).normalize();
+        beam.position.copy(from).addScaledVector(dir, BEAM_LEN / 2);
+        beam.scale.set(1, BEAM_LEN / 20, 1);
         beam.up.copy(up);
-        beam.lookAt(to);
+        beam.lookAt(from.clone().addScaledVector(dir, 100));
         beam.rotateX(Math.PI / 2);
       }
     }
@@ -4954,6 +5011,7 @@ function init() {
     scene.environmentIntensity = visualQuality === 'high' ? 1.85 : (visualQuality === 'medium' ? 1.4 : 1.05);
   }
   camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.08, 900);
+  scene.add(camera); // camera children (rain, splashes) only render if the camera is in the scene
   clock = new THREE.Clock();
   cinematicFx = document.getElementById('cinematic-fx');
   speedGlow = document.getElementById('speed-glow');
@@ -5000,15 +5058,30 @@ function init() {
 
   // Stronger volumetric beam cones
   function makeBeam() {
-    const geo = new THREE.CylinderGeometry(0.1, 3.1, 20, 22, 1, true);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0xfff0d8,
+    // narrow at the lamp (bottom, local -y), widening away from the car (top, local +y points at the target)
+    const geo = new THREE.CylinderGeometry(4.0, 0.12, 20, 24, 1, true);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(0xfff0d8) }, uOpacity: { value: 0.0 } },
+      vertexShader: `varying float vAlong; varying vec3 vN; varying vec3 vV;
+        void main() {
+          vAlong = position.y / 20.0 + 0.5;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `uniform vec3 uColor; uniform float uOpacity;
+        varying float vAlong; varying vec3 vN; varying vec3 vV;
+        void main() {
+          float f = abs(dot(normalize(vN), normalize(vV)));
+          float edge = pow(f, 2.2);                                  // soft silhouette, no hard cone edge
+          float along = pow(1.0 - vAlong, 1.8) * smoothstep(0.0, 0.12, vAlong); // bright near the car, fades with distance
+          gl_FragColor = vec4(uColor, uOpacity * edge * along);
+        }`,
       transparent: true,
-      opacity: 0.26,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      fog: true
+      side: THREE.DoubleSide
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.visible = false;
@@ -5032,6 +5105,7 @@ function init() {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    if (rainMesh) { const wasOn = rainOn; camera.remove(rainMesh); rainMesh.geometry.dispose(); rainMesh.material.dispose(); rainMesh = null; setRain(wasOn); }
     if (fxOverlayCanvas && nexusGfx) {
       fxOverlayCanvas.width = innerWidth;
       fxOverlayCanvas.height = innerHeight;
