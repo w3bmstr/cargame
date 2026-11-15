@@ -18,6 +18,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #pause{position:absolute;inset:0;background:rgba(1,1,6,.72);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9;text-align:center;padding:20px}
 #pause h2{color:#fff;text-shadow:0 0 18px #08f;margin-bottom:8px}
 #pause p{margin-bottom:14px}
+#graphics-settings{display:flex;align-items:center;gap:10px;margin:4px 0 16px;padding:10px 12px;border:1px solid rgba(125,210,255,.28);border-radius:10px;background:rgba(10,24,38,.72);font-size:12px;color:#c8dce8}
+#graphics-settings label{font-weight:800;letter-spacing:.08em}
+#graphics-preset{min-width:165px;padding:9px 30px 9px 11px;border:1px solid #55758b;border-radius:7px;background:#101d29;color:#fff;font:700 12px system-ui;outline:none}
+#graphics-note{max-width:300px;margin:0 0 14px;color:#a9bdca;font-size:11px;line-height:1.4}
 #minimap{position:absolute;top:10px;right:10px;width:90px;height:90px;border-radius:8px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.12);overflow:hidden;display:none;z-index:5}
 #minimap canvas{width:100%;height:100%}
 #mirror{
@@ -287,6 +291,12 @@ button.main:hover{transform:scale(1.04)}
 .keys{margin-top:22px;font-size:12px;opacity:.5;line-height:1.75}
 #car-btn,#track-btn{position:absolute;left:10px;z-index:8;display:none;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(0,0,0,.55);border:1px solid #555;border-radius:6px;color:#ccc}
 #car-btn{top:78px}#track-btn{top:112px}
+#view-btn{position:absolute;left:10px;z-index:8;display:none;padding:6px 12px;font-size:10px;font-weight:800;letter-spacing:.04em;cursor:pointer;background:rgba(0,0,0,.62);border:1px solid #52616b;border-radius:6px;color:#dce8ed}
+#view-btn{top:146px}
+#view-btn:hover{background:rgba(25,65,85,.88);border-color:#7edcff}
+body.non-cockpit #dash,body.non-cockpit #mirror{display:none!important}
+body.non-cockpit #hood{display:none!important}
+body.hood-view #hood{display:block!important;visibility:visible!important;bottom:31%;height:8%;background:linear-gradient(180deg,transparent,rgba(20,22,25,.22) 22%,#25282a 100%);border-radius:48% 48% 0 0;clip-path:polygon(8% 100%,18% 35%,34% 8%,66% 8%,82% 35%,92% 100%)}
 #vig{position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.42))}
 body.rally #dash{background:linear-gradient(180deg,#303030,#161616);border-top:4px solid #e8641a;border-radius:0;box-shadow:none}
 body.rally #dash:before{content:"";position:absolute;left:0;right:0;top:-26%;height:8px;background:linear-gradient(#b8b8b8,#555);box-shadow:0 2px 5px #000}
@@ -309,11 +319,17 @@ body.endurance #speed-readout{color:#ffd98a}
 body.endurance #dash{background:repeating-linear-gradient(0deg,rgba(255,190,80,.035) 0 1px,transparent 1px 3px),linear-gradient(180deg,#594934 0%,#29221c 42%,#12100e 100%)}
 body.endurance #dash-inner:before{background:linear-gradient(90deg,transparent,#9d7139 50%,transparent);box-shadow:0 2px 3px #090706}
 body.endurance #dash #wheel{border-color:#1c150f;box-shadow:inset 0 0 0 2px #8a6430,inset 0 0 0 6px #18120c,inset 0 12px 16px rgba(255,220,150,.07),inset 0 -16px 22px rgba(0,0,0,.55),0 -8px 20px rgba(0,0,0,.75)}
+body.muscle #speed-readout{color:#ffad70}
+body.muscle #dash{background:repeating-linear-gradient(0deg,rgba(255,130,65,.025) 0 1px,transparent 1px 3px),linear-gradient(180deg,#49332b 0%,#251b19 46%,#100e0e 100%);border-top:4px solid #b66a43}
+body.muscle #dash-inner:before{background:linear-gradient(90deg,transparent,#b66a43 50%,transparent);height:2px}
+body.muscle #dash .gauge{border-color:#a85d3d;box-shadow:inset 0 0 0 3px #120d0b,0 3px 12px #000}
+body.muscle #dash .gauge .needle{background:linear-gradient(180deg,#ffd0a0,#d45b32);box-shadow:0 0 5px #f76}
+body.muscle #dash #wheel{border-color:#1b1110;box-shadow:inset 0 0 0 2px #a65336,inset 0 0 0 6px #1b1110,inset 0 12px 16px rgba(255,180,120,.06),inset 0 -16px 22px rgba(0,0,0,.6),0 -8px 20px rgba(0,0,0,.75)}
 /* Cinematic glass, light bloom and edge grading keep the cockpit readable over the
    higher contrast physically-based scene without adding a post-processing pass. */
 #c{background:#04070b;filter:saturate(1.08) contrast(1.03)}
 #hud-top{padding:12px 16px;color:#e8f5ff;letter-spacing:.08em}
-#hud-top>*,#minimap,#mirror,#pause-btn,#mode-btn,#car-btn,#track-btn{
+#hud-top>*,#minimap,#mirror,#pause-btn,#mode-btn,#car-btn,#track-btn,#view-btn{
   background:linear-gradient(145deg,rgba(13,27,39,.78),rgba(4,9,16,.55));
   border-color:rgba(160,218,255,.28);
   box-shadow:0 6px 22px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.12);
@@ -337,12 +353,14 @@ body.endurance #dash #wheel{border-color:#1c150f;box-shadow:inset 0 0 0 2px #8a6
   mix-blend-mode:screen;transition:opacity .12s ease;
 }
 #combo{filter:drop-shadow(0 0 10px rgba(70,210,255,.45));color:#d9f7ff}
-#pause-btn,#mode-btn,#car-btn,#track-btn{transition:background .2s ease,border-color .2s ease,transform .2s ease}
-#pause-btn:hover,#mode-btn:hover,#car-btn:hover,#track-btn:hover{background:rgba(30,75,100,.8);border-color:#7edcff;transform:translateY(-1px)}
-@media (prefers-reduced-motion:reduce){#pause-btn,#mode-btn,#car-btn,#track-btn{transition:none}}
+#pause-btn,#mode-btn,#car-btn,#track-btn,#view-btn{transition:background .2s ease,border-color .2s ease,transform .2s ease}
+#pause-btn:hover,#mode-btn:hover,#car-btn:hover,#track-btn:hover,#view-btn:hover{background:rgba(30,75,100,.8);border-color:#7edcff;transform:translateY(-1px)}
+@media (prefers-reduced-motion:reduce){#pause-btn,#mode-btn,#car-btn,#track-btn,#view-btn{transition:none}}
 /* ===== Test Drive (1987) cockpit look ===== */
 #dash{background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px),linear-gradient(180deg,#6a6a6f 0%,#34343a 7%,#232327 40%,#18181b 100%);border-top:6px solid #909095;border-radius:26px 26px 0 0/12px;box-shadow:inset 0 8px 16px rgba(255,255,255,.1),0 -8px 24px rgba(0,0,0,.5)}
 #dash-inner:before{background:linear-gradient(90deg,transparent,#111 10%,#777 50%,#111 90%,transparent)}
+/* Fine-grain soft-touch dash finish; this is a CSS background, not another render pass. */
+#dash-inner{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),radial-gradient(ellipse at 50% 0%,rgba(170,205,220,.075),transparent 68%)}
 #dash{box-shadow:inset 0 6px 12px rgba(255,255,255,.08)}
 #hood{display:none!important}
 #dash .dash-card{background:rgba(0,0,0,.45);border-color:#555}
@@ -943,6 +961,11 @@ body.endurance #yoke-hud { display: block; }
 
 #fx-overlay{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:screen}
 </style>
+
+<style id="road-view-cockpit-fix">
+  /* This is a dashboard-view road game: keep the bonnet entirely out of the windscreen view. */
+  #hood, #hood::before { display: none !important; visibility: hidden !important; }
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -953,6 +976,7 @@ body.endurance #yoke-hud { display: block; }
 <button id="pause-btn" aria-label="Pause game">PAUSE</button>
 <button id="car-btn">CAR</button>
 <button id="track-btn">TRACK</button>
+<button id="view-btn">VIEW: COCKPIT</button>
 <div id="hud-top">
   <div>Lap <span id="lap">1</span> &middot; <span id="laptime">0:00</span> &middot; <span id="dist">0</span> m &middot; &#9201; <span id="tl">60</span>s</div>
   <div>Score <span id="score">0</span> &middot; Best <span id="best">0</span> &middot; OT <span id="over">0</span></div>
@@ -1061,7 +1085,7 @@ body.endurance #yoke-hud { display: block; }
   <button class="main" id="story-btn" style="margin-bottom:10px">THE YEAR ROAD</button>
   <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
-  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: hold &amp; drag to steer (auto-gas) &bull; NITRO = double-tap &amp; hold, or use two fingers<br>Free CC0 GT model traffic &bull; C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
+  <div class="keys">&larr; &rarr; / A D  Steer &nbsp;&bull;&nbsp; &uarr; / W  Gas<br>&darr; / S / Space  Brake &nbsp;&bull;&nbsp; Shift  Boost<br>Mobile: hold &amp; drag to steer (auto-gas) &bull; NITRO = double-tap &amp; hold, or use two fingers<br>Custom procedural traffic &bull; C = switch car &bull; V = switch track &bull; M = mute &bull; R = rain<br>TAB = camera view<br>Controller: L-stick steer &bull; RT/A gas &bull; LT/B brake &bull; X/RB boost &bull; LB car &bull; Y track &bull; D-pad &uarr; day/night &bull; &darr; rain &bull; Back mute &bull; A / Start = start &amp; pause &bull; D-pad / stick choose &bull; A select</div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -1086,6 +1110,8 @@ body.endurance #yoke-hud { display: block; }
 <div id="pause" aria-live="polite">
   <h2>PAUSED</h2>
   <p>Take a breath. Your run is waiting.</p>
+  <div id="graphics-settings"><label for="graphics-preset">GRAPHICS</label><select id="graphics-preset" aria-label="Graphics resolution"><option value="auto">Auto · adaptive</option><option value="1080">1080p · balanced</option><option value="1440">1440p · high</option></select></div>
+  <div id="graphics-note">Auto adjusts resolution to protect smooth gameplay. Higher fixed presets may reduce frame rate on some systems.</div>
   <button class="main" id="resume-btn">RESUME</button>
 </div>
 <div id="touch-controls" aria-label="Touch controls">
@@ -1534,32 +1560,92 @@ function createRenderer(canvas, options = {}) {
   renderer.shadowMap.enabled = options.shadows !== false;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.info.autoReset = true;
-  // Cap DPR high enough for sharp desktop; still bound for stability
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.maxPixelRatio || 2.5));
+  // Keep the image crisp without paying the quadratic cost of extreme DPR.
+  // adaptiveRes() can lower this further on slower machines and recover gradually.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.maxPixelRatio || 2.0));
   return renderer;
 }
 // Photographic-style procedural environment: gives car paint, glass and wet asphalt
 // something believable to reflect without requiring external HDR downloads.
 function createNexusEnvironment() {
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+  // A hand-built equirectangular reflection environment: soft sky gradients,
+  // broad sky cards, and a distant rural road horizon. It gives paint,
+  // glass and wet asphalt something richer to reflect without external HDRs.
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
   const x = c.getContext('2d');
-  const g = x.createLinearGradient(0, 0, 0, 512);
-  g.addColorStop(0, '#0e1a2c'); g.addColorStop(0.28, '#5a7a98');
-  g.addColorStop(0.48, '#e8dcc8'); g.addColorStop(0.55, '#ffffff');
-  g.addColorStop(0.62, '#6a7888'); g.addColorStop(1, '#0c1016'); x.fillStyle = g; x.fillRect(0,0,1024,512);
-  // Broad softboxes and horizon cards create readable automotive highlights.
-  const panels = [
-    [70,80,120,190,'rgba(220,235,255,.82)'], [310,50,150,220,'rgba(255,255,255,.72)'],
-    [600,70,180,160,'rgba(255,238,210,.72)'], [890,90,90,220,'rgba(190,220,255,.62)']
-  ];
-  for (const [px,py,w,h,color] of panels) {
-    const pg = x.createLinearGradient(px,py,px+w,py+h);
-    pg.addColorStop(0,'rgba(255,255,255,0)'); pg.addColorStop(.5,color); pg.addColorStop(1,'rgba(255,255,255,0)');
-    x.fillStyle=pg; x.fillRect(px,py,w,h);
+  const sky = x.createLinearGradient(0, 0, 0, 1024);
+  sky.addColorStop(0, '#111e32');
+  sky.addColorStop(0.19, '#45627e');
+  sky.addColorStop(0.37, '#a9b7c0');
+  sky.addColorStop(0.48, '#f1e5d1');
+  sky.addColorStop(0.535, '#fff8e9');
+  sky.addColorStop(0.59, '#7e8991');
+  sky.addColorStop(0.72, '#252d38');
+  sky.addColorStop(1, '#080c12');
+  x.fillStyle = sky; x.fillRect(0, 0, c.width, c.height);
+
+  // Soft, broken cloud bands keep the upper reflections from looking like a flat gradient.
+  for (let i = 0; i < 62; i++) {
+    const px = Math.random() * 1200 - 80;
+    const py = 42 + Math.random() * 178;
+    const w = 28 + Math.random() * 150;
+    const h = 5 + Math.random() * 19;
+    const cloud = x.createRadialGradient(px, py, 1, px, py, w);
+    cloud.addColorStop(0, `rgba(232,240,248,${0.035 + Math.random() * 0.075})`);
+    cloud.addColorStop(1, 'rgba(232,240,248,0)');
+    x.fillStyle = cloud; x.save(); x.translate(px, py); x.scale(1, h / w); x.translate(-px, -py);
+    x.fillRect(px - w, py - w, w * 2, w * 2); x.restore();
   }
-  const sun = x.createRadialGradient(500,210,4,500,210,105);
-  sun.addColorStop(0,'rgba(255,245,220,.95)'); sun.addColorStop(.18,'rgba(255,235,205,.35)'); sun.addColorStop(1,'rgba(255,235,205,0)');
-  x.fillStyle=sun; x.fillRect(380,90,240,240);
+
+  // Low-contrast grandstand / pit-building silhouettes at the reflection horizon.
+  x.fillStyle = 'rgba(13,20,29,.52)';
+  x.fillRect(0, 286, 1024, 58);
+  for (let i = 0; i < 34; i++) {
+    const px = i * 32 + Math.random() * 9;
+    const h = 12 + Math.random() * 36;
+    x.fillRect(px, 286 - h, 18 + Math.random() * 20, h + 58);
+  }
+  x.fillStyle = 'rgba(190,205,214,.12)';
+  for (let i = 0; i < 58; i++) x.fillRect(Math.random() * 1024, 300 + Math.random() * 32, 2 + Math.random() * 9, 1 + Math.random() * 2);
+
+  // Wide softboxes and narrow strip lights create recognizable automotive clearcoat highlights.
+  const panels = [
+    [34, 58, 112, 220, 'rgba(220,236,255,.78)'],
+    [218, 32, 72, 270, 'rgba(255,255,255,.66)'],
+    [390, 70, 168, 190, 'rgba(255,239,216,.66)'],
+    [640, 42, 92, 248, 'rgba(224,239,255,.72)'],
+    [824, 76, 144, 188, 'rgba(255,255,255,.58)'],
+    // Narrow coloured strip sources create longer, more recognisable reflections
+    // across curved body panels and glass without requiring an external HDR.
+    [126, 12, 22, 310, 'rgba(80,190,255,.62)'],
+    [330, 18, 18, 292, 'rgba(255,116,62,.54)'],
+    [572, 8, 26, 320, 'rgba(105,220,190,.5)'],
+    [760, 16, 20, 300, 'rgba(255,205,125,.58)'],
+    [946, 24, 18, 276, 'rgba(120,155,255,.56)']
+  ];
+  for (const [px, py, w, h, color] of panels) {
+    const pg = x.createLinearGradient(px, py, px + w, py + h);
+    pg.addColorStop(0, 'rgba(255,255,255,0)');
+    pg.addColorStop(.5, color);
+    pg.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = pg; x.fillRect(px, py, w, h);
+  }
+  // Distant pit-lane LED ribbons and paddock glazing add small, varied colour
+  // sources to the reflection map; deliberately broad and soft, never sharp dots.
+  for (let i = 0; i < 18; i++) {
+    const px = (i * 59 + 17) % 1024, py = 278 + (i % 4) * 13;
+    const hue = ['rgba(70,190,255,.22)','rgba(255,130,72,.2)','rgba(180,220,255,.18)'][i % 3];
+    const glow = x.createLinearGradient(px, py, px + 38 + (i % 5) * 12, py);
+    glow.addColorStop(0, 'rgba(255,255,255,0)'); glow.addColorStop(.5, hue); glow.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = glow; x.fillRect(px, py, 58, 5 + (i % 3) * 2);
+  }
+  // Warm sun / horizon bounce, balanced by cool skylight.
+  const sun = x.createRadialGradient(510, 238, 4, 510, 238, 142);
+  sun.addColorStop(0, 'rgba(255,248,228,.96)');
+  sun.addColorStop(.16, 'rgba(255,235,204,.42)');
+  sun.addColorStop(1, 'rgba(255,235,204,0)');
+  x.fillStyle = sun; x.fillRect(350, 78, 320, 320);
+
   const tex = new THREE.CanvasTexture(c);
   tex.mapping = THREE.EquirectangularReflectionMapping;
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1577,6 +1663,8 @@ let smokeG, traffic = [], pts = [], curve = null, trackLen = 0;
 let run = false, dead = false, paused = false, timeMode = 2; // 0 dawn..6 night, start DAY
 let season = 1; // 0 spring 1 summer 2 autumn 3 winter
 let lapTime = 0, bestLap = 0, bestScore = 0;
+// Simplified tire telemetry for progressive grip loss and recovery.
+let tireSlip = 0, lateralG = 0;
 let groundMesh = null, treeLeafList = [], skyMesh = null, starMesh = null, hillMeshes = [];
 let cloudGroup = null, sunGlow = null, horizonGlow = null, lampFx = null;
 let visualQuality = 'high';
@@ -1589,15 +1677,16 @@ let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, la
 let boost = 100, boosting = false;
 let nitroBtn = null, fovNow = 66, fovKick = 0, wasBoosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
-// Phone driving assist: analog drag-steering, gentler corner push, a soft guard-rail instead of instant run-off crashes.
-// Add ?hard to the URL to turn it off.
-const ASSIST = isMobile && !/[?&]hard\b/.test(location.search);
+// Driving assist: keep touch controls smooth on phones, and give every platform forgiving road-edge protection.
+// Add ?hard to the URL to disable the assists for a more demanding driving experience.
+const ROAD_ASSIST = !/[?&]hard\b/.test(location.search);
+const ASSIST = isMobile && ROAD_ASSIST;
 let touchOn = false, touchSteer = 0, btnRamp = 0;
 // ?debug shows a small readout: fps, speed, time left, and how many game-seconds pass per real second (should be ~1.00).
 const DEBUG = /[?&]debug\b/.test(location.search);
 let dbgGame = 0, dbgReal = 0, dbgFrames = 0, dbgAcc = 0, dbgEl = null;
-// Phone smoothness: render resolution adjusts itself to keep ~60 fps (drops fast when frames run long, climbs back slowly).
-const AR = { on: isMobile && !gfxMobile, max: Math.min(window.devicePixelRatio || 1, 2), cur: 1, steps: [], i: 0, cap: 99, relax: 0, t: 0, n: 0, good: 0, bad: 0, cool: 0 };
+// Full-graphics smoothness: render resolution adjusts on desktop and full-GFX mobile to protect frame pacing.
+const AR = { on: !gfxMobile, max: Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2.0), cur: 1, steps: [], i: 0, cap: 99, relax: 0, t: 0, n: 0, good: 0, bad: 0, cool: 0 };
 let ovAcc = 0, ovFlip = 0;
 function adaptiveRes(dt) {
   if (!AR.on || !renderer || !run || dead || paused || countdown > 0 || dt > 0.25 || !AR.steps.length) return;
@@ -1617,6 +1706,40 @@ function adaptiveRes(dt) {
     renderer.setPixelRatio(AR.cur); renderer.setSize(innerWidth, innerHeight);
     renderer.render(scene, camera); // resizing clears the canvas; draw again immediately so no blank (blue) frame is ever shown
   }
+}
+
+// Explicit output-resolution presets. Auto retains the game's adaptive scaler; fixed
+// presets target a render-buffer size while preserving the current viewport aspect ratio.
+let graphicsPreset = 'auto';
+function graphicsPixelRatio(preset) {
+  const dpr = window.devicePixelRatio || 1;
+  if (preset === 'auto') return Math.min(dpr, isMobile ? 1.5 : 2.0);
+  const targets = { '1080': [1920, 1080], '1440': [2560, 1440] };
+  const target = targets[preset] || targets['1080'];
+  const fit = Math.min(target[0] / Math.max(1, innerWidth), target[1] / Math.max(1, innerHeight));
+  return Math.max(0.75, Math.min(2.0, fit));
+}
+function applyGraphicsPreset(preset, persist = true) {
+  if (!renderer) return;
+  graphicsPreset = ['auto', '1080', '1440'].includes(preset) ? preset : 'auto';
+  if (graphicsPreset === 'auto') {
+    AR.on = !gfxMobile;
+    AR.max = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2.0);
+    AR.steps = [0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0].filter(v => v <= AR.max + 0.01);
+    const desired = Math.min(window.devicePixelRatio || 1, AR.max);
+    AR.i = 0;
+    AR.steps.forEach((v, k) => { if (Math.abs(AR.steps[AR.i] - desired) > Math.abs(v - desired)) AR.i = k; });
+    AR.cap = AR.steps.length - 1; AR.cur = AR.steps[AR.i] || desired;
+  } else {
+    AR.on = false;
+    AR.cur = graphicsPixelRatio(graphicsPreset);
+  }
+  renderer.setPixelRatio(AR.cur);
+  renderer.setSize(innerWidth, innerHeight);
+  const selector = document.getElementById('graphics-preset');
+  if (selector) selector.value = graphicsPreset;
+  if (persist) { try { localStorage.setItem('cd3_graphics', graphicsPreset); } catch (e) {} }
+  if (scene && camera) renderer.render(scene, camera);
 }
 
 
@@ -1680,7 +1803,7 @@ function goFS() {
   if (!document.fullscreenElement && t.requestFullscreen) t.requestFullscreen().catch(() => {});
 }
 function hideHud() {
-  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'touch-controls', 'mission'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
+  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'view-btn', 'touch-controls', 'mission'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
   $('pause').style.display = 'none';
 }
 function legLocked() { if (story) { flash('LOCKED IN CHAPTER'); return true; } return false; }
@@ -1704,6 +1827,7 @@ function beginLeg(i, e) {
   start();
   timeLeft = L.time || 60;
   ['mode-btn', 'car-btn', 'track-btn'].forEach(id => $(id).style.display = 'none');
+  ['view-btn'].forEach(id => $(id).style.display = '');
   $('mission').style.display = 'block';
   showBrief(L, i);
 }
@@ -1863,6 +1987,8 @@ let drafting = false, sunDisc = null, moonDisc = null, moonGlow = null;
 let windowLitMat = null;
 let rainOn = false, rainMesh = null, rainSplash = null, lightningEl = null, lightT = 0, lightNext = 6, lightFlash = 0, muted = false;
 let cinematicFx = null, speedGlow = null;
+let cameraView = 0, playerCarModel = null;
+const CAMERA_VIEW_NAMES = ['COCKPIT', 'HOOD', 'BUMPER', 'CHASE', 'CINEMATIC'];
 
 function initAudio() {
   if (actx) return;
@@ -1884,6 +2010,7 @@ function initAudio() {
   ns.connect(nf); nf.connect(nGain); nGain.connect(actx.destination); ns.start();
 }
 function rpmOf() {
+  
   if (spd < 1) return 0.2;
   const b = [0, 18, 32, 48, 62, 80]; let g = 1;
   while (g < 5 && spd >= b[g]) g++;
@@ -1923,7 +2050,8 @@ const CARS = [
   { n: 'GT COUPE', max: 76, boost: 100, acc: 30, brk: -56, st: 52, fr: 11, cf: 0.22, lat: 13, sp: 9 },
   { n: 'RALLY', max: 68, boost: 90, acc: 36, brk: -60, st: 64, fr: 14, cf: 0.17, lat: 15, sp: 10 },
   { n: 'ROADSTER', max: 73, boost: 96, acc: 28, brk: -52, st: 44, fr: 9, cf: 0.13, lat: 11, sp: 8 },
-  { n: 'ENDURANCE', max: 79, boost: 105, acc: 26, brk: -50, st: 38, fr: 8, cf: 0.1, lat: 10, sp: 7 }
+  { n: 'ENDURANCE', max: 79, boost: 105, acc: 26, brk: -50, st: 38, fr: 8, cf: 0.1, lat: 10, sp: 7 },
+  { n: 'MUSCLE GT', max: 82, boost: 112, acc: 34, brk: -58, st: 46, fr: 10, cf: 0.16, lat: 12, sp: 8 }
 ];
 const TRACKS = [
   'GRAND LOOP',
@@ -1971,7 +2099,8 @@ function buildWheelSVG(carIdx) {
     { rim: '#1d2024', rimHi: '#4a515a', stripe: '#ff3b30', spoke: '#2e333a', spokeHi: '#8c96a4', grip: '#121417', flat: true, yoke: false, wood: false },
     { rim: '#232220', rimHi: '#524e48', stripe: '#ffbe1a', spoke: '#252528', spokeHi: '#787880', grip: '#151413', flat: false, yoke: false, wood: false },
     { rim: '#6e3b1e', rimHi: '#c47b47', stripe: '#e6c384', spoke: '#9aa4ad', spokeHi: '#ffffff', grip: '#522912', flat: false, yoke: false, wood: true },
-    { rim: '#1b1d21', rimHi: '#484e58', stripe: '#f0b24a', spoke: '#262930', spokeHi: '#7e8896', grip: '#111316', flat: true, yoke: true, wood: false }
+    { rim: '#1b1d21', rimHi: '#484e58', stripe: '#f0b24a', spoke: '#262930', spokeHi: '#7e8896', grip: '#111316', flat: true, yoke: true, wood: false },
+    { rim: '#211a18', rimHi: '#9a4934', stripe: '#ff5b36', spoke: '#34383d', spokeHi: '#c0c5c8', grip: '#171719', flat: true, yoke: false, wood: false }
   ];
   const s = styles[carIdx] || styles[0];
   const paddleSvg = `
@@ -2064,6 +2193,10 @@ function applyCar() {
   document.body.classList.toggle('rally', carId === 1);
   document.body.classList.toggle('roadster', carId === 2);
   document.body.classList.toggle('endurance', carId === 3);
+  document.body.classList.toggle('muscle', carId === 4);
+  if (cameraView === 1 && carId !== 4) setCameraView(2);
+  document.body.classList.toggle('hood-view', cameraView === 1 && carId === 4);
+  if (playerCarModel) ensurePlayerCarModel();
   buildWheelSVG(carId);
   loadBest();
   if (b) b.textContent = 'CAR: ' + c.n;
@@ -2219,8 +2352,9 @@ function createRoad() {
   for (let i = 0; i < N; i++) rings.push(ringAt(i / N));
   rings.push(ringAt(0));
   const pos = [], uv = [], col = [], idx = [];
+  // Road shoulder is dark, worn asphalt rather than red/white circuit kerbing.
   const aA = new THREE.Color(0xd6d6dc), aB = new THREE.Color(0xc6c6cc);
-  const rA = new THREE.Color(0xe8e8e8), rB = new THREE.Color(0xb01616);
+  const shoulderA = new THREE.Color(0x777b80), shoulderB = new THREE.Color(0x686d73);
   for (let i = 0; i < rings.length; i++) {
     const r = rings[i];
     [r.p0, r.p1, r.p2, r.p3].forEach((q, lane) => {
@@ -2228,8 +2362,10 @@ function createRoad() {
       uv.push(i / N * 48, lane / 3);
     });
     const stripe = ((i % N) >> 1) & 1;
-    const cR = stripe ? aB : aA, cU = stripe ? rB : rA;
-    [cU, cR, cR, cU].forEach(c => col.push(c.r, c.g, c.b));
+    const roadTone = stripe ? aB : aA;
+    const shoulderTone = stripe ? shoulderB : shoulderA;
+    // Two continuous road shoulders; the narrow white edge lines are separate meshes below.
+    [shoulderTone, roadTone, roadTone, shoulderTone].forEach(c => col.push(c.r, c.g, c.b));
   }
   for (let i = 0; i < N; i++) {
     const a = i * 4, b = (i + 1) * 4;
@@ -2246,10 +2382,10 @@ function createRoad() {
   // tile in metres: the old repeat (1.8 along x 56 across) stretched the grain ~100x along the road, which made the streaky look
   roadTex.repeat.set(trackLen / (48 * 3), (ROAD_W + 2.4) / 3);
   roadMesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-    vertexColors: true, map: roadTex, roughness: 0.38, metalness: 0.28,
-    bumpMap: roadTex, bumpScale: 0.05,
-    clearcoat: 0.5, clearcoatRoughness: 0.2,
-    emissive: 0x121c28, emissiveIntensity: 0.28, side: THREE.DoubleSide,
+    vertexColors: true, map: roadTex, roughness: 0.86, metalness: 0.015,
+    bumpMap: roadTex, bumpScale: 0.042,
+    clearcoat: 0.045, clearcoatRoughness: 0.62,
+    emissive: 0x020304, emissiveIntensity: 0.012, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2
   }));
   roadMesh.material.userData.puddle = puddleTex();
@@ -2291,9 +2427,9 @@ function createRoad() {
   lg.setIndex(li); lg.computeVertexNormals();
   // Center dashes: higher metalness + emissive so headlight cones light them up at night.
   const centerLineMat = new THREE.MeshPhysicalMaterial({
-    color: 0xfff6d0, roughness: 0.15, metalness: 0.65,
-    clearcoat: 0.6, clearcoatRoughness: 0.2,
-    emissive: 0xffd27a, emissiveIntensity: 0.65,
+    color: 0xe8e4d5, roughness: 0.58, metalness: 0.06,
+    clearcoat: 0.12, clearcoatRoughness: 0.48,
+    emissive: 0x665b43, emissiveIntensity: 0.075,
     side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4
   });
   const centerLineMesh = new THREE.Mesh(lg, centerLineMat);
@@ -2310,9 +2446,9 @@ function createRoad() {
     const eg = new THREE.BufferGeometry();
     eg.setAttribute('position', new THREE.Float32BufferAttribute(ep, 3)); eg.setIndex(ei); eg.computeVertexNormals();
     const edgeMat = new THREE.MeshPhysicalMaterial({
-      color: 0xf4f6fa, roughness: 0.18, metalness: 0.5,
-      clearcoat: 0.45, clearcoatRoughness: 0.25,
-      emissive: 0xc8d0dc, emissiveIntensity: 0.5,
+      color: 0xd9dddf, roughness: 0.56, metalness: 0.07,
+      clearcoat: 0.10, clearcoatRoughness: 0.5,
+      emissive: 0x626970, emissiveIntensity: 0.055,
       side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4
     });
     const edgeMesh = new THREE.Mesh(eg, edgeMat);
@@ -2322,7 +2458,7 @@ function createRoad() {
 }
 
 function grassTex() {
-  const c = document.createElement('canvas'); c.width = c.height = isMobile ? 512 : 768;
+  const c = document.createElement('canvas'); c.width = c.height = isMobile ? 512 : 1024;
   const x = c.getContext('2d');
   const W = c.width;
   x.fillStyle = '#4a6340'; x.fillRect(0, 0, W, W);
@@ -2338,7 +2474,7 @@ function grassTex() {
     x.beginPath(); x.ellipse(Math.random()*W, Math.random()*W, 8+Math.random()*30, 5+Math.random()*18, Math.random()*Math.PI, 0, Math.PI*2); x.fill();
   }
   // Fine grass blades and natural ground grain.
-  for (let i = 0; i < (isMobile ? 22000 : 40000); i++) {
+  for (let i = 0; i < (isMobile ? 22000 : 52000); i++) {
     const g = 62 + Math.random() * 82 | 0, r = 24 + Math.random() * 34 | 0, b = 20 + Math.random() * 28 | 0;
     x.strokeStyle = `rgba(${r},${g},${b},${0.12 + Math.random()*0.32})`;
     x.lineWidth = 0.5 + Math.random()*1.2;
@@ -2373,7 +2509,7 @@ function puddleTex() {
 function asphaltTex() {
   const c = document.createElement('canvas'); c.width = c.height = isMobile ? 512 : 2048;
   const ctx = c.getContext('2d');
-  const AS = 1024; // logical paint size
+  const AS = 1024; // logical paint size; 2K backing keeps aggregate detail sharp without oversized texture memory
   ctx.scale(c.width / AS, c.width / AS);
   ctx.fillStyle = '#34373d'; ctx.fillRect(0, 0, AS, AS);
   // Fine aggregate / stone grain with a few brighter flecks that catch headlight glare.
@@ -2384,24 +2520,120 @@ function asphaltTex() {
     const px = Math.random()*1024, py = Math.random()*1024;
     ctx.fillRect(px, py, 0.6+Math.random()*2.4, 0.5+Math.random()*1.8);
   }
-  // Irregular tar repairs and subtle patches.
+  // Irregular tar repairs and subtle patches, with feathered edges rather than hard decals.
   for (let i = 0; i < 420; i++) {
     const shade = 12 + Math.random()*32 | 0;
+    const px = Math.random()*1024, py = Math.random()*1024;
     ctx.fillStyle = `rgba(${shade},${shade+1},${shade+3},${0.10+Math.random()*0.23})`;
-    const px = Math.random()*1024, py = Math.random()*1024;
     ctx.beginPath(); ctx.ellipse(px, py, 2+Math.random()*18, 1+Math.random()*10, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+    if (Math.random() < 0.24) {
+      ctx.strokeStyle = `rgba(8,10,13,${0.10+Math.random()*0.12})`;
+      ctx.lineWidth = 0.7 + Math.random()*1.1;
+      ctx.beginPath(); ctx.ellipse(px, py, 3+Math.random()*17, 2+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2); ctx.stroke();
+    }
   }
-  // Longitudinal rubbering, braking streaks and faint pavement seams.
+  // Fine branching cracks: restrained contrast, short fractured paths, no obvious repeating pattern.
+  for (let i = 0; i < 34; i++) {
+    let px = Math.random()*1024, py = Math.random()*1024;
+    const segments = 3 + (Math.random()*6|0), angle0 = Math.random()*Math.PI*2;
+    ctx.strokeStyle = `rgba(8,10,13,${0.10+Math.random()*0.12})`;
+    ctx.lineWidth = 0.45 + Math.random()*0.7;
+    ctx.beginPath(); ctx.moveTo(px, py);
+    for (let j = 0; j < segments; j++) {
+      const a = angle0 + (Math.random()-0.5)*0.9;
+      px += Math.cos(a) * (4 + Math.random()*10);
+      py += Math.sin(a) * (4 + Math.random()*10);
+      ctx.lineTo(px, py);
+      if (j > 0 && Math.random() < 0.24) {
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + (Math.random()-0.5)*12, py + (Math.random()-0.5)*12);
+        ctx.moveTo(px, py);
+      }
+    }
+    ctx.stroke();
+  }
+  // Occasional transverse construction joints, broken and low contrast like real resurfaced asphalt.
+  for (let i = 0; i < 7; i++) {
+    const y = Math.random()*1024;
+    ctx.strokeStyle = `rgba(8,10,13,${0.07+Math.random()*0.08})`;
+    ctx.lineWidth = 0.7 + Math.random()*1.1;
+    ctx.setLineDash([18+Math.random()*34, 12+Math.random()*30]);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y + (Math.random()-0.5)*10); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // Longitudinal tyre rubber follows U (the road direction); transverse joints cross V.
+  // This orientation matters: the road mesh maps texture U along the road and V across it.
   for (let i = 0; i < 90; i++) {
-    ctx.strokeStyle = `rgba(5,7,10,${0.08+Math.random()*0.20})`;
-    ctx.lineWidth = 0.6+Math.random()*3.2;
-    const px = Math.random()*1024;
-    ctx.beginPath(); ctx.moveTo(px,0); ctx.bezierCurveTo(px+(Math.random()-.5)*30,320,px+(Math.random()-.5)*30,700,px+(Math.random()-.5)*40,1024); ctx.stroke();
+    const y = Math.random() * 1024;
+    ctx.strokeStyle = `rgba(5,7,10,${0.07+Math.random()*0.16})`;
+    ctx.lineWidth = 0.6 + Math.random() * 2.8;
+    ctx.beginPath(); ctx.moveTo(0, y);
+    ctx.bezierCurveTo(320, y + (Math.random()-.5)*8, 700, y + (Math.random()-.5)*8, 1024, y + (Math.random()-.5)*12);
+    ctx.stroke();
   }
+  // Broken transverse repair joints run across the carriageway, not down its length.
   for (let i = 0; i < 14; i++) {
+    const x = Math.random() * 1024, y = Math.random() * 1024;
+    ctx.strokeStyle = `rgba(8,10,12,${0.10+Math.random()*0.10})`;
+    ctx.lineWidth = 1 + Math.random() * 2;
+    ctx.setLineDash([12 + Math.random()*28, 10 + Math.random()*24]);
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + (Math.random()-.5)*8, 1024); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // Paired tyre paths are fixed across the road width (V) and continue along its length (U).
+  // Painted into the existing shared texture: no extra meshes, draw calls or runtime updates.
+  for (const laneY of [420, 604]) {
+    const halo = ctx.createLinearGradient(0, laneY - 38, 0, laneY + 38);
+    halo.addColorStop(0, 'rgba(8,9,12,0)');
+    halo.addColorStop(.25, 'rgba(8,9,12,0.08)');
+    halo.addColorStop(.5, 'rgba(5,6,8,0.22)');
+    halo.addColorStop(.75, 'rgba(8,9,12,0.08)');
+    halo.addColorStop(1, 'rgba(8,9,12,0)');
+    ctx.fillStyle = halo; ctx.fillRect(0, laneY - 38, 1024, 76);
+    for (let j = 0; j < 28; j++) {
+      const x = Math.random() * 1024, w = 4 + Math.random() * 13;
+      ctx.strokeStyle = `rgba(4,5,7,${0.07 + Math.random() * 0.12})`;
+      ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x, laneY + (Math.random() - .5) * 12);
+      ctx.lineTo(x + 18 + Math.random() * 70, laneY + (Math.random() - .5) * 18); ctx.stroke();
+    }
+  }
+  // Fine broken rubber scuffs and stone glints add close-range texture without creating strong repeating stripes.
+  for (let i = 0; i < 180; i++) {
+    const px = Math.random() * 1024, py = 260 + Math.random() * 500;
+    const len = 5 + Math.random() * 34, drift = (Math.random() - 0.5) * 5;
+    ctx.strokeStyle = `rgba(${Math.random() < 0.72 ? '5,6,8' : '112,114,116'},${0.035 + Math.random() * 0.075})`;
+    ctx.lineWidth = 0.35 + Math.random() * 1.15;
+    ctx.beginPath(); ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + len * 0.48, py + drift, px + len, py + drift * 0.45); ctx.stroke();
+  }
+  for (let i = 0; i < 900; i++) {
+    const v = 72 + Math.random() * 72 | 0;
+    ctx.fillStyle = `rgba(${v},${v+1},${v+3},${0.025 + Math.random() * 0.055})`;
+    const px = Math.random() * 1024, py = Math.random() * 1024;
+    ctx.fillRect(px, py, 0.35 + Math.random() * 0.8, 0.35 + Math.random() * 0.8);
+  }
+  // Scuffed braking patches: soft-edged, irregular darkening rather than obvious black decals.
+  for (let i = 0; i < 18; i++) {
+    const px = 350 + Math.random() * 320, py = Math.random() * 1024;
+    const g = ctx.createRadialGradient(px, py, 2, px, py, 18 + Math.random() * 34);
+    g.addColorStop(0, `rgba(5,6,8,${0.10 + Math.random() * 0.10})`); g.addColorStop(1, 'rgba(5,6,8,0)');
+    ctx.fillStyle = g; ctx.fillRect(px - 45, py - 45, 90, 90);
+  }
+  // Fine sealed cracks, aggregate scars and rubber transfer make the road read as used pavement.
+  for (let i = 0; i < (isMobile ? 45 : 150); i++) {
+    let px = Math.random()*1024, py = Math.random()*1024;
+    ctx.strokeStyle = `rgba(7,9,12,${0.08+Math.random()*0.12})`;
+    ctx.lineWidth = 0.35 + Math.random()*0.55;
+    ctx.beginPath(); ctx.moveTo(px,py);
+    const n = 2 + (Math.random()*5|0);
+    for (let j=0;j<n;j++) { px += (Math.random()-.5)*13; py += (Math.random()-.5)*16; ctx.lineTo(px,py); }
+    ctx.stroke();
+  }
+  for (let i = 0; i < (isMobile ? 12 : 36); i++) {
     const px = Math.random()*1024, py = Math.random()*1024;
-    ctx.strokeStyle = `rgba(8,10,12,${0.12+Math.random()*0.12})`; ctx.lineWidth = 1+Math.random()*2;
-    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+(Math.random()-.5)*45,py+12+Math.random()*50); ctx.stroke();
+    const g = ctx.createRadialGradient(px,py,1,px,py,10+Math.random()*24);
+    g.addColorStop(0, `rgba(8,10,13,${0.08+Math.random()*0.08})`); g.addColorStop(1, 'rgba(8,10,13,0)');
+    ctx.fillStyle=g; ctx.fillRect(px-30,py-30,60,60);
   }
   // Faint reflective lane flecks (glass beads) — read under headlight cones at night.
   for (let i = 0; i < (isMobile ? 180 : 520); i++) {
@@ -2533,8 +2765,8 @@ function createWorld() {
   pts.forEach(q => { gMinX = Math.min(gMinX, q.x); gMaxX = Math.max(gMaxX, q.x); gMinZ = Math.min(gMinZ, q.z); gMaxZ = Math.max(gMaxZ, q.z); });
   gMinX -= 170; gMaxX += 170; gMinZ -= 170; gMaxZ += 170;
   const nearestRoad = (x, z) => { let bd = 1e18, by = 0; for (let k = 0; k < pts.length; k++) { const dx = pts[k].x - x, dz = pts[k].z - z, d2 = dx * dx + dz * dz; if (d2 < bd) { bd = d2; by = pts[k].y; } } return [Math.sqrt(bd), by]; };
-  const groundH = (x, z) => {
-    const [d, ry] = nearestRoad(x, z);
+  const groundH = (x, z, roadSample = null) => {
+    const [d, ry] = roadSample || nearestRoad(x, z);
     const nearH = ry - 0.34 - Math.max(0, d - 11) * 0.03;
     const n = 2.4 * Math.sin(x * 0.011 + 1.3) * Math.cos(z * 0.013) + 1.3 * Math.sin(x * 0.027 + z * 0.021);
     const edge = sstep(0, 70, Math.min(x - gMinX, gMaxX - x, z - gMinZ, gMaxZ - z));
@@ -2546,8 +2778,9 @@ function createWorld() {
     const step = isMobile ? 9 : 6, nx = Math.ceil((gMaxX - gMinX) / step) + 1, nz = Math.ceil((gMaxZ - gMinZ) / step) + 1;
     const tp = new Float32Array(nx * nz * 3), tc = new Float32Array(nx * nz * 3), tu = new Float32Array(nx * nz * 2), ti = [];
     for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
-      const x = gMinX + ix * step, z = gMinZ + iz * step, k = iz * nx + ix, [d] = nearestRoad(x, z);
-      tp[k * 3] = x; tp[k * 3 + 1] = groundH(x, z); tp[k * 3 + 2] = z;
+      const x = gMinX + ix * step, z = gMinZ + iz * step, k = iz * nx + ix, roadSample = nearestRoad(x, z), d = roadSample[0];
+      // Reuse the nearest-road result for height and dirt blending; avoids a second full scan of pts.
+      tp[k * 3] = x; tp[k * 3 + 1] = groundH(x, z, roadSample); tp[k * 3 + 2] = z;
       tu[k * 2] = (x + 900) / 1800; tu[k * 2 + 1] = (900 - z) / 1800;
       const patch = 1.0 + 0.2 * Math.sin(x * 0.045 + 0.7) * Math.cos(z * 0.037) + (Math.random() - 0.5) * 0.1, dirt = 1 - sstep(10.5, 16, d);
       tc[k * 3] = patch * (1 + dirt * 0.45); tc[k * 3 + 1] = patch * (1 + dirt * 0.18); tc[k * 3 + 2] = patch * (1 - dirt * 0.1);
@@ -2588,6 +2821,8 @@ function createWorld() {
         float height = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
         float top = smoothstep(0.05, 0.92, height);
         vec3 color = mix(horizon, zenith, top);
+        float horizonHaze = exp(-abs(dir.y) * 10.0) * 0.16;
+        color = mix(color, vec3(0.78, 0.84, 0.88), horizonHaze);
         // Softer, wider atmospheric glow near horizon
         float horizonBand = pow(max(0.0, 1.0 - abs(dir.y) * 3.8), 2.4);
         color += glow * horizonBand * 0.28;
@@ -2725,7 +2960,7 @@ function createWorld() {
   {
     const rockMat = new THREE.MeshStandardMaterial({ color: trackId === 3 ? 0x6f3f25 : 0x4c5654, roughness: 0.95, flatShading: true });
     const rockGeo = new THREE.IcosahedronGeometry(1, isMobile ? 0 : 1); // fewer faces on phones
-    const rockCount = visualQuality === 'low' ? 60 : visualQuality === 'medium' ? 130 : 180;
+    const rockCount = visualQuality === 'low' ? 60 : visualQuality === 'medium' ? 130 : 220;
     const rm = [], tmp = new THREE.Vector3();
     for (let i = 0; i < rockCount; i++) {
       const u = (i * 0.61803398875) % 1;
@@ -2748,7 +2983,7 @@ function createWorld() {
 
   // Trees: big layered conifers and broadleaf trees growing on the terrain, plus bushes and a distant forest. Everything is
   // instanced (7 draw calls in total) with per-tree rotation, lean, size and tint, and the foliage sways in the wind.
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, vertexColors: true, side: THREE.DoubleSide, emissive: 0x061b08, emissiveIntensity: 0.22 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, vertexColors: true, side: THREE.DoubleSide, emissive: 0x041006, emissiveIntensity: 0.11 });
   leafMat.onBeforeCompile = sh => {
     sh.uniforms.uWind = windUniform;
     sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>',
@@ -2762,7 +2997,7 @@ function createWorld() {
   const trunkBroadGeo = mergeGeos([lathe([[0.52, -0.5], [0.34, 0.4], [0.25, 1.6], [0.17, 2.9]], 7), branch(0.4, 0.75, 2.3), branch(2.5, 0.8, 2.2), branch(4.4, 0.7, 2.4)]);
   const geoLib = {
     // Hi = near trees, Mid = larger/closer background forest, Lo = far horizon fill
-    pineHi: buildPineGeo(8, 11, 2.0, 1.2, 0.62, 1.35),
+    pineHi: buildPineGeo(10, 14, 2.0, 1.2, 0.54, 1.25),
     pineMid: buildPineGeo(6, 9, 2.0, 1.2, 0.85, 1.55),
     pineLo: buildPineGeo(5, 8, 2.0, 1.2, 1.15, 2.1),
     broadHi: buildCrownGeo(8, 1, 1.5, 4.2, 1.0),
@@ -2795,7 +3030,7 @@ function createWorld() {
       if (Math.random() < 0.45) for (let c = 0, n = 1 + ((Math.random() * 2) | 0); c < n; c++) { const o2 = 3 + Math.random() * 5, a2 = Math.random() * 6.28; tryTree(x + Math.cos(a2) * o2, z + Math.sin(a2) * o2, sc * (0.6 + Math.random() * 0.4), Math.random() < 0.3, 'Hi', 10.5); }
     });
   }
-  for (let k = 0, farN = Math.round(pts.length * (isMobile ? 1.1 : 2.1)); k < farN; k++) { // denser distant forest for horizon depth
+  for (let k = 0, farN = Math.round(pts.length * (isMobile ? 1.1 : 2.35)); k < farN; k++) { // denser distant forest for horizon depth
     const u = Math.random(), p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize(), { side } = sideUp(tang), dir = Math.random() < 0.5 ? -1 : 1;
     // Closer background band uses Mid detail; only the far horizon stays on the cheapest Lo meshes.
     const nearBand = Math.random() < 0.72;
@@ -2806,7 +3041,7 @@ function createWorld() {
     const lod = nearBand ? 'Mid' : 'Lo';
     tryTree(p.x + side.x * dir * off, p.z + side.z * dir * off, sc, Math.random() < 0.25, lod, nearBand ? 14 : 18);
   }
-  for (let k = 0, bushN = Math.round(pts.length * (isMobile ? 0.8 : 1.5)); k < bushN; k++) { // roadside bushes: cheap, and they make speed read much better
+  for (let k = 0, bushN = Math.round(pts.length * (isMobile ? 0.8 : 1.7)); k < bushN; k++) { // roadside bushes: cheap, and they make speed read much better
     const u = Math.random(), p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize(), { side } = sideUp(tang), dir = Math.random() < 0.5 ? -1 : 1;
     const off = (trackId === 10 ? 17 : ROAD_W * 0.5 + 2.6) + Math.random() * 6, x = p.x + side.x * dir * off, z = p.z + side.z * dir * off;
     if (!clearOfRoad(x, z, 9)) continue;
@@ -2840,11 +3075,12 @@ function createWorld() {
   });
   paintLeaves(typeof season === 'number' ? season : 0);
 
-  // roadside marker posts (speed cues): two instanced meshes
-  const postMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.6, metalness: 0.3 });
-  const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.4, 5);
-  const capMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xaa0000, emissiveIntensity: 0.35 });
-  const capGeo = new THREE.SphereGeometry(0.12, 6, 6);
+  // Roadside delineator posts: slim white reflectors with a red reflective band,
+  // instanced in two draw calls instead of individual roadside meshes.
+  const postMat = new THREE.MeshStandardMaterial({ color: 0xd9dddf, roughness: 0.72, metalness: 0.05 });
+  const postGeo = new THREE.BoxGeometry(0.13, 1.18, 0.10);
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xc52b2b, roughness: 0.38, metalness: 0.04, emissive: 0x3b0808, emissiveIntensity: 0.22 });
+  const capGeo = new THREE.BoxGeometry(0.135, 0.2, 0.108);
   const postM = [], capM = [];
   for (let i = 0; i < pts.length; i += 8) {
     const u = i / pts.length;
@@ -2852,14 +3088,108 @@ function createWorld() {
     const tang = curve.getTangentAt(u).normalize();
     const { side, up } = sideUp(tang);
     [-1, 1].forEach(dir => {
-      const pos = p.clone().addScaledVector(side, dir * (ROAD_W * 0.5 + 1.6)).addScaledVector(up, 0.7);
-      postM.push(mk(pos.x, pos.y, pos.z, 0, 0, 0, 1, 1, 1));
-      pos.addScaledVector(up, 0.75);
-      capM.push(mk(pos.x, pos.y, pos.z, 0, 0, 0, 1, 1, 1));
+      const base = p.clone().addScaledVector(side, dir * (ROAD_W * 0.5 + 1.7));
+      const y = groundH(base.x, base.z);
+      const post = base.clone().addScaledVector(up, 0.59);
+      post.y = y + 0.59;
+      postM.push(mk(post.x, post.y, post.z, 0, Math.atan2(tang.x, tang.z), 0, 1, 1, 1));
+      const band = base.clone().addScaledVector(up, 0.91);
+      band.y = y + 0.91;
+      capM.push(mk(band.x, band.y, band.z, 0, Math.atan2(tang.x, tang.z), 0, 1, 1, 1));
     });
   }
   addInst(inst(postGeo, postMat, postM, false, false));
   addInst(inst(capGeo, capMat, capM, false, false));
+
+  // Fine verge grass: a single instanced mesh adds texture beside the asphalt
+  // without introducing per-frame work, external textures, or extra draw calls.
+  {
+    const bladeGeo = mergeGeos([
+      new THREE.ConeGeometry(0.075, 0.72, 3).translate(-0.16, 0.36, 0),
+      new THREE.ConeGeometry(0.065, 0.58, 3).translate(0.02, 0.29, 0.035),
+      new THREE.ConeGeometry(0.07, 0.66, 3).translate(0.17, 0.33, -0.025)
+    ]);
+    const grassMat = new THREE.MeshStandardMaterial({ color: trackId === 3 ? 0x827044 : 0x667b45, roughness: 1, vertexColors: false, flatShading: true });
+    const grassM = [];
+    const grassStep = visualQuality === 'low' ? 18 : visualQuality === 'medium' ? 12 : 8;
+    for (let i = 0; i < pts.length; i += grassStep) {
+      const u = i / pts.length, p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize();
+      const { side } = sideUp(tang);
+      [-1, 1].forEach((dir, sideIndex) => {
+        const off = ROAD_W * 0.5 + 3.4 + ((i * 7 + sideIndex * 5) % 11);
+        const x = p.x + side.x * dir * off, z = p.z + side.z * dir * off;
+        if (!clearOfRoad(x, z, ROAD_W * 0.5 + 1.8)) return;
+        const sc = 0.65 + ((i * 13 + sideIndex * 3) % 9) * 0.055;
+        grassM.push(mk(x, groundH(x, z) - 0.02, z, 0, ((i * 17) % 31) * 0.11, 0, sc, sc, sc));
+      });
+    }
+    addInst(inst(bladeGeo, grassMat, grassM, false, false));
+  }
+
+  // Rural utility poles and sagging overhead wires give the road a lived-in scale.
+  // One instanced pole mesh and one line object keep the addition inexpensive.
+  if (trackId !== 6) {
+    const poleParts = [
+      new THREE.CylinderGeometry(0.12, 0.19, 8.4, 7).translate(0, 4.2, 0),
+      new THREE.BoxGeometry(2.05, 0.16, 0.18).translate(0, 7.15, 0),
+      new THREE.BoxGeometry(0.13, 0.52, 0.13).translate(-0.68, 7.46, 0),
+      new THREE.BoxGeometry(0.13, 0.52, 0.13).translate(0.68, 7.46, 0),
+      // Small ceramic insulators make the crossarm read as a utility pole at distance.
+      new THREE.CylinderGeometry(0.075, 0.095, 0.28, 6).translate(-0.68, 7.86, 0),
+      new THREE.CylinderGeometry(0.075, 0.095, 0.28, 6).translate(0, 7.86, 0),
+      new THREE.CylinderGeometry(0.075, 0.095, 0.28, 6).translate(0.68, 7.86, 0),
+      new THREE.CylinderGeometry(0.22, 0.23, 0.34, 7).translate(0, 0.24, 0)
+    ];
+    const poleGeo = mergeGeos(poleParts);
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x655744, roughness: 0.94, metalness: 0.02 });
+    const poleMatrices = [], wirePositions = [];
+    const poleStep = Math.max(10, Math.round(pts.length / (visualQuality === 'low' ? 22 : 34)));
+    const wirePrev = [null, null];
+    for (let i = 0; i <= pts.length; i += poleStep) {
+      const u = (i % pts.length) / pts.length;
+      const p0 = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize();
+      const { side } = sideUp(tang);
+      [-1, 1].forEach((dir, sideIndex) => {
+        // Keep poles well beyond the shoulder and reject positions near ANY road
+        // segment, including nearby bends and self-crossings. The previous fixed
+        // offset could put a pole back over the asphalt on tight curves.
+        let x = 0, z = 0, placed = false;
+        for (let off = ROAD_W * 0.5 + 16; off <= ROAD_W * 0.5 + 34; off += 2.5) {
+          x = p0.x + side.x * dir * off;
+          z = p0.z + side.z * dir * off;
+          if (clearOfRoad(x, z, ROAD_W * 0.5 + 5.5)) { placed = true; break; }
+        }
+        if (!placed) { wirePrev[sideIndex] = null; return; }
+        const y = groundH(x, z);
+        const pole = new THREE.Object3D();
+        pole.position.set(x, y, z);
+        pole.rotation.y = Math.atan2(tang.x, tang.z);
+        pole.updateMatrix(); poleMatrices.push(pole.matrix.clone());
+        const endA = new THREE.Vector3(x + side.x * -0.68, y + 7.92, z + side.z * -0.68);
+        const endB = new THREE.Vector3(x + side.x * 0.68, y + 7.92, z + side.z * 0.68);
+        const prev = wirePrev[sideIndex];
+        if (prev) {
+          for (const k of [0, 1]) {
+            const a = k === 0 ? prev.a : prev.b, b = k === 0 ? endA : endB;
+            const mid = a.clone().lerp(b, 0.5); mid.y -= 0.62;
+            wirePositions.push(a.x, a.y, a.z, mid.x, mid.y, mid.z, mid.x, mid.y, mid.z, b.x, b.y, b.z);
+          }
+        }
+        wirePrev[sideIndex] = { a: endA, b: endB };
+      });
+    }
+    if (poleMatrices.length) {
+      const poles = new THREE.InstancedMesh(poleGeo, poleMat, poleMatrices.length);
+      poleMatrices.forEach((m, i) => poles.setMatrixAt(i, m));
+      poles.instanceMatrix.needsUpdate = true; poles.castShadow = false; poles.receiveShadow = true; scene.add(poles);
+    }
+    if (wirePositions.length) {
+      const wireGeo = new THREE.BufferGeometry();
+      wireGeo.setAttribute('position', new THREE.Float32BufferAttribute(wirePositions, 3));
+      const wires = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: 0x343b40, transparent: true, opacity: 0.62, depthWrite: false }));
+      wires.frustumCulled = false; scene.add(wires);
+    }
+  }
 
   // ---- Roadside clutter: guardrails, signs, occasional buildings (sells speed & scale) ----
   {
@@ -2946,7 +3276,7 @@ function createWorld() {
     }
 
     // Detailed roadside buildings (houses, shops, apartments) — richer architecture
-    const bldN = isMobile ? 20 : (visualQuality === 'low' ? 36 : 68);
+    const bldN = isMobile ? 20 : (visualQuality === 'low' ? 36 : 78);
     const unitBox = new THREE.BoxGeometry(1, 1, 1);
     const placeLocal = (cx, cy, cz, yaw, lx, ly, lz, sx, sy, sz) => {
       const cos = Math.cos(yaw), sin = Math.sin(yaw);
@@ -3209,7 +3539,91 @@ function createWorld() {
       lampFx = { pool: poolMat, glow: glowMat, head: headMat, poolI, glowPts, streak: streakMat, streakI };
     }
   }
-  if (trackId === 10) createSuzukaDetails();
+  // Keep the environment road-focused: no sponsor gantries, circuit pylons or grandstands.
+}
+
+// Procedural circuit-side sponsor/wayfinding boards. The artwork is drawn at
+// runtime and shared by every board; geometry is lightweight and follows each
+// circuit's local tangent so it reads as part of the venue, not screen UI.
+function createTracksideAccents(groundHeightAt) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const visual = TRACK_VISUALS[trackId] || TRACK_VISUALS[0];
+  const accent = '#' + visual.accent.toString(16).padStart(6, '0');
+  const grad = ctx.createLinearGradient(0, 0, 512, 128);
+  grad.addColorStop(0, '#101722'); grad.addColorStop(.48, '#263342'); grad.addColorStop(1, '#10151d');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 128);
+  ctx.fillStyle = accent; ctx.fillRect(0, 0, 512, 8);
+  ctx.fillStyle = '#e8edf2'; ctx.fillRect(0, 120, 512, 8);
+  ctx.font = '900 42px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = accent; ctx.shadowBlur = 10; ctx.fillStyle = '#f4f8ff';
+  ctx.fillText(TRACKS[trackId] || 'NEXUS CIRCUIT', 256, 62);
+  ctx.shadowBlur = 0; ctx.font = '700 15px Arial, sans-serif'; ctx.fillStyle = accent;
+  ctx.fillText('NEXUS MOTORSPORT  •  TRACK GUIDE', 256, 96);
+  ctx.shadowBlur = 0;
+  const boardTex = new THREE.CanvasTexture(canvas);
+  boardTex.colorSpace = THREE.SRGBColorSpace;
+  boardTex.anisotropy = Math.min(8, renderer?.capabilities?.getMaxAnisotropy?.() || 1);
+  const boardMat = new THREE.MeshStandardMaterial({ map: boardTex, emissiveMap: boardTex, emissive: 0x7ab8d8, emissiveIntensity: 0.12, roughness: 0.42, metalness: 0.24, side: THREE.DoubleSide });
+  boardMat.userData.tracksideGlow = true;
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x252d36, roughness: 0.55, metalness: 0.72 });
+  const supportGeo = new THREE.BoxGeometry(0.16, 3.0, 0.16);
+  const frameGeo = new THREE.BoxGeometry(7.2, 1.75, 0.18);
+  const faceGeo = new THREE.PlaneGeometry(6.85, 1.38);
+  const count = visualQuality === 'low' ? 6 : isMobile ? 7 : 11;
+  // This helper must live here: clearOfRoad is local to createWorld(), so it
+  // cannot be referenced from this top-level scenery builder.
+  const boardClearOfRoad = (x, z, minD) => {
+    const minD2 = minD * minD;
+    const sample = new THREE.Vector3();
+    const samples = 256;
+    for (let k = 0; k < samples; k++) {
+      curve.getPointAt(k / samples, sample);
+      const dx = sample.x - x, dz = sample.z - z;
+      if (dx * dx + dz * dz < minD2) return false;
+    }
+    return true;
+  };
+  // A small set of circuit-colour marker pylons gives each venue a recognizable edge language.
+  // One InstancedMesh keeps this to a single draw call and avoids adding dynamic lights.
+  const markerGeo = new THREE.CylinderGeometry(0.20, 0.27, 1.25, 5, 1);
+  const markerMat = new THREE.MeshStandardMaterial({ color: visual.accent, roughness: 0.62, metalness: 0.12 });
+  const markerCount = visualQuality === 'low' ? 5 : isMobile ? 6 : 9;
+  const markers = new THREE.InstancedMesh(markerGeo, markerMat, markerCount);
+  const markerDummy = new THREE.Object3D();
+  let markerUsed = 0;
+  for (let i = 0; i < markerCount; i++) {
+    const u = (i + 0.5) / markerCount, p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize();
+    const { side, up } = sideUp(tang), dir = i % 2 ? 1 : -1;
+    const off = ROAD_W * 0.5 + 5.4 + (i % 3) * 0.7;
+    const x = p.x + side.x * dir * off, z = p.z + side.z * dir * off;
+    if (!boardClearOfRoad(x, z, ROAD_W * 0.5 + 3.5)) continue;
+    markerDummy.position.set(x, groundHeightAt(x, z) + 0.62, z);
+    markerDummy.rotation.set(0, Math.atan2(tang.x, tang.z), 0); markerDummy.updateMatrix();
+    markers.setMatrixAt(markerUsed++, markerDummy.matrix);
+  }
+  markers.count = markerUsed; markers.instanceMatrix.needsUpdate = true;
+  markers.castShadow = false; markers.receiveShadow = true; scene.add(markers);
+  for (let i = 0; i < count; i++) {
+    const u = (i + 0.38) / count;
+    const p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize();
+    const { side } = sideUp(tang);
+    const dir = i % 2 ? 1 : -1;
+    const off = ROAD_W * 0.5 + 8.5 + (i % 3) * 2.2;
+    const x = p.x + side.x * dir * off, z = p.z + side.z * dir * off;
+    if (!boardClearOfRoad(x, z, ROAD_W * 0.5 + 5)) continue;
+    const y = groundHeightAt(x, z);
+    const yaw = Math.atan2(p.x - x, p.z - z);
+    const board = new THREE.Group();
+    const frame = new THREE.Mesh(frameGeo, frameMat); frame.position.y = 3.1; board.add(frame);
+    const face = new THREE.Mesh(faceGeo, boardMat); face.position.set(0, 3.1, 0.105); board.add(face);
+    const left = new THREE.Mesh(supportGeo, frameMat); left.position.set(-3.25, 1.55, 0); board.add(left);
+    const right = new THREE.Mesh(supportGeo, frameMat); right.position.set(3.25, 1.55, 0); board.add(right);
+    board.position.set(x, y, z); board.rotation.y = yaw;
+    board.traverse(o => { if (o.isMesh) { o.castShadow = visualQuality === 'high' && !isMobile; o.receiveShadow = true; } });
+    scene.add(board);
+  }
 }
 
 function createSuzukaDetails() {
@@ -3307,6 +3721,12 @@ function applyDayNight() {
     }
   ];
   const m = modes[timeMode];
+  // Rear lamps and plate illumination respond to ambient light: dim red lenses by day,
+  // unmistakable running lamps from dusk onward, with a readable rear plate at night.
+  const tailGlow = [0.035, 0.025, 0.02, 0.02, 0.22, 0.9, 1.35][timeMode];
+  const plateGlow = [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode];
+  if (_cm) { _cm.tail.emissiveIntensity = tailGlow; _cm.plateLamp.emissiveIntensity = plateGlow; }
+  if (_mobMats) { _mobMats.tl.emissiveIntensity = Math.max(0.18, tailGlow); _mobMats.plateLamp.emissiveIntensity = plateGlow; }
   const visual = TRACK_VISUALS[trackId] || TRACK_VISUALS[0];
   scene.background = new THREE.Color(m.bg);
   scene.fog = new THREE.Fog(new THREE.Color(m.fog).lerp(new THREE.Color(visual.fog), 0.28), m.fogNear, m.fogFar);
@@ -3391,11 +3811,12 @@ function applyDayNight() {
   if (roadMesh && roadMesh.material) {
     const nightish = timeMode >= 5;
     const duskish = timeMode >= 4;
-    roadMesh.material.roughness = nightish ? 0.12 : (duskish ? 0.28 : 0.38);
-    roadMesh.material.metalness = nightish ? 0.45 : (duskish ? 0.32 : 0.28);
-    roadMesh.material.emissiveIntensity = nightish ? 0.38 : (duskish ? 0.28 : 0.2);
+    roadMesh.material.roughness = nightish ? 0.56 : (duskish ? 0.68 : 0.78);
+    roadMesh.material.metalness = nightish ? 0.055 : (duskish ? 0.045 : 0.035);
+    roadMesh.material.emissiveIntensity = nightish ? 0.055 : (duskish ? 0.035 : 0.025);
     if (roadMesh.material.clearcoat !== undefined) {
-      roadMesh.material.clearcoatRoughness = nightish ? 0.12 : 0.28;
+      roadMesh.material.clearcoat = rainOn ? 0.34 : 0.10;
+      roadMesh.material.clearcoatRoughness = nightish ? 0.28 : 0.48;
     }
     applyRoadWetness();
   }
@@ -3410,6 +3831,9 @@ function applyDayNight() {
         }
         if (mat.userData && mat.userData.windowLit) {
           mat.emissiveIntensity = timeMode >= 5 ? (0.55 + Math.random() * 0.35) : (timeMode >= 4 ? 0.15 : 0);
+        }
+        if (mat.userData && mat.userData.tracksideGlow) {
+          mat.emissiveIntensity = timeMode >= 6 ? 0.9 : timeMode >= 5 ? 0.62 : timeMode >= 4 ? 0.28 : 0.1;
         }
       }
     });
@@ -3512,9 +3936,14 @@ function updateBeamLevel() {
 const ROAD_ENV = [0.5, 0.6, 0.55, 0.6, 0.4, 0.22, 0.12];
 function applyRoadWetness() {
   if (!roadMesh || !roadMesh.material) return;
-  const m = roadMesh.material, night = timeMode >= 5, dusk = timeMode >= 4;
-  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 0.85 : 1);
-  if (m.clearcoat !== undefined) m.clearcoat = (night ? 0.5 : dusk ? 0.4 : 0.3) + (rainOn ? 0.15 : 0);
+  const m = roadMesh.material, night = timeMode >= 5;
+  // Dry asphalt stays mineral-matte; rain adds a restrained clear film and the
+  // existing puddle roughness map supplies the localized brighter reflections.
+  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 0.9 : 0.72);
+  if (m.clearcoat !== undefined) {
+    m.clearcoat = rainOn ? (night ? 0.48 : 0.38) : (night ? 0.16 : 0.10);
+    m.clearcoatRoughness = rainOn ? 0.24 : 0.48;
+  }
 }
 function setRain(on) {
   rainOn = on;
@@ -3570,11 +3999,11 @@ function setRain(on) {
   if (roadMesh) {
     // Strong wet-road response: darker, more reflective, lower roughness
     const night = timeMode >= 5;
-    roadMesh.material.roughness = on ? (night ? 0.24 : 0.3) : 0.42;   // multiplied by the puddle map: puddles end up almost mirror-like
-    roadMesh.material.metalness = on ? (night ? 0.2 : 0.14) : 0.22;
+    roadMesh.material.roughness = on ? (night ? 0.34 : 0.40) : (night ? 0.56 : 0.78);
+    roadMesh.material.metalness = on ? 0.065 : 0.035;
     const pud = on ? roadMesh.material.userData.puddle : null;
     if (roadMesh.material.roughnessMap !== pud) { roadMesh.material.roughnessMap = pud; roadMesh.material.needsUpdate = true; }
-    roadMesh.material.emissiveIntensity = on ? (night ? 0.14 : 0.08) : (night ? 0.55 : 0.18);
+    roadMesh.material.emissiveIntensity = on ? (night ? 0.055 : 0.035) : (night ? 0.055 : 0.025);
     if (roadMesh.material.color) {
       roadMesh.material.color.setHex(on ? (night ? 0x50545c : 0x62666e) : 0xffffff);   // wet asphalt is darker
     }
@@ -3884,9 +4313,10 @@ function getMobileCarMats() {
     white: std(0xeeeeee, 0.5, 0.1),
     cargo: std(0xdcdcdc, 0.6, 0.1),
     door: std(0xbfc4c8, 0.52, 0.12),
-    plate: std(0xd8e2e4, 0.48, 0.25),
+    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), roughness: 0.48, metalness: 0.12, side: THREE.DoubleSide }),
+    plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     hl: new THREE.MeshStandardMaterial({ color: 0xfff5c0, emissive: 0xffe080, emissiveIntensity: 0.8, roughness: 0.3 }),
-    tl: new THREE.MeshStandardMaterial({ color: 0xff2020, emissive: 0xaa0000, emissiveIntensity: 0.5, roughness: 0.3 }),
+    tl: new THREE.MeshStandardMaterial({ color: 0xff2020, emissive: 0xaa0000, emissiveIntensity: [0.18, 0.18, 0.18, 0.18, 0.28, 0.9, 1.35][timeMode], roughness: 0.3 }),
     sh: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6 }),
     paints: {}
   };
@@ -3896,6 +4326,40 @@ function getMobileCarMats() {
 // Every car model (sedan, hatch, SUV, sports, van, bus, truck) is built ONCE with all its parts merged into a handful of
 // meshes (one per material), in a detailed close-up version and a simple distant version. Cars then just reuse that
 // geometry with their own paint, so 22 cars cost a few dozen draw calls instead of a couple of thousand.
+let _plateTexture = null;
+function licensePlateTexture() {
+  if (_plateTexture) return _plateTexture;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 0, 128);
+  bg.addColorStop(0, '#f8fbf8'); bg.addColorStop(1, '#cbd8dc');
+  x.fillStyle = bg; x.fillRect(0, 0, 512, 128);
+  x.strokeStyle = '#17364a'; x.lineWidth = 9; x.strokeRect(7, 7, 498, 114);
+  x.fillStyle = '#17364a'; x.font = 'bold 25px Arial'; x.textAlign = 'center';
+  x.fillText('BRITISH COLUMBIA', 256, 31);
+  x.font = '900 62px Arial'; x.fillText('7K3 91A', 256, 91);
+  x.font = 'bold 13px Arial'; x.fillText('BEAUTIFUL BRITISH COLUMBIA', 256, 111);
+  x.textAlign = 'left'; x.font = 'bold 15px Arial'; x.fillText('BC', 19, 29);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return (_plateTexture = t);
+}
+function addCarPlates(b, front, rear) {
+  const mats = carMats();
+  const addOne = (spec, isRear) => {
+    if (!spec) return;
+    const { w, h, y, z } = spec;
+    const faceZ = z + (isRear ? -0.012 : 0.012);
+    b.add('dark', gBox(w + 0.045, h + 0.035, 0.018, 0, y, z), 3);
+    const plate = new THREE.PlaneGeometry(w, h);
+    if (isRear) plate.rotateY(Math.PI);
+    plate.translate(0, y, faceZ);
+    b.add('plate', plate, 3);
+    if (isRear) {
+      b.add('plateLamp', gBox(Math.max(0.12, w * 0.22), 0.018, 0.012, 0, y + h * 0.64, z - 0.022), 3);
+    }
+  };
+  addOne(front, false); addOne(rear, true);
+}
 let _cm = null;
 function carMats() {
   if (_cm) return _cm;
@@ -3911,12 +4375,15 @@ function carMats() {
           side: THREE.DoubleSide, depthWrite: false
         }),
     dark: S(0x111316, 0.5, 0.3),
-    chrome: S(0xd4d8dc, 0.1, 1.0),
-    rim: S(0xaab0b6, 0.22, 0.9),
+    chrome: S(0xc4cbd0, 0.2, 0.82),
+    rim: S(0xaab2b9, 0.28, 0.78),
+    rotor: S(0x737b82, 0.34, 0.82, { side: THREE.DoubleSide }),
     tire: S(0x0c0c0e, 0.9, 0, { side: THREE.DoubleSide }),
     caliper: S(0xb52b25, 0.4, 0.4),
     head: new THREE.MeshStandardMaterial({ color: 0xe9e4d4, emissive: 0xffdf9a, emissiveIntensity: 0.38, roughness: 0.24 }),
-    tail: new THREE.MeshStandardMaterial({ color: 0xff2a22, emissive: 0xd01008, emissiveIntensity: 0.8, roughness: 0.25 }),
+    tail: new THREE.MeshStandardMaterial({ color: 0xff2a22, emissive: 0xd01008, emissiveIntensity: [0.035, 0.025, 0.02, 0.02, 0.22, 0.9, 1.35][timeMode], roughness: 0.25 }),
+    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), roughness: 0.48, metalness: 0.12, side: THREE.DoubleSide, envMapIntensity: 0.7 }),
+    plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     white: S(0xe6eaec, 0.5, 0.15),
     shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6 })
   };
@@ -3926,8 +4393,8 @@ const _paintMats = {};
 function carPaint(color) {
   // Cache by color; small roughness/metalness jitter is applied per-instance via a cloned material when needed.
   return _paintMats[color] || (_paintMats[color] = isMobile
-    ? new THREE.MeshStandardMaterial({ color, roughness: 0.26, metalness: 0.42, envMapIntensity: 1.35 })
-    : new THREE.MeshPhysicalMaterial({ color, roughness: 0.16, metalness: 0.68, clearcoat: 1.0, clearcoatRoughness: 0.025, envMapIntensity: 1.9, reflectivity: 0.7 }));
+    ? new THREE.MeshStandardMaterial({ color, roughness: 0.27, metalness: 0.38, envMapIntensity: 1.45 })
+    : new THREE.MeshPhysicalMaterial({ color, roughness: 0.245, metalness: 0.42, clearcoat: 0.84, clearcoatRoughness: 0.075, envMapIntensity: 1.85, reflectivity: 0.72, sheen: 0.08, sheenRoughness: 0.42 }));
 }
 function carPaintVariant(color) {
   // Per-car paint so traffic is not a sea of identical clearcoat.
@@ -3969,6 +4436,19 @@ function carWheel(b, x, z, r, w) {
   b.add('tire', gCylX(r, r, w, 10, x, r, z), 2);
   b.add('dark', gCylX(r * 0.6, r * 0.6, 0.04, 10, x + out * 0.9, r, z), 2);
   b.add('dark', gCylX(r * 0.6, r * 0.6, w * 0.8, 24, x, r, z), 1);
+  // Ventilated brake rotor sits behind the spokes; all face details stay recessed
+  // so the wheel silhouette remains clean and the centre never grows a protruding hub.
+  const rotorX = x + out * 0.56;
+  b.add('rotor', gCylX(r * 0.435, r * 0.435, 0.018, 32, rotorX, r, z), 1);
+  b.add('dark', _gp(new THREE.TorusGeometry(r * 0.365, 0.009, 5, 32), rotorX + out * 0.08, r, z, 0, Math.PI / 2, 0), 1);
+  // Drilled cooling holes are tiny dark insets, not bolts or raised studs.
+  for (let i = 0; i < 10; i++) {
+    const a = i * Math.PI * 2 / 10;
+    b.add('dark', gCylX(r * 0.022, r * 0.022, 0.004, 8,
+      rotorX + out * 0.085,
+      r + Math.cos(a) * r * 0.315,
+      z + Math.sin(a) * r * 0.315), 1);
+  }
   b.add('rim', gCylX(r * 0.5, r * 0.5, 0.025, 24, x - s * w * 0.18, r, z), 1);
   b.add('caliper', gBox(w * 0.3, r * 0.5, r * 0.2, x - s * w * 0.12, r + r * 0.18, z + r * 0.5), 1);
   for (let i = 0; i < 10; i++) {
@@ -3976,8 +4456,8 @@ function carWheel(b, x, z, r, w) {
     b.add('rim', gBox(0.035, r * 0.5, 0.06, x + out * 0.92, r + Math.cos(a) * r * 0.3, z + Math.sin(a) * r * 0.3, a), 1);
   }
   b.add('chrome', _gp(new THREE.TorusGeometry(r * 0.6, 0.018, 6, 24), x + out, r, z, 0, Math.PI / 2, 0), 1);
-  // Flush centre cap: deliberately recessed so no axle/lug geometry protrudes past the rim face.
-  b.add('chrome', gCylX(r * 0.13, r * 0.13, 0.018, 16, x + out * 0.72, r, z), 1);
+  // Deep, low-profile centre cap: kept behind the spoke face so the wheel has no projecting hub/nub.
+  b.add('dark', gCylX(r * 0.10, r * 0.10, 0.006, 16, x + out * 0.34, r, z), 1);
 }
 const CAR_SPECS = {
   sedan: {
@@ -3999,6 +4479,11 @@ const CAR_SPECS = {
     body: [[-1.6, .24], [1.75, .24], [2.04, .3], [2.1, .44], [2.0, .56], [1.55, .68], [.95, .8], [.45, .86], [-1.2, .9], [-1.8, .9], [-2.04, .8], [-2.1, .6], [-2.0, .3]],
     cab: [[.5, .86], [-.1, 1.12], [-.35, 1.22], [-.95, 1.22], [-1.3, 1.0], [-1.45, .9]], roofI: [2, 3],
     wr: .35, wz: 1.3, ww: .28, fz: 2.1, rz: -2.1, seams: [.58, -.78], handles: [-.62], wing: true, vents: true, splitter: true, exhaust: 4
+  },
+  muscle: {
+    body: [[-1.68,.27],[1.78,.27],[2.06,.34],[2.14,.52],[2.08,.70],[1.78,.82],[1.22,.91],[.62,.98],[-1.42,.96],[-1.94,.90],[-2.10,.73],[-2.10,.48],[-1.99,.31]],
+    cab: [[.96,.98],[.56,1.36],[.30,1.44],[-.92,1.44],[-1.40,1.18],[-1.67,.96]], roofI: [2,3],
+    wr: .38, wz: 1.34, ww: .28, fz: 2.14, rz: -2.10, seams: [.78,-.18,-1.12], handles: [.12,-.82], exhaust: 2
   },
   van: {
     body: [[-1.7, .3], [1.8, .3], [2.0, .36], [2.05, .6], [2.0, .85], [1.9, 1.0], [1.45, 1.05], [.95, 1.1], [-1.85, 1.12], [-2.0, 1.0], [-2.05, .7], [-2.0, .36]],
@@ -4198,6 +4683,14 @@ function buildGT3Car(b) {
     [-2.08,.70], [-2.13,.48], [-1.98,.29]
   ];
   b.add('paint', smoothNormals(prof(shell, 1.88, .075), 48), 3);
+  // Twin satin racing stripes over the bonnet and roof: simple geometry, no decal texture.
+  const stripeMat = 'white';
+  [-.19, .19].forEach(x => {
+    b.add(stripeMat, gBox(.075,.012,.72,x,.802,1.30,0,0,0), 1);
+    b.add(stripeMat, gBox(.075,.012,.82,x,1.255,-.25), 1);
+  });
+  // Small contrasting number panel on the hood adds a readable GT paddock identity.
+  b.add('white', gBox(.34,.014,.28,0,.806,1.62), 1);
   // Sculpted lower front/rear aero and side sills.
   b.add('dark', gBox(1.78,.10,.30,0,.255,2.02), 3);
   b.add('dark', gBox(1.82,.10,.26,0,.25,-2.02), 3);
@@ -4247,6 +4740,36 @@ function buildGT3Car(b) {
   // Compact GT wing on two supports, clear of the rear glass.
   b.add('paint',gBox(1.68,.055,.24,0,1.02,-1.82),3);
   side.forEach(s=>b.add('dark',gBox(.045,.24,.10,s*.53,.91,-1.82),3));
+  // Extra close-up GT3 craftsmanship: wing end plates, splitter fences, hood louvers,
+  // brake-cooling ducts, side-extractor slats, tow eyes and fine aero details.
+  side.forEach(s => {
+    // Front splitter vertical fences and small dive planes.
+    b.add('dark',gBox(.045,.13,.28,s*.79,.245,2.12),1);
+    b.add('dark',gBar(s*.82,1.72,.40,2.02,.48,.035),1);
+    b.add('dark',gBox(.30,.035,.16,s*1.02,.48,1.55,0,0,s*.10),1);
+    // Side extractor vents behind the front wheel and their recessed slats.
+    b.add('dark',gBox(.12,.12,.48,s*.965,.55,.82),1);
+    for (let j=0;j<4;j++) b.add('chrome',gBox(.018,.014,.34,s*.969,.515+j*.022,.82),1);
+    // Rear wheel arch cooling slots.
+    for (let j=0;j<3;j++) b.add('dark',gBox(.025,.025,.27,s*1.01,.72,-1.02+j*.075),1);
+    // Wing end plates, angled subtly with the body.
+    b.add('dark',gBox(.045,.25,.27,s*.835,1.10,-1.82),3);
+    // Small mirror indicator strip and door handle.
+    b.add('head',gBox(.105,.018,.018,s*.997,.925,.48),1);
+    b.add('dark',gBox(.025,.035,.12,s*.96,.78,-.30),1);
+  });
+  // Bonnet heat extraction: recessed dark slots with thin metallic edges.
+  for (let row=0;row<2;row++) for (let j=0;j<5;j++) {
+    const x=(j-2)*.115, z=1.05+row*.16;
+    b.add('dark',gBox(.065,.012,.095,x,.795,z),1);
+    b.add('chrome',gBox(.012,.008,.078,x-.027,.803,z),1);
+  }
+  // Windshield wiper pair, roof aerial, rear diffuser strakes and recessed exhaust surrounds.
+  b.add('dark',gBar(-.38,.58,.925,.18,.925,.018),1);
+  b.add('dark',gBar(.38,.58,.925,.18,.925,.018),1);
+  b.add('dark',gBox(.025,.12,.025,0,1.31,-.45),1);
+  for (let x=-.52;x<=.521;x+=.26) b.add('dark',gBox(.035,.12,.34,x,.285,-2.08),1);
+  b.add('dark',gBox(1.48,.035,.055,0,.33,-2.145),1);
   // Wheel set: tucked into arches with flush centre caps and no exposed axle hardware.
   [1.30,-1.30].forEach(z=>side.forEach(s=>carWheel(b,s*.88,z,.36,.28)));
   b.add('shadow',_gp(new THREE.PlaneGeometry(2.18,4.65),0,.012,0,-Math.PI/2),3);
@@ -4255,7 +4778,30 @@ const _carTpl = {}; // rebuilt each page load
 function carTemplate(key) {
   if (_carTpl[key]) return _carTpl[key];
   const b = carBuilder();
-  if (key === 'bus') buildBusCar(b); else if (key === 'truck') buildTruckCar(b); else if (key === 'sports') buildGT3Car(b); else buildPassengerCar(b, CAR_SPECS[key]);
+  if (key === 'bus') {
+    buildBusCar(b);
+    addCarPlates(b, { w: .66, h: .15, y: .70, z: 4.93 }, { w: .66, h: .15, y: .70, z: -4.93 });
+  } else if (key === 'truck') {
+    buildTruckCar(b);
+    addCarPlates(b, { w: .62, h: .14, y: .70, z: 4.13 }, { w: .68, h: .16, y: 1.30, z: -4.00 });
+  } else if (key === 'sports') {
+    buildGT3Car(b);
+    addCarPlates(b, { w: .48, h: .105, y: .43, z: 2.18 }, { w: .52, h: .12, y: .46, z: -2.18 });
+  } else {
+    const sp = CAR_SPECS[key]; buildPassengerCar(b, sp);
+    if (key === 'muscle') {
+      // Long bonnet, recessed scoop, subtle deck lip and low side-exit exhausts.
+      b.add('paint', gBox(.72,.055,.52,0,1.005,1.34), 1);
+      b.add('dark', gBox(.43,.018,.25,0,1.042,1.36), 1);
+      for (const x of [-.16,.16]) b.add('chrome', gBox(.025,.012,.18,x,1.054,1.36), 1);
+      b.add('paint', gBox(1.42,.075,.18,0,.96,-1.88), 3);
+      for (const side of [-1,1]) {
+        b.add('dark', gBox(.12,.075,.38,side*.96,.36,-.52), 3);
+        b.add('chrome', gCylZ(.055,.055,.16,12,side*.91,.39,-.73), 1);
+      }
+    }
+    addCarPlates(b, { w: .52, h: .13, y: .49, z: sp.fz + .065 }, { w: .52, h: .13, y: .52, z: sp.rz - .065 });
+  }
   return (_carTpl[key] = b.done());
 }
 function carInstance(color, big) {
@@ -4347,6 +4893,13 @@ function makeCar(color, big) {
       const sh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sm.sh);
       sh.rotation.x = -Math.PI / 2; sh.position.set(0, 0.01, z); g.add(sh);
     };
+    const addMobilePlate = (w, h, y, z, rear) => {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(w + .045, h + .035, .018), sm.dark);
+      frame.position.set(0, y, z); g.add(frame);
+      const pg = new THREE.PlaneGeometry(w, h); if (rear) pg.rotateY(Math.PI);
+      const plate = new THREE.Mesh(pg, sm.plate); plate.position.set(0, y, z + (rear ? -.012 : .012)); g.add(plate);
+      if (rear) { const lamp = new THREE.Mesh(new THREE.BoxGeometry(Math.max(.12, w * .22), .018, .012), sm.plateLamp); lamp.position.set(0, y + h * .64, z - .022); g.add(lamp); }
+    };
     if (big) {
       if (Math.random() < 0.4) {
         box(2.4, 2.9, 9.5, paint, 0, 1.75, 0);
@@ -4355,6 +4908,7 @@ function makeCar(color, big) {
         [[-1.1, 3.1], [1.1, 3.1], [-1.1, -2.9], [1.1, -2.9]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32));
         [-0.8, 0.8].forEach(x => lamp(x, 0.9, 4.77, 0.4, sm.hl));
         [-0.9, 0.9].forEach(x => lamp(x, 0.9, -4.77, 0.4, sm.tl));
+        addMobilePlate(.66, .15, .70, -4.93, true); addMobilePlate(.66, .15, .70, 4.93, false);
         shadow(2.6, 9.8, 0);
       } else {
         box(2.1, 2.0, 2.0, paint, 0, 1.4, 3.0);
@@ -4369,6 +4923,7 @@ function makeCar(color, big) {
         [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32));
         [-0.7, 0.7].forEach(x => lamp(x, 0.95, 4.03, 0.35, sm.hl));
         [-0.85, 0.85].forEach(x => lamp(x, 0.95, -3.93, 0.4, sm.tl));
+        addMobilePlate(.68, .16, 1.30, -4.00, true); addMobilePlate(.62, .14, .70, 4.13, false);
         shadow(2.6, 8.6, 0.4);
       }
       return g;
@@ -4385,6 +4940,7 @@ function makeCar(color, big) {
     [[-0.88, 1.25], [0.88, 1.25], [-0.88, -1.25], [0.88, -1.25]].forEach(([x, z]) => wheel(x, z, 0.34, 0.24));
     [-0.55, 0.55].forEach(x => lamp(x, 0.55, 2.08, 0.34, sm.hl));
     [-0.58, 0.58].forEach(x => lamp(x, 0.6, -2.08, 0.4, sm.tl));
+    addMobilePlate(.52, .13, .52, -2.15, true); addMobilePlate(.52, .13, .49, 2.15, false);
     shadow(2, 4.3, 0);
     return g;
   }
@@ -4395,9 +4951,10 @@ function makeCarV2(color, truck) {
   const g = new THREE.Group();
   const M = (c, r, m) => new THREE.MeshPhysicalMaterial({
     color: c, roughness: r, metalness: m,
-    clearcoat: m > 0.2 ? 0.75 : 0.12,
-    clearcoatRoughness: m > 0.2 ? 0.1 : 0.4,
-    reflectivity: 0.5
+    clearcoat: m > 0.2 ? 0.95 : 0.12,
+    clearcoatRoughness: m > 0.2 ? 0.055 : 0.4,
+    reflectivity: m > 0.2 ? 0.72 : 0.5,
+    envMapIntensity: m > 0.2 ? 1.9 : 1.0
   });
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
   const tire = M(0x0b0b0c, 0.92, 0), rim = M(0xc0c4c8, 0.25, 0.85), dark = M(0x111214, 0.55, 0.25), glass = M(0x101820, 0.06, 0.9);
@@ -4443,7 +5000,7 @@ function makeCarV2(color, truck) {
 
 function makeCarOld(color) {
   const g = new THREE.Group();
-  const bodyM = new THREE.MeshPhysicalMaterial({ color, roughness: 0.24, metalness: 0.62, clearcoat: 0.45, clearcoatRoughness: 0.16 });
+  const bodyM = new THREE.MeshPhysicalMaterial({ color, roughness: 0.2, metalness: 0.58, clearcoat: 0.95, clearcoatRoughness: 0.045, reflectivity: 0.78, envMapIntensity: 2.0, sheen: 0.1, sheenRoughness: 0.4 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x111, roughness: 0.5 });
   const body = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.38, 3.6), bodyM);
   body.position.y = 0.44; g.add(body);
@@ -4548,6 +5105,88 @@ function place(mesh, tt, lateral) {
   mesh.lookAt(mesh.position.clone().add(tang));
 }
 
+// Lightweight procedural player vehicle. No external models or textures.
+const PLAYER_CAR_TEMPLATES = ['sports','hatch','sedan','sports','muscle'];
+const PLAYER_CAR_PAINTS = [0x26394b,0xb34b22,0x1f5c50,0x343941,0x8e2524];
+function buildSelectablePlayerCar() {
+  const key = PLAYER_CAR_TEMPLATES[carId] || 'sports';
+  const tpl = carTemplate(key), mats = carMats();
+  const paint = carPaint(PLAYER_CAR_PAINTS[carId] || 0x26394b);
+  const makeLod = parts => {
+    const group = new THREE.Group();
+    for (const part of parts) {
+      const material = part.mat === 'paint' ? paint : mats[part.mat];
+      if (!material) continue;
+      const mesh = new THREE.Mesh(part.geo, material);
+      mesh.castShadow = visualQuality === 'high'; mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+    return group;
+  };
+  const root = new THREE.Group(), hi = makeLod(tpl.hi), lo = makeLod(tpl.lo);
+  lo.visible = false; root.add(hi,lo);
+  // Procedural high-LOD finishing: flush brake hardware, mirrors, splitters,
+  // side skirts and restrained panel detailing. No axle stubs or external assets.
+  const detail = new THREE.Group(); hi.add(detail);
+  const addDetail = (geo, mat, x, y, z, rz=0) => {
+    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x,y,z); mesh.rotation.z=rz;
+    mesh.castShadow = visualQuality === 'high'; mesh.receiveShadow = true; detail.add(mesh); return mesh;
+  };
+  const trim = mats.dark || new THREE.MeshStandardMaterial({color:0x15191d,roughness:.58,metalness:.22});
+  const alloy = mats.chrome || new THREE.MeshStandardMaterial({color:0x9da8b0,roughness:.28,metalness:.82});
+  const rubber = mats.tire || new THREE.MeshStandardMaterial({color:0x101113,roughness:.94});
+  const brake = new THREE.MeshStandardMaterial({color:0x626a70,roughness:.42,metalness:.78});
+  const caliper = new THREE.MeshStandardMaterial({color:0x9f3428,roughness:.5,metalness:.25});
+  // Brake rotors sit just inside the wheel faces; calipers remain tucked inboard.
+  for (const x of [-.89,.89]) for (const z of [-1.38,1.38]) {
+    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(.205,.205,.025,16),brake);
+    rotor.rotation.z=Math.PI/2; rotor.position.set(x*.91,.39,z); detail.add(rotor);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.032,12),alloy);
+    cap.rotation.z=Math.PI/2; cap.position.set(x*.93,.39,z); detail.add(cap);
+    addDetail(new THREE.BoxGeometry(.075,.19,.11),caliper,x*.86,.43,z-.11);
+  }
+  // Side mirrors, front splitter and rear diffuser are low-profile and body-coloured.
+  for (const side of [-1,1]) {
+    addDetail(new THREE.BoxGeometry(.16,.09,.22),paint,side*.91,.91,.36);
+    addDetail(new THREE.BoxGeometry(.07,.055,.16),trim,side*.89,.87,.43);
+    addDetail(new THREE.BoxGeometry(.12,.12,2.35),trim,side*1.0,.28,0);
+  }
+  addDetail(new THREE.BoxGeometry(1.78,.075,.16),trim,0,.28,2.17);
+  addDetail(new THREE.BoxGeometry(1.5,.07,.18),trim,0,.27,-2.12);
+  // Thin door shut-lines and sill highlights, visible only at close range.
+  const seam = new THREE.MeshStandardMaterial({color:0x20272d,roughness:.82,metalness:.12});
+  for (const side of [-1,1]) {
+    addDetail(new THREE.BoxGeometry(.012,.36,1.12),seam,side*.91,.66,-.22);
+    addDetail(new THREE.BoxGeometry(.018,.035,1.55),alloy,side*.94,.31,-.1);
+  }
+  root.userData.hiG = hi; root.userData.loG = lo; root.userData.paint = paint; root.userData.carId = carId;
+  return root;
+}
+function ensurePlayerCarModel() {
+  if (playerCarModel && playerCarModel.userData.carId !== carId) {
+    scene.remove(playerCarModel);
+    playerCarModel = null;
+  }
+  if (!playerCarModel) { playerCarModel = buildSelectablePlayerCar(); scene.add(playerCarModel); }
+  playerCarModel.userData.paint.color.setHex(PLAYER_CAR_PAINTS[carId] || 0x26394b);
+  playerCarModel.visible = cameraView >= 1;
+}
+function setCameraView(next) {
+  cameraView = (next + CAMERA_VIEW_NAMES.length) % CAMERA_VIEW_NAMES.length;
+  const label = document.getElementById('view-btn'); if (label) label.textContent = 'VIEW: ' + CAMERA_VIEW_NAMES[cameraView];
+  document.body.classList.toggle('non-cockpit', cameraView !== 0);
+  document.body.classList.toggle('hood-view', cameraView === 1 && carId === 4);
+  const hood = document.getElementById('hood'); if (hood) hood.style.display = cameraView === 1 && carId === 4 ? 'block' : 'none';
+  if (playerCarModel) playerCarModel.visible = cameraView >= 1;
+  flash(CAMERA_VIEW_NAMES[cameraView] + ' VIEW');
+}
+function cycleCameraView() {
+  const available = carId === 4 ? [0,1,2,3,4] : [0,2,3,4];
+  const current = available.indexOf(cameraView);
+  setCameraView(available[(current + 1 + available.length) % available.length]);
+}
+
+
 function initSmoke() {
   smokeG = new THREE.Group(); scene.add(smokeG);
   const geo = new THREE.SphereGeometry(0.3, 6, 5);
@@ -4558,6 +5197,7 @@ function initSmoke() {
     smokeG.add(m);
   }
 }
+
 function tickSmoke(dt) {
   if (!smokeG) return;
   for (const m of smokeG.children) {
@@ -4625,6 +5265,7 @@ function drawMirror() {
       ctx.fillRect(mx - sz / 2, my - sz / 2, sz, sz * 0.55);
     }
   }
+  
 }
 
 function flash(txt) {
@@ -4810,10 +5451,10 @@ function update(dt) {
     if (countdown > 0) { tickAudio(); return; }
   }
 
+  const gasIn = kU ? 1 : padGas, brakeIn = kD ? 1 : padBrake;
   boosting = (kB || padBoost) && boost > 5 && spd > 8;
   if (boosting) { boost = Math.max(0, boost - 22 * dt); spd += ACCEL * 1.55 * dt; }
   else boost = Math.min(100, boost + 10 * dt);
-  const gasIn = kU ? 1 : padGas, brakeIn = kD ? 1 : padBrake;
   if (gasIn > 0) spd += ACCEL * gasIn * (1 - 0.65 * Math.pow(spd / MAX_SPD, 2)) * dt;
   else if (brakeIn > 0) spd += BRAKE * brakeIn * (rainOn ? 0.8 : 1) * dt;
   else spd += COAST * dt;
@@ -4867,27 +5508,50 @@ function update(dt) {
   const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer, -1, 1);
   steerValue += (steerTarget - steerValue) * Math.min(1, 13 * dt);
   const steerIn = steerValue;
-  pvx += steerIn * STEER_ACCEL * Math.min(1, spd / 10) * (1 - 0.3 * Math.min(1, spd / MAX_SPD)) * dt;
   const kappa = getKappa(t);
-  // Curvature creates an outward lateral load. Its sign follows the track
-  // direction, while its magnitude is identical for mirrored left/right bends.
+  // GT-style simplified tire model: steering authority builds with speed, while
+  // available lateral grip falls progressively under heavy corner load or rain.
   const cornerLoad = spd * spd * Math.abs(kappa);
-  pvx += -spd * spd * kappa * CURVE_FORCE * (ASSIST ? 0.55 : 1) * dt;
-  // A small speed penalty models tire load without making one turn direction
-  // easier than the other.
+  const wetGrip = rainOn ? 0.78 : 1;
+  const loadLoss = THREE.MathUtils.clamp((cornerLoad - 35) / 900, 0, 0.20);
+  const tireGrip = wetGrip * (1 - loadLoss);
+  const speedSteer = Math.min(1, spd / 10) * (1 - 0.3 * Math.min(1, spd / MAX_SPD));
+  const previousPvx = pvx;
+  pvx += steerIn * STEER_ACCEL * speedSteer * tireGrip * dt;
+  // Track curvature pushes the car outward; this is deliberately softened by
+  // road assistance so the new handling remains forgiving at the edge.
+  pvx += -spd * spd * kappa * CURVE_FORCE * (ROAD_ASSIST ? 0.55 : 1) * dt;
   if (cornerLoad > 18) spd -= Math.min(7, (cornerLoad - 18) * 0.018) * dt;
-  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - 3) * CENTER_SPRING * 0.5 * (ASSIST ? 2.4 : 1) * dt;
-  pvx -= pvx * LAT_FRICTION * (rainOn ? 0.75 : 1) * dt;
-  pvx = THREE.MathUtils.clamp(pvx, -MAX_LAT_VEL, MAX_LAT_VEL);
+  // Lateral tire force is progressive: a little slip is natural, but the car
+  // damps and recovers instead of snapping into an unrecoverable spin.
+  const slipRatio = THREE.MathUtils.clamp(Math.abs(pvx) / Math.max(1, MAX_LAT_VEL * wetGrip), 0, 1.5);
+  tireSlip = THREE.MathUtils.clamp((slipRatio - 0.42) / 0.78, 0, 1);
+  const lateralDamping = LAT_FRICTION * (rainOn ? 0.72 : 1) * (1 + tireSlip * 0.22);
+  pvx -= pvx * lateralDamping * dt;
+  pvx = THREE.MathUtils.clamp(pvx, -MAX_LAT_VEL * (rainOn ? 0.94 : 1), MAX_LAT_VEL * (rainOn ? 0.94 : 1));
+  lateralG = dt > 0 ? THREE.MathUtils.clamp((pvx - previousPvx) / dt / 28, -1, 1) : 0;
+  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - 3) * CENTER_SPRING * 0.5 * (ROAD_ASSIST ? 2.4 : 1) * dt;
   px += pvx * dt;
   px = THREE.MathUtils.clamp(px, -ROAD_W * 0.9, ROAD_W * 0.9);
-  if (ASSIST) {
-    // Soft guard-rail just outside the edge line: you scrape and lose speed, but you are not thrown off the road.
-    const lim = ROAD_W * 0.5 + 0.9, sgn = Math.sign(px);
-    if (Math.abs(px) > lim) { px = sgn * lim; if (pvx * sgn > 0) pvx = 0; spd -= spd * 0.5 * dt; }
+  if (ROAD_ASSIST) {
+    // Progressive invisible safety rail: gently guides the car back before it can run far off the road.
+    const edgeStart = ROAD_W * 0.5 - 1.35;
+    const edgeLimit = ROAD_W * 0.5 + 0.28;
+    const edgeDistance = Math.abs(px);
+    const edgeSign = Math.sign(px);
+    if (edgeDistance > edgeStart) {
+      const pressure = Math.min(1, (edgeDistance - edgeStart) / (edgeLimit - edgeStart));
+      pvx -= edgeSign * (5 + pressure * 24) * dt;
+      // Going beyond the painted edge costs speed, but never causes a run-off crash.
+      spd -= spd * (0.10 + pressure * 0.28) * dt;
+    }
+    if (edgeDistance > edgeLimit) {
+      px = edgeSign * edgeLimit;
+      if (pvx * edgeSign > 0) pvx = -Math.max(1.8, Math.abs(pvx) * 0.22);
+    }
   }
 
-  slide = Math.min(1, Math.max(0, (Math.abs(spd * spd * kappa) - 20) / 30));
+  slide = Math.max(tireSlip, Math.min(1, Math.max(0, (Math.abs(spd * spd * kappa) - 20) / 30)) * 0.72);
 
   prevT = t;
   t = (t + (spd * dt) / trackLen) % 1;
@@ -4930,18 +5594,26 @@ function update(dt) {
 
   const eye = getP(t), tang = getT(t);
   const { side, up } = sideUp(tang);
-  const eyePos = eye.clone().addScaledVector(side, px).addScaledVector(up, 1.15).addScaledVector(tang, 0.4);
+  const vehicleCenter = eye.clone().addScaledVector(side, px);
+  const vehicleForward = tang;
+  const vehicleSide = side;
+  const eyePos = vehicleCenter.clone().addScaledVector(up, 1.15).addScaledVector(vehicleForward, 0.4);
+  if (playerCarModel) {
+    playerCarModel.position.copy(vehicleCenter).addScaledVector(up, 0.02);
+    playerCarModel.up.copy(up); playerCarModel.lookAt(vehicleCenter.clone().add(vehicleForward));
+    playerCarModel.visible = cameraView >= 1;
+  }
 
   // Low beams: bumper height, aimed down onto asphalt ~10â€“12m ahead
   if (headlightL) {
     const carPos = eye.clone().addScaledVector(side, px);
     // Headlamp height ~0.65m, slight forward of cabin
-    const bumper = carPos.clone().addScaledVector(up, 0.65).addScaledVector(tang, 1.1);
-    const posL = bumper.clone().addScaledVector(side, -0.95);
-    const posR = bumper.clone().addScaledVector(side,  0.95);
-    // Dipped beam: hit road surface, slight outward for twin pools
-    const aimL = carPos.clone().addScaledVector(up, 0.02).addScaledVector(tang, 11).addScaledVector(side, -1.6);
-    const aimR = carPos.clone().addScaledVector(up, 0.02).addScaledVector(tang, 11).addScaledVector(side,  1.6);
+    const bumper = carPos.clone().addScaledVector(up, 0.65).addScaledVector(vehicleForward, 1.1);
+    const posL = bumper.clone().addScaledVector(vehicleSide, -0.95);
+    const posR = bumper.clone().addScaledVector(vehicleSide,  0.95);
+    // Dipped beams follow the selected vehicle heading.
+    const aimL = carPos.clone().addScaledVector(up, 0.02).addScaledVector(vehicleForward, 11).addScaledVector(vehicleSide, -1.6);
+    const aimR = carPos.clone().addScaledVector(up, 0.02).addScaledVector(vehicleForward, 11).addScaledVector(vehicleSide,  1.6);
 
     headlightL.position.copy(posL);
     headlightR.position.copy(posR);
@@ -5049,20 +5721,40 @@ function update(dt) {
   }
 
   if (Math.abs(px) > ROAD_W * 0.5 + 0.6 && spd > 28) offT += dt; else offT = Math.max(0, offT - dt * 2);
-  if (!ASSIST && (offT > 0.9 || (Math.abs(px) > ROAD_W * 0.8 && spd > MAX_SPD * 0.4))) { doCrash('RAN OFF THE ROAD!'); return; }
+  if (!ROAD_ASSIST && (offT > 0.9 || (Math.abs(px) > ROAD_W * 0.8 && spd > MAX_SPD * 0.4))) { doCrash('RAN OFF THE ROAD!'); return; }
 
-  const lean = THREE.MathUtils.clamp(-pvx * 0.02 - steerIn * 0.04, -0.12, 0.12);
-  const camUp = up.clone().applyAxisAngle(tang, lean);
-  const look = eyePos.clone().addScaledVector(tang, 28).addScaledVector(up, -0.2).addScaledVector(side, px * 0.015 + lean * 2);
+  // Cockpit feedback: body roll follows lateral load, while a restrained pitch
+  // cue makes braking and acceleration feel like the suspension is taking a set.
+  const lean = THREE.MathUtils.clamp(-pvx * 0.018 - lateralG * 0.035 - steerIn * 0.025, -0.13, 0.13);
+  const pitch = THREE.MathUtils.clamp(brakeIn * 0.026 - gasIn * 0.012, -0.018, 0.03);
+  const camUp = up.clone().applyAxisAngle(vehicleForward, lean).applyAxisAngle(vehicleSide, pitch);
+  const look = eyePos.clone().addScaledVector(vehicleForward, 28).addScaledVector(up, -0.2 - pitch * 2.5).addScaledVector(vehicleSide, px * 0.015 + lean * 2);
   if (shake > 0) {
     eyePos.x += (Math.random() - 0.5) * shake * 0.35;
     eyePos.y += (Math.random() - 0.5) * shake * 0.2;
     shake = Math.max(0, shake - dt * 2.5);
   }
   if (spd > 20) eyePos.y += Math.sin(performance.now() * 0.04) * 0.012 * (spd / MAX_SPD);
-  camera.position.lerp(eyePos, 1 - Math.pow(0.0008, dt));
-  camera.up.copy(camUp);
-  camera.lookAt(look);
+  let cameraTargetPos = eyePos, cameraLook = look, cameraUp = camUp;
+  if (cameraView === 1) { // hood / bonnet view for the new Muscle GT
+    cameraTargetPos = vehicleCenter.clone().addScaledVector(up, 1.45).addScaledVector(vehicleForward, 1.05);
+    cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward, 32).addScaledVector(up, -0.4);
+    cameraUp = up;
+  } else if (cameraView === 2) { // low bumper camera
+    cameraTargetPos = vehicleCenter.clone().addScaledVector(up, 0.72).addScaledVector(vehicleForward, 2.15);
+    cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward, 34).addScaledVector(up, -0.25);
+    cameraUp = up;
+  } else if (cameraView === 3 || cameraView === 4) { // chase / cinematic exterior views
+    const cinematicSide = cameraView === 4 ? Math.sin(performance.now() * 0.00022) * 2.2 : 0.8;
+    const back = cameraView === 4 ? 10.5 : 7.2;
+    const height = cameraView === 4 ? 4.1 : 3.0;
+    cameraTargetPos = vehicleCenter.clone().addScaledVector(vehicleForward,-back).addScaledVector(vehicleSide,cinematicSide).addScaledVector(up,height);
+    cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward,5.5).addScaledVector(up,0.55);
+    cameraUp = up;
+  }
+  camera.position.lerp(cameraTargetPos, 1 - Math.pow(0.0008, dt));
+  camera.up.copy(cameraUp);
+  camera.lookAt(cameraLook);
   if (sunDisc) {
     const e = [0.08, 0.12, 0.3, 0.55, 0.15, 0.04, -0.2][timeMode];
     sunDisc.visible = timeMode < 6; sunDisc.material.color.copy(sun.color);
@@ -5220,6 +5912,7 @@ function onKey(e, down) {
     case 'ArrowDown': case 'KeyS': case 'Space': kD = down; e.preventDefault(); break;
     case 'ShiftLeft': case 'ShiftRight': kB = down; break;
     case 'KeyC': if (down && !e.repeat) switchCar(); break;
+    case 'Tab': if (down && !e.repeat) { e.preventDefault(); cycleCameraView(); } break;
     case 'KeyV': if (down && !e.repeat) switchTrack(); break;
     case 'KeyM': if (down && !e.repeat) { muted = !muted; flash(muted ? 'SOUND OFF' : 'SOUND ON'); } break;
     case 'KeyR': if (down && !e.repeat) toggleRain(); break;
@@ -5233,11 +5926,12 @@ function showUI(on) {
   document.getElementById('hud-top').style.display = on ? 'flex' : 'none';
   document.getElementById('minimap').style.display = d;
   document.getElementById('mirror').style.display = d;
-  document.getElementById('hood').style.display = d;
+  document.getElementById('hood').style.display = cameraView === 1 && carId === 4 ? 'block' : 'none';
   document.getElementById('mode-btn').style.display = d;
   document.getElementById('pause-btn').style.display = d;
   document.getElementById('car-btn').style.display = d;
   document.getElementById('track-btn').style.display = d;
+  ['view-btn'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=d; });
   const touch = document.getElementById('touch-controls');
   touch.style.display = 'none';
   if (speedGlow) speedGlow.style.opacity = '0';
@@ -5269,8 +5963,9 @@ function start() {
   showUI(true);
   document.getElementById('mission').style.display = 'none';
   spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; lap = 1;
-  boost = 100; dead = false; run = true; shake = 0; slide = 0; combo = 0; prevT = 0; wheelAngle = 0;
+  boost = 100; dead = false; run = true; shake = 0; slide = 0; tireSlip = 0; lateralG = 0; combo = 0; prevT = 0; wheelAngle = 0;
   paused = false; lapTime = 0; timeLeft = 60; offT = 0;
+  setCameraView(0);
   resetGlass();
   countdown = 3; cdShown = -1; topSpd = 0;
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
@@ -5283,17 +5978,20 @@ function start() {
 function init() {
   const canvas = document.getElementById('c');
   const pixels = innerWidth * innerHeight;
-  // Use the sharper desktop profile on ordinary 1080p displays too; keep mobile adaptive.
-  visualQuality = gfxMobile ? 'low' : isMobile ? 'medium' : (pixels >= 1200000 ? 'high' : pixels >= 650000 ? 'medium' : 'low');
+  // Story-mode quality keeps the detailed scene, but bounds pixel and shadow costs.
+  // Full-graphics devices adapt render resolution to measured frame time; ?lite stays fixed.
+  visualQuality = gfxMobile ? 'low' : isMobile ? 'medium' : 'high';
   renderer = createRenderer(canvas, {
     antialias: !gfxMobile && visualQuality !== 'low' && !(isMobile && (window.devicePixelRatio || 1) >= 2),
     shadows: !gfxMobile,
-    maxPixelRatio: gfxMobile ? 1.0 : isMobile ? 1.5 : (visualQuality === 'high' ? 2.25 : visualQuality === 'medium' ? 1.65 : 1.2)
+    maxPixelRatio: gfxMobile ? 1.0 : isMobile ? 1.5 : 2.0
   });
   renderer.setSize(innerWidth, innerHeight);
   AR.cur = renderer.getPixelRatio();
   AR.steps = [0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0].filter(v => v <= AR.max + 0.01);
   AR.i = 0; AR.steps.forEach((v, k) => { if (Math.abs(v - AR.cur) < Math.abs(AR.steps[AR.i] - AR.cur)) AR.i = k; }); AR.cap = AR.steps.length - 1;
+  try { graphicsPreset = localStorage.getItem('cd3_graphics') || 'auto'; } catch (e) { graphicsPreset = 'auto'; }
+  if (!['auto', '1080', '1440'].includes(graphicsPreset)) graphicsPreset = 'auto';
   initNexusOverlay();
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -5303,7 +6001,7 @@ function init() {
   if (!gfxMobile) {
     const nexusEnvironment = createNexusEnvironment();
     scene.environment = nexusEnvironment;
-    scene.environmentIntensity = visualQuality === 'high' ? 1.85 : (visualQuality === 'medium' ? 1.4 : 1.05);
+    scene.environmentIntensity = visualQuality === 'high' ? 1.95 : (visualQuality === 'medium' ? 1.5 : 1.05);
   }
   camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.08, 900);
   scene.add(camera); // camera children (rain, splashes) only render if the camera is in the scene
@@ -5317,7 +6015,9 @@ function init() {
   sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
   sun.position.set(40, 70, 30);
   sun.castShadow = !gfxMobile && visualQuality !== 'low';
-  const shadowRes = (visualQuality === 'high' && !isMobile) ? 4096 : (visualQuality === 'high' ? 2048 : 1024);
+  // 2048² retains clean car/track shadows at normal driving distance while using
+  // one quarter of the texels of the previous 4096² desktop map.
+  const shadowRes = (visualQuality === 'high' && !isMobile) ? 2048 : (visualQuality === 'high' ? 1536 : 1024);
   sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.camera.near = 8;
   sun.shadow.camera.far = 360;
@@ -5339,7 +6039,7 @@ function init() {
   headlightR.castShadow = hlShadows;
   if (hlShadows) {
     for (const hl of [headlightL, headlightR]) {
-      hl.shadow.mapSize.set(1024, 1024);
+      hl.shadow.mapSize.set(512, 512);
       hl.shadow.bias = -0.0002;
       hl.shadow.normalBias = 0.02;
       hl.shadow.camera.near = 1;
@@ -5387,6 +6087,7 @@ function init() {
   beamR = makeBeam();
 
   buildTrackWorld(); initSmoke(); initSnow(); spawnTraffic();
+  ensurePlayerCarModel();
   applyDayNight();
   applySeason();
 
@@ -5395,10 +6096,20 @@ function init() {
   const { up } = sideUp(tang);
   camera.position.copy(p).addScaledVector(up, 1.15).addScaledVector(tang, 0.4);
   camera.lookAt(p.clone().addScaledVector(tang, 20));
+  applyGraphicsPreset(graphicsPreset, false);
+  const graphicsSelect = document.getElementById('graphics-preset');
+  if (graphicsSelect) graphicsSelect.addEventListener('change', () => applyGraphicsPreset(graphicsSelect.value));
 
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
+    if (graphicsPreset === 'auto') {
+      const dpr = window.devicePixelRatio || 1;
+      AR.max = Math.min(dpr, isMobile ? 1.5 : 2.0);
+      renderer.setPixelRatio(Math.min(dpr, AR.cur || AR.max));
+    } else {
+      renderer.setPixelRatio(graphicsPixelRatio(graphicsPreset));
+    }
     renderer.setSize(innerWidth, innerHeight);
     if (rainMesh) { const wasOn = rainOn; camera.remove(rainMesh); rainMesh.geometry.dispose(); rainMesh.material.dispose(); rainMesh = null; setRain(wasOn); }
     if (fxOverlayCanvas && nexusGfx) {
@@ -5457,6 +6168,7 @@ function init() {
   document.getElementById('start-track').onclick = switchTrack;
   document.getElementById('car-btn').onclick = switchCar;
   document.getElementById('track-btn').onclick = switchTrack;
+  document.getElementById('view-btn').onclick = cycleCameraView;
   const startGame = (event) => {
     event?.preventDefault();
     const fullscreenTarget = document.documentElement;
@@ -5467,7 +6179,7 @@ function init() {
     }
     start();
   };
-  document.getElementById('start-btn').onclick = e => { story = null; ['mode-btn', 'car-btn', 'track-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
+  document.getElementById('start-btn').onclick = e => { story = null; ['mode-btn', 'car-btn', 'track-btn', 'view-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
   document.getElementById('restart-btn').onclick = e => story ? beginLeg(story.leg, e) : startGame(e);
   buildDials();
   loadYear(); renderStoryBtn();
@@ -5529,3 +6241,4 @@ init();
 
 /* Final cockpit cleanup: remove the remaining raised hood/windshield lip above the instrument cluster. */
 #hood { display: none !important; }
+#dash{border-top-color:rgba(180,195,202,.72);box-shadow:inset 0 1px rgba(255,255,255,.18),inset 0 12px 28px rgba(255,255,255,.07),inset 0 -18px 30px #080a0b,0 -12px 30px rgba(0,0,0,.42)}
