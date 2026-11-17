@@ -997,6 +997,12 @@ body.endurance #yoke-hud { display: block; }
   body.hood-view #hood { display: block !important; visibility: visible !important; }
   body.hood-view #dash { display: block !important; visibility: visible !important; }
 </style>
+<style id="mobile-mirror-hide">
+/* Mobile: remove the rear-view mirror to preserve usable screen space. */
+@media (max-width: 700px), (pointer: coarse) {
+  #mirror, #mirror-label { display: none !important; visibility: hidden !important; }
+}
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -1601,7 +1607,7 @@ function createRenderer(canvas, options = {}) {
     ? THREE.PCFSoftShadowMap
     : THREE.BasicShadowMap;
   renderer.info.autoReset = true;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.mobile ? 1.5 : 1.75));
   return renderer;
 }
 // Photographic-style procedural environment: gives car paint, glass and wet asphalt
@@ -3067,15 +3073,18 @@ function createRoad() {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx); geo.computeVertexNormals();
-  const roadTex = asphaltTex(); // generated once and shared by the colour and bump maps (it used to be generated twice)
-  // tile in metres: the old repeat (1.8 along x 56 across) stretched the grain ~100x along the road, which made the streaky look
-  roadTex.repeat.set(trackLen / (48 * 0.85), (ROAD_W + 2.4) / 3); // tighter grain = more optical flow at speed
+  const roadTex = asphaltTex(); // shared colour / roughness / fine bump detail
+  const roadNormal = asphaltNormalTex();
+  // Tile at road scale so aggregate remains fine-grained instead of stretching into speed streaks.
+  roadTex.repeat.set(trackLen / (48 * 0.85), (ROAD_W + 2.4) / 3);
+  roadNormal.repeat.copy(roadTex.repeat);
   roadMesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
-    vertexColors: true, map: roadTex, roughness: 0.78, metalness: 0.04,
-    bumpMap: roadTex, bumpScale: 0.055,
+    vertexColors: true, map: roadTex, roughness: 0.74, metalness: 0.035,
+    bumpMap: roadTex, bumpScale: 0.032,
+    normalMap: roadNormal, normalScale: new THREE.Vector2(0.34, 0.34),
     roughnessMap: roadTex,
-    envMapIntensity: 0.55,
-    clearcoat: 0.12, clearcoatRoughness: 0.42,
+    envMapIntensity: 0.72,
+    clearcoat: 0.17, clearcoatRoughness: 0.36,
     reflectivity: 0.35,
     emissive: 0x030508, emissiveIntensity: 0.018, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -2
@@ -3200,6 +3209,37 @@ function puddleTex() {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1.8, 56);
   return tex;
 }
+function asphaltNormalTex() {
+  const S = isMobile ? 256 : 512;
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  const height = new Float32Array(S * S);
+  // Deterministic multi-scale stone grain; the map is generated once and shared.
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = y * S + x;
+    const broad = Math.sin(x * 0.071 + Math.sin(y * 0.043) * 2.1) * 0.16
+      + Math.sin(y * 0.093 + Math.sin(x * 0.037) * 1.7) * 0.13;
+    height[i] = 0.5 + broad + (Math.random() - 0.5) * 0.34;
+  }
+  const image = ctx.createImageData(S, S);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const l = height[y * S + ((x - 1 + S) % S)], r = height[y * S + ((x + 1) % S)];
+    const d = height[((y - 1 + S) % S) * S + x], u = height[((y + 1) % S) * S + x];
+    let nx = (l - r) * 1.8, ny = (d - u) * 1.8, nz = 1;
+    const inv = 1 / Math.hypot(nx, ny, nz); nx *= inv; ny *= inv; nz *= inv;
+    const i = (y * S + x) * 4;
+    image.data[i] = (nx * 0.5 + 0.5) * 255;
+    image.data[i + 1] = (ny * 0.5 + 0.5) * 255;
+    image.data[i + 2] = (nz * 0.5 + 0.5) * 255;
+    image.data[i + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return tex;
+}
+
 function asphaltTex() {
   const c = document.createElement('canvas'); c.width = c.height = isMobile ? 512 : 2048;
   const ctx = c.getContext('2d');
@@ -5377,9 +5417,10 @@ function carPaint(color) {
   return _paintMats[color] || (_paintMats[color] = isMobile
     ? new THREE.MeshStandardMaterial({ color, roughness: 0.30, metalness: 0.34, envMapIntensity: 1.25 })
     : new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.12, metalness: 0.68,
-        clearcoat: 1.0, clearcoatRoughness: 0.025,
-        envMapIntensity: 1.85, reflectivity: 0.9,
+        color, roughness: 0.15, metalness: 0.58,
+        clearcoat: 1.0, clearcoatRoughness: 0.045,
+        envMapIntensity: 2.0, reflectivity: 0.92,
+        specularIntensity: 0.9,
         sheen: 0.18, sheenRoughness: 0.18, sheenColor: new THREE.Color(0xffffff)
       }));
 }
@@ -6227,6 +6268,14 @@ function buildSelectablePlayerCar() {
   for (const side of [-1,1]) {
     addDetail(new THREE.BoxGeometry(.012,.36,1.12),seam,side*.91,.66,-.22);
     addDetail(new THREE.BoxGeometry(.018,.035,1.55),alloy,side*.94,.31,-.1);
+    // Flush handles and narrow fender extractor accents sharpen the side profile.
+    addDetail(new THREE.BoxGeometry(.018,.026,.13),alloy,side*.925,.78,-.42);
+    addDetail(new THREE.BoxGeometry(.018,.018,.34),trim,side*.936,.58,.92);
+    addDetail(new THREE.BoxGeometry(.018,.012,.25),alloy,side*.941,.60,.92);
+  }
+  // Fine paired bonnet creases catch the procedural environment highlights.
+  for (const side of [-1,1]) {
+    addDetail(new THREE.BoxGeometry(.018,.012,.82),alloy,side*.39,.815,1.34,side*.025);
   }
 
   // Functional-looking suspension hardware: compact upper/lower wishbones,
@@ -7200,6 +7249,7 @@ function update(dt) {
     roadMesh.material.map.offset.x = (roadMesh.material.map.offset.x - scroll) % 1;
     if (roadMesh.material.bumpMap) roadMesh.material.bumpMap.offset.x = roadMesh.material.map.offset.x;
     if (roadMesh.material.roughnessMap) roadMesh.material.roughnessMap.offset.x = roadMesh.material.map.offset.x;
+    if (roadMesh.material.normalMap) roadMesh.material.normalMap.offset.x = roadMesh.material.map.offset.x;
   }
   document.getElementById('score').textContent = Math.floor(score);
   document.getElementById('over').textContent = overs;
@@ -7516,7 +7566,13 @@ function init() {
 
   hemi = new THREE.HemisphereLight(0xd0e8f8, 0x2e4028, 1.05);
   scene.add(hemi);
-  scene.add(new THREE.AmbientLight(0xb0ccd8, 0.15));
+  scene.add(new THREE.AmbientLight(0xb0ccd8, 0.18));
+  // Cool opposing fill gives body shoulders, mirrors and window edges shape in daylight.
+  // It deliberately casts no shadows, keeping the added lighting cost negligible.
+  const automotiveFill = new THREE.DirectionalLight(0x9bb9d8, 0.30);
+  automotiveFill.position.set(-52, 24, -46);
+  automotiveFill.castShadow = false;
+  scene.add(automotiveFill);
   sun = new THREE.DirectionalLight(0xfff6e8, 1.5);
   sun.position.set(40, 70, 30);
   sun.castShadow = !gfxMobile && visualQuality !== 'low';
@@ -7606,7 +7662,7 @@ function init() {
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 1.75));
     renderer.setSize(innerWidth, innerHeight);
     if (rainMesh) { const wasOn = rainOn; scene.remove(rainMesh); rainMesh.geometry.dispose(); rainMesh.material.dispose(); rainMesh = null; if (rainSplash) { scene.remove(rainSplash); rainSplash.geometry.dispose(); rainSplash.material.dispose(); rainSplash = null; rainSplashLife = null; } setRain(wasOn); }
     if (fxOverlayCanvas && nexusGfx) {
