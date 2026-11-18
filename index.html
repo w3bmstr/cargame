@@ -4627,8 +4627,8 @@ function applyDayNight() {
   // unmistakable running lamps from dusk onward, with a readable rear plate at night.
   const tailGlow = [0.035, 0.025, 0.02, 0.02, 0.22, 0.9, 1.35][timeMode];
   const plateGlow = [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode];
-  if (_cm) { _cm.tail.emissiveIntensity = tailGlow; _cm.plateLamp.emissiveIntensity = plateGlow; }
-  if (_mobMats) { _mobMats.tl.emissiveIntensity = Math.max(0.18, tailGlow); _mobMats.plateLamp.emissiveIntensity = plateGlow; }
+  if (_cm) { _cm.tail.emissiveIntensity = tailGlow; _cm.plateLamp.emissiveIntensity = plateGlow; _cm.plate.emissiveIntensity = plateGlow * 0.5; }
+  if (_mobMats) { _mobMats.tl.emissiveIntensity = Math.max(0.18, tailGlow); _mobMats.plateLamp.emissiveIntensity = plateGlow; _mobMats.plate.emissiveIntensity = plateGlow * 0.5; }
   const visual = TRACK_VISUALS[trackId] || TRACK_VISUALS[0];
   scene.background = new THREE.Color(m.bg);
   scene.fog = new THREE.Fog(new THREE.Color(m.fog).lerp(new THREE.Color(visual.fog), 0.28), m.fogNear, m.fogFar);
@@ -5276,31 +5276,171 @@ function tickDrift(dt) {
   }
   driftMesh.geometry.attributes.position.needsUpdate = true;
 }
+// ---- snowfall: GPU-animated instanced flakes (one draw call, zero per-flake CPU work) ----
+// Every flake is a camera-facing quad (4 verts) whose position, sway, tumble and wrap-around are computed in the vertex shader from
+// a single clock, so the CPU only updates a handful of uniforms per frame. Shapes are drawn procedurally in the fragment shader, no textures:
+//  - far away: lots of small crisp round flakes (cheap, no detail to waste)
+//  - up close: flakes resolve into crystals (dendrite, hex plate or fern variants), with lumpy clump discs and rare sparkle glints mixed in
+//  - flakes stretch into a faint trail with relative speed but keep their crisp head, so close flakes never smear into blur
+// Fog, tone mapping and depth testing behave like the rest of the world; headlight glitter is a cone test in the shader (no per-flake lights).
+const SNOW_BOX = 70;
+const SNOW_LEVEL_DENSITY = 2.5, SNOW_WHITEOUT_DENSITY = 5.0;   // multiples of the original flake count: snow levels, and the WHITEOUT leg (double the snow levels)
+const _snowFwd = new THREE.Vector3(), _snowV2 = new THREE.Vector2(), _snowLast = new THREE.Vector3(), _snowRaw = new THREE.Vector3();
+let _snowT = 0, _snowLastMs = 0, _snowHaveLast = false, _snowBase = 0, _snowMul = SNOW_LEVEL_DENSITY;
 function initSnow() {
-  const count = gfxMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
-  const p = new Float32Array(count * 3);
-  for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * 70;
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-  snowMesh = new THREE.Points(g, new THREE.PointsMaterial({
-    color: 0xf4f9ff, size: visualQuality === 'low' ? 0.18 : 0.28,
-    transparent: true, opacity: 0.92, depthWrite: false, sizeAttenuation: true
+  _snowBase = gfxMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
+  const count = Math.ceil(_snowBase * SNOW_WHITEOUT_DENSITY);   // allocate for the densest case; instanceCount scales it live
+  const A = new Float32Array(count * 4), B = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    const t = Math.random(), s = Math.random();
+    let type, rad;
+    if (t < 0.74) { type = 0; rad = 0.035 + 0.05 * s * Math.sqrt(s); }      // small round flakes (the bulk, mostly seen far away)
+    else if (t < 0.93) { type = 1; rad = 0.09 + 0.11 * s; }                 // crystals
+    else { type = 2; rad = 0.05 + 0.07 * s; }                               // sparkle glints
+    A[i * 4] = Math.random(); A[i * 4 + 1] = Math.random(); A[i * 4 + 2] = Math.random(); A[i * 4 + 3] = Math.random();   // spawn xyz in the volume, seed
+    B[i * 4] = rad;
+    B[i * 4 + 1] = 3.5 - 1.6 * (rad - 0.035) / 0.165 + (Math.random() - 0.5) * 0.5;   // fall speed: big flakes drift down slower
+    B[i * 4 + 2] = type;
+    B[i * 4 + 3] = (Math.random() - 0.5) * 2.2;                             // tumble rate, rad/s
+  }
+  const gm = new THREE.InstancedBufferGeometry();
+  gm.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]), 3));
+  gm.setIndex([0, 1, 2, 0, 2, 3]);
+  gm.setAttribute('aA', new THREE.InstancedBufferAttribute(A, 4));
+  gm.setAttribute('aB', new THREE.InstancedBufferAttribute(B, 4));
+  gm.instanceCount = Math.round(_snowBase * SNOW_LEVEL_DENSITY);
+  snowMesh = new THREE.Mesh(gm, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, depthTest: true, fog: true, side: THREE.DoubleSide,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      uTime: { value: 0 }, uBox: { value: SNOW_BOX }, uShutter: { value: 0.014 },
+      uCam: { value: new THREE.Vector3() }, uCamVel: { value: new THREE.Vector3() }, uFwd: { value: new THREE.Vector3(0, 0, -1) },
+      uView: { value: new THREE.Vector2(1280, 720) }, uAmb: { value: 1 }, uHead: { value: 0 },
+      uColor: { value: new THREE.Vector3(0.905, 0.95, 1.0) }
+    }]),
+    vertexShader: `
+      attribute vec4 aA; attribute vec4 aB;
+      uniform float uTime, uBox, uShutter, uAmb, uHead; uniform vec3 uCam, uCamVel, uFwd; uniform vec2 uView;
+      varying vec2 vP; varying float vR, vLen, vA, vBr, vType, vSpin, vVar;
+      #include <fog_pars_vertex>
+      void main(){
+        float seed = aA.w, ph = seed * 6.2831853, T = uTime;
+        // shared wind sway (same shape as the old drift) + per-flake meander and flutter
+        float wx = -2.52 * cos(0.7 * T) - 0.31 * cos(1.9 * T);
+        float wvx = 1.76 * sin(0.7 * T) + 0.59 * sin(1.9 * T);
+        vec3 p = aA.xyz * uBox + vec3(wx + 0.45 * sin(T * 1.7 * (0.8 + seed) + ph * 2.0), -T * aB.y, 2.0 * sin(0.5 * T + ph));
+        vec3 rel = mod(p - uCam, uBox) - 0.5 * uBox;                      // wrap around the camera
+        vec3 world = uCam + rel;
+        vec3 vel = vec3(wvx, -aB.y, cos(0.5 * T + ph)) - uCamVel;         // flake velocity relative to the camera
+        vec3 mv = (modelViewMatrix * vec4(world, 1.0)).xyz;
+        if (mv.z > -0.25) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+        vec3 tail = mv - mat3(modelViewMatrix) * vel * uShutter;
+        tail.z = min(tail.z, -0.2);
+        vec4 c0 = projectionMatrix * vec4(mv, 1.0), c1 = projectionMatrix * vec4(tail, 1.0);
+        vec2 n0 = c0.xy / c0.w, n1 = c1.xy / c1.w;
+        vec2 d = (n1 - n0) * uView * 0.5;
+        float len = length(d);
+        vec2 dir = len > 0.001 ? d / len : vec2(0.0, 1.0);
+        len = min(len, 60.0);
+        float rReal = aB.x * projectionMatrix[1][1] * uView.y * 0.5 / -mv.z;
+        float r = clamp(rReal, 0.8, 40.0);
+        float a = position.y > 0.0 ? position.y * r : position.y * (r + len);
+        vec2 off = -dir * a + vec2(-dir.y, dir.x) * position.x * r;
+        gl_Position = vec4((n0 + off * 2.0 / uView) * c0.w, c0.z, c0.w);
+        vP = vec2(position.x * r, a); vR = r; vLen = len; vType = aB.z; vSpin = aB.w * T + ph; vVar = fract(seed * 13.7);
+        float edge = max(max(abs(rel.x), abs(rel.y)), abs(rel.z)) / (0.5 * uBox);
+        vA = (0.75 + 0.25 * fract(seed * 37.0)) * mix(0.7, 1.0, smoothstep(1.0, 3.0, aB.x * projectionMatrix[1][1] * uView.y * 0.5 / -mv.z)) * (1.0 - smoothstep(0.86, 1.0, edge)) * smoothstep(0.6, 2.8, -mv.z) * clamp(rReal / 0.8, 0.3, 1.0);
+        float dist = length(rel);
+        float cone = smoothstep(0.78, 0.96, dot(rel / max(dist, 0.001), uFwd)) * (1.0 - smoothstep(3.0, 60.0, dist));
+        float glint = aB.z > 1.5 ? pow(0.5 + 0.5 * sin(T * (2.0 + seed * 3.0) + ph * 7.0), 5.0) : 0.0;
+        vBr = uAmb + uHead * cone * 1.4 + glint * (0.25 + 1.4 * uHead * cone);
+        vec4 mvPosition = vec4(mv, 1.0);
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying vec2 vP; varying float vR, vLen, vA, vBr, vType, vSpin, vVar;
+      #include <fog_pars_fragment>
+      float sdSeg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
+      // six-fold crystal; u is the flake-local coordinate (-1..1), variant picks dendrite / hex plate / fern
+      float crystalShape(vec2 u, float r, float variant){
+        float rad = length(u), ang = atan(u.y, u.x);
+        ang = mod(ang + 0.5236, 1.0471976) - 0.5236;                      // fold into one of six arms
+        vec2 s = rad * vec2(cos(ang), abs(sin(ang)));
+        float dd;
+        if (variant < 0.4) {                                              // dendrite: long arm + two branch pairs
+          dd = min(sdSeg(s, vec2(0.0), vec2(0.95, 0.0)), min(sdSeg(s, vec2(0.42, 0.0), vec2(0.70, 0.27)), sdSeg(s, vec2(0.70, 0.0), vec2(0.88, 0.14))));
+        } else if (variant < 0.7) {                                       // stellar plate: hexagon ring + short spokes
+          dd = min(abs(dot(s, vec2(0.866, 0.5)) - 0.78), min(sdSeg(s, vec2(0.0), vec2(0.62, 0.0)), sdSeg(s, vec2(0.30, 0.0), vec2(0.47, 0.17))));
+        } else {                                                          // fern: evenly spaced short twigs
+          dd = min(sdSeg(s, vec2(0.0), vec2(0.95, 0.0)), min(sdSeg(s, vec2(0.28, 0.0), vec2(0.46, 0.17)), min(sdSeg(s, vec2(0.52, 0.0), vec2(0.70, 0.20)), sdSeg(s, vec2(0.76, 0.0), vec2(0.90, 0.14)))));
+        }
+        float w = max(0.09, 0.9 / r);
+        return max(1.0 - smoothstep(w * 0.35, w, dd), 1.0 - smoothstep(0.10, 0.20, rad));
+      }
+      void main(){
+        float r = vR;
+        vec2 u = vP / r;                                                  // head-centred; the streak trail trails off toward -y
+        float cs = cos(vSpin), sn = sin(vSpin);
+        vec2 ru = mat2(cs, -sn, sn, cs) * u;
+        float d = length(u);
+        float lump = 0.0;                                                 // big round flakes get an irregular clump outline instead of a perfect blur
+        if (vType < 0.5) { float ang = atan(ru.y, ru.x); lump = smoothstep(3.0, 7.0, r) * (0.10 * sin(3.0 * ang + vVar * 20.0) + 0.06 * sin(5.0 * ang + vVar * 50.0)); }
+        float w = clamp(1.2 / r, 0.1, 0.6);                               // ~1 px of anti-aliasing: crisp edge at any size
+        float disc = (1.0 - smoothstep(1.0 - w, 1.0, d / (1.0 + lump))) * (0.8 + 0.2 * (1.0 - min(d, 1.0)));
+        float shape = disc;
+        if (vType < 1.5) {
+          // far round flakes turn into crystals as they get close (cross-fade, so nothing pops); some stay clumps
+          float k = vType < 0.5 ? smoothstep(7.0, 11.0, r) * step(0.3, vVar) : smoothstep(2.5, 6.0, r);
+          if (k > 0.01) shape = mix(disc, max(crystalShape(ru, r, fract(vVar * 3.7)), disc * 0.15), k);
+        } else {
+          float g = max(exp(-abs(ru.x) * 18.0) * exp(-abs(ru.y) * 1.3), exp(-abs(ru.y) * 18.0) * exp(-abs(ru.x) * 1.3));
+          float base = mix(disc, max(crystalShape(ru, r, fract(vVar * 3.7)), disc * 0.15), smoothstep(8.0, 12.0, r));   // big glints resolve into crystals too
+          shape = max(base, g * smoothstep(2.0, 5.0, r));
+        }
+        if (vLen > 1.0) {                                                 // faint soft trail behind the crisp head
+          vec2 qt = vec2(vP.x, vP.y - clamp(vP.y, -vLen, 0.0));
+          shape = max(shape, (1.0 - smoothstep(0.0, 1.0, length(qt) / (r * 0.5))) * 0.4 * (1.0 - clamp(-vP.y / vLen, 0.0, 1.0)));
+        }
+        float a = vA * 0.95 * shape;
+        if (a < 0.01) discard;
+        gl_FragColor = vec4(uColor * vBr, a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`
   }));
-  snowMesh.frustumCulled = false; snowMesh.visible = false;
+  snowMesh.renderOrder = 8; snowMesh.frustumCulled = false; snowMesh.visible = false;
   scene.add(snowMesh);
 }
 function tickSnow(dt) {
   if (!snowMesh || !snowMesh.visible) return;
-  const a = snowMesh.geometry.attributes.position.array, c = camera.position, cc = [c.x, c.y, c.z];
-  const tWind = performance.now() * 0.001;
-  const drift = Math.sin(tWind * 0.7) * 4.2 + Math.sin(tWind * 1.9) * 1.4;
-  for (let i = 0; i < a.length; i += 3) {
-    a[i + 1] -= (2.2 + (i % 5) * 0.34) * dt;
-    a[i] += drift * dt * 0.42;
-    a[i + 2] += Math.cos(tWind * 0.55 + i * 0.013) * dt * 1.3;
-    for (let k = 0; k < 3; k++) a[i + k] = cc[k] + ((a[i + k] - cc[k] + 35) % 70 + 70) % 70 - 35;
+  const u = snowMesh.material.uniforms, c = camera.position;
+  _snowT += Math.min(dt, 0.1);
+  u.uTime.value = _snowT;
+  // Flakes are in random order, so changing instanceCount thickens/thins evenly. Ramp to double density while the WHITEOUT snow field is active.
+  const wantMul = (typeof yearSnowField !== 'undefined' && yearSnowField && yearSnowField.visible) ? SNOW_WHITEOUT_DENSITY : SNOW_LEVEL_DENSITY;
+  _snowMul += (wantMul - _snowMul) * Math.min(1, dt * 1.5);
+  snowMesh.geometry.instanceCount = Math.round(_snowBase * _snowMul);
+  u.uCam.value.copy(c);
+  // Camera velocity, sampled once per drawn frame (update() may run several physics steps per frame); drives the speed trails.
+  const now = performance.now();
+  if (!_snowHaveLast) { _snowLast.copy(c); _snowLastMs = now; _snowHaveLast = true; }
+  else if (now - _snowLastMs >= 8) {
+    const h = Math.min(0.1, (now - _snowLastMs) * 0.001);
+    _snowRaw.copy(c).sub(_snowLast).multiplyScalar(1 / h);
+    const m = _snowRaw.length();
+    if (m > 400) _snowRaw.set(0, 0, 0); else if (m > 150) _snowRaw.multiplyScalar(150 / m);   // ignore teleports, cap extremes
+    u.uCamVel.value.lerp(_snowRaw, 0.35);
+    _snowLast.copy(c); _snowLastMs = now;
   }
-  snowMesh.geometry.attributes.position.needsUpdate = true;
+  renderer.getDrawingBufferSize(_snowV2); u.uView.value.copy(_snowV2);
+  camera.getWorldDirection(_snowFwd); u.uFwd.value.copy(_snowFwd);
+  // Flake brightness follows the sky (via scene fog colour); headlights make flakes glitter in their beam after dark.
+  const fc = scene.fog ? scene.fog.color : null;
+  const lum = fc ? 0.2126 * fc.r + 0.7152 * fc.g + 0.0722 * fc.b : 0.5;
+  const k = Math.min(1, Math.max(0, (lum - 0.02) / 0.30)), day = k * k * (3 - 2 * k);
+  u.uAmb.value = 0.38 + 0.62 * day;
+  u.uHead.value = (headlightL && headlightL.visible) ? (1 - day) * (0.3 + 0.7 * Math.min(1, headlightL.intensity / 210)) : 0;
 }
 function updateModeLabel() {
   const times = ['DAWN','SUNRISE','DAY','NOON','EVENING','DUSK','NIGHT'];
@@ -5338,7 +5478,7 @@ function getMobileCarMats() {
     white: std(0xeeeeee, 0.5, 0.1),
     cargo: std(0xdcdcdc, 0.6, 0.1),
     door: std(0xbfc4c8, 0.52, 0.12),
-    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), roughness: 0.48, metalness: 0.12, side: THREE.DoubleSide }),
+    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), emissive: 0xffffff, emissiveMap: licensePlateTexture(), emissiveIntensity: [0, 0, 0, 0, 0.09, 0.36, 0.52][timeMode], roughness: 0.62, metalness: 0, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     hl: new THREE.MeshStandardMaterial({ color: 0xfff5c0, emissive: 0xffe080, emissiveIntensity: 0.8, roughness: 0.3 }),
     tl: new THREE.MeshStandardMaterial({ color: 0xff2020, emissive: 0xaa0000, emissiveIntensity: [0.18, 0.18, 0.18, 0.18, 0.28, 0.9, 1.35][timeMode], roughness: 0.3 }),
@@ -5354,25 +5494,26 @@ function getMobileCarMats() {
 let _plateTexture = null;
 function licensePlateTexture() {
   if (_plateTexture) return _plateTexture;
-  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  // High-contrast plate at 1024x256: the number fills ~84% of the width and ~55% of the height so it stays readable at following distance.
+  // Small header/footer text was dropped or lightened because it just turned into grey noise in the mip chain.
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
   const x = c.getContext('2d');
-  const bg = x.createLinearGradient(0, 0, 0, 128);
-  bg.addColorStop(0, '#f8fbf8'); bg.addColorStop(1, '#cbd8dc');
-  x.fillStyle = bg; x.fillRect(0, 0, 512, 128);
-  x.strokeStyle = '#17364a'; x.lineWidth = 9; x.strokeRect(7, 7, 498, 114);
-  x.fillStyle = '#17364a'; x.font = 'bold 25px Arial'; x.textAlign = 'center';
-  x.fillText('BRITISH COLUMBIA', 256, 31);
-  x.font = '900 62px Arial'; x.fillText('7K3 91A', 256, 91);
-  x.font = 'bold 13px Arial'; x.fillText('BEAUTIFUL BRITISH COLUMBIA', 256, 111);
-  x.textAlign = 'left'; x.font = 'bold 15px Arial'; x.fillText('BC', 19, 29);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const bg = x.createLinearGradient(0, 0, 0, 256);
+  bg.addColorStop(0, '#ffffff'); bg.addColorStop(1, '#e6eef0');
+  x.fillStyle = bg; x.fillRect(0, 0, 1024, 256);
+  x.strokeStyle = '#10283a'; x.lineWidth = 14; x.strokeRect(10, 10, 1004, 236);
+  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.fillStyle = '#31566e'; x.font = 'bold 46px Arial'; x.fillText('BRITISH COLUMBIA', 512, 66);
+  x.fillStyle = '#050d14'; x.font = '900 190px Arial'; x.fillText('7K3 91A', 512, 216, 860);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = (typeof renderer !== 'undefined' && renderer) ? Math.min(16, renderer.capabilities.getMaxAnisotropy()) : 8;
   return (_plateTexture = t);
 }
 function addCarPlates(b, front, rear) {
   const addOne = (spec, isRear) => {
     if (!spec) return;
     const { w, h, y, z } = spec;
-    const faceZ = z + (isRear ? -0.012 : 0.012);
+    const faceZ = z + (isRear ? -0.018 : 0.018);
     b.add('dark', gBox(w + 0.045, h + 0.035, 0.018, 0, y, z), 3);
     const plate = new THREE.PlaneGeometry(w, h);
     if (isRear) plate.rotateY(Math.PI);
@@ -5404,7 +5545,7 @@ function carMats() {
     caliper: S(0xc42822, 0.35, 0.45, { envMapIntensity: 0.5 }),
     head: new THREE.MeshStandardMaterial({ color: 0xf2ecde, emissive: 0xffe2a8, emissiveIntensity: 0.55, roughness: 0.18, envMapIntensity: 1.2 }),
     tail: new THREE.MeshStandardMaterial({ color: 0xff2218, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.2, envMapIntensity: 0.8 }),
-    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), roughness: 0.48, metalness: 0.12, side: THREE.DoubleSide, envMapIntensity: 0.7 }),
+    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), emissive: 0xffffff, emissiveMap: licensePlateTexture(), emissiveIntensity: [0, 0, 0, 0, 0.09, 0.36, 0.52][timeMode], roughness: 0.62, metalness: 0, side: THREE.DoubleSide, envMapIntensity: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     white: S(0xe6eaec, 0.5, 0.15),
     shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6 })
@@ -6035,7 +6176,7 @@ function makeCar(color, big) {
       const frame = new THREE.Mesh(new THREE.BoxGeometry(w + .045, h + .035, .018), sm.dark);
       frame.position.set(0, y, z); g.add(frame);
       const pg = new THREE.PlaneGeometry(w, h); if (rear) pg.rotateY(Math.PI);
-      const plate = new THREE.Mesh(pg, sm.plate); plate.position.set(0, y, z + (rear ? -.012 : .012)); g.add(plate);
+      const plate = new THREE.Mesh(pg, sm.plate); plate.position.set(0, y, z + (rear ? -.018 : .018)); g.add(plate);
       if (rear) { const lamp = new THREE.Mesh(new THREE.BoxGeometry(Math.max(.12, w * .22), .018, .012), sm.plateLamp); lamp.position.set(0, y + h * .64, z - .022); g.add(lamp); }
     };
     if (big) {
