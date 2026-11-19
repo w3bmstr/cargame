@@ -1070,11 +1070,11 @@ body.endurance #yoke-hud { display: block; }
       <div id="shift-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="gauge" id="speedo">
         <div class="gauge-numbers"><span>0</span><span>40</span><span>80</span><span>120</span><span>160</span><span>200</span></div>
-        <div class="needle" id="spd-needle"></div><div class="hub"></div><div class="label">MPH</div>
+        <div class="needle" id="spd-needle"></div><div class="hub"></div><div class="label">KM/H</div>
       </div>
       <div id="cluster-mid">
         <div id="dash-caption">COCKPIT TELEMETRY</div>
-        <div id="speed-readout">0<span id="speed-unit">mph</span></div>
+        <div id="speed-readout">0<span id="speed-unit">km/h</span></div>
         <div id="dash-status">READY TO DRIVE</div>
       </div>
       <div class="gauge" id="tacho">
@@ -1089,7 +1089,7 @@ body.endurance #yoke-hud { display: block; }
     </div>
     <div id="wheel">
       <svg id="wheel-svg" viewBox="0 0 400 400" aria-hidden="true"></svg>
-      <div id="yoke-hud"><b id="yoke-gear">N</b><small id="yoke-spd">0 MPH</small></div>
+      <div id="yoke-hud"><b id="yoke-gear">N</b><small id="yoke-spd">0 KM/H</small></div>
     </div>
 
     <div id="console">
@@ -1655,8 +1655,10 @@ function createNexusEnvironment() {
     x.lineTo(2048, 470); x.lineTo(0, 470); x.closePath();
     x.fillStyle = color; x.fill();
   };
-  ridge(316, 34, 'rgba(93,111,126,.24)', 1.4);
+  ridge(286, 48, 'rgba(132,151,166,.20)', 2.2);
+  ridge(304, 40, 'rgba(93,111,126,.24)', 1.4);
   ridge(334, 23, 'rgba(47,65,77,.38)', 3.1);
+  ridge(350, 13, 'rgba(27,43,49,.30)', 4.7);
   // Distant forest canopy, varied in height and spacing to avoid a repeated skyline.
   x.fillStyle = 'rgba(17,31,34,.48)';
   for (let px = -12; px < 2060; px += 10 + Math.random() * 13) {
@@ -1684,7 +1686,11 @@ function createNexusEnvironment() {
     [330, 18, 18, 292, 'rgba(255,116,62,.54)'],
     [572, 8, 26, 320, 'rgba(105,220,190,.5)'],
     [760, 16, 20, 300, 'rgba(255,205,125,.58)'],
-    [946, 24, 18, 276, 'rgba(120,155,255,.56)']
+    [946, 24, 18, 276, 'rgba(120,155,255,.56)'],
+    [1050, 38, 34, 260, 'rgba(205,230,255,.48)'],
+    [1140, 22, 16, 300, 'rgba(255,176,112,.48)'],
+    [1320, 54, 108, 210, 'rgba(220,236,255,.42)'],
+    [1480, 30, 20, 280, 'rgba(120,210,220,.38)']
   ];
   for (const [px, py, w, h, color] of panels) {
     const pg = x.createLinearGradient(px, py, px + w, py + h);
@@ -1747,7 +1753,7 @@ const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none),
 // lightweight phone look back. Touch controls and frame-pacing tweaks stay mobile-specific.
 const MOBILE_FULL_GFX = !/[?&]lite\b/.test(location.search);
 const gfxMobile = isMobile && !MOBILE_FULL_GFX;
-let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1;
+let spd = 0, px = 0, pvx = 0, steerValue = 0, dist = 0, score = 0, overs = 0, lap = 1, nearMisses = 0;
 let boost = 100, boosting = false;
 let fovNow = 66, fovKick = 0, wasBoosting = false;
 let kL = false, kR = false, kU = false, kD = false, kB = false;
@@ -1786,13 +1792,13 @@ const LEGS = [
   // CH2 HIGH SUN — summer: the world opens up
   { chapter: 1, title: 'COASTAL RUN', track: 4, car: 2, times: [3], rain: [0], mission: { type: 'overtakes', n: 15 }, time: 75, note: 'Bright noon, open coast and heavy traffic. The long way gives you time to talk about what was left behind.', radio: 'ELI: You always did prefer the road with a view. Maybe that part never changed.' },
   { chapter: 1, title: 'HEAT HAZE', track: 3, car: 2, times: [3, 4], rain: [0, 0], mission: { type: 'laps', n: 3 }, time: 75, note: 'Desert canyon at the height of summer. A difficult question hangs in the air long after the radio goes quiet.', radio: 'MARA: You can tell me the truth when you are ready. I would rather hear it from you.' },
-  { chapter: 1, title: 'GOLDEN HOUR', track: 7, car: 2, times: [4, 5], rain: [0, 0], mission: { type: 'distance', n: 4500 }, time: 75, note: 'Snake Pass in the evening sun. The road climbs above the valley as you decide not to turn away this time.', radio: 'ELI: There is a place up ahead where you can see the whole valley. You used to stop there.' },
+  { chapter: 1, title: 'GOLDEN HOUR', track: 7, car: 2, times: [4, 5], rain: [0, 0], mission: { type: 'distance', n: 4500 }, time: 75, note: 'A fresh rockslide has partly blocked Snake Pass. Find the open line through the debris field as the evening light fades.', eventAt: 0.52, eventTitle: 'THE LANDSLIDE', eventText: 'A section of the mountainside has come down. Rocks block part of the road — pick your way through the remaining gap.', radio: 'ELI: There is a place up ahead where you can see the whole valley. You used to stop there.' },
   { chapter: 1, title: 'THE LONG WAY ROUND', track: 4, car: 2, times: [3, 4, 5], rain: [0, 0, 0], mission: { type: 'distance', n: 5200 }, time: 90, note: 'SIGNATURE EVENT — A sweeping summer mountain route with long views, warm light and a final climb to the coastal lookout.', eventAt: 0.58, eventTitle: 'THE COASTAL LOOKOUT', eventText: 'The whole coastline opens below you. For once, there is nowhere else you need to be.' },
   { chapter: 1, title: 'THE SUMMER GATHERING', track: 4, car: 2, times: [5, 4], rain: [0, 0], mission: { type: 'distance', n: 3600 }, time: 75, note: 'A familiar gathering brings people from your past back together. One conversation changes what home means.', radio: 'MARA: I kept the light on. I just stopped knowing whether you could see it.' },
 
   // CH3 LAST LIGHT — autumn: the past catches up
   { chapter: 2, title: 'FALLING LEAVES', track: 5, car: 0, times: [2, 4], rain: [0, 0], mission: { type: 'laps', n: 3 }, time: 75, note: 'Redwoods turn from afternoon to evening. A familiar bend brings back the memory you have avoided.', radio: 'ELI: You do not have to explain everything over the radio. Just do not disappear again.' },
-  { chapter: 2, title: 'DUSK RUSH', track: 7, car: 0, times: [4, 5], rain: [0, 0], mission: { type: 'overtakes', n: 18 }, time: 80, note: 'A meeting is waiting at the other end of the pass. Keep your head; arriving safely matters more than arriving first.', radio: 'MARA: Please do not make this another race against the clock. I want you here, not a story about the drive.' },
+  { chapter: 2, title: 'DUSK RUSH', track: 7, car: 0, times: [4, 5], rain: [0, 0], mission: { type: 'near', n: 6 }, time: 80, note: 'A meeting is waiting at the other end of the pass. Keep your head; arriving safely matters more than arriving first.', radio: 'MARA: Please do not make this another race against the clock. I want you here, not a story about the drive.' },
   { chapter: 2, title: 'AUTUMN STORM', track: 2, car: 0, times: [5, 6], rain: [1, 1], mission: { type: 'distance', n: 5000 }, time: 85, note: 'The mountain road disappears into rain and dusk. The radio conversation turns toward the truth neither of you has said aloud.', radio: 'ELI: The night your father left, you blamed yourself. You were a kid. You need to hear that.' },
   { chapter: 2, title: 'THE BLACKOUT', track: 5, car: 0, times: [6, 5], rain: [1, 1], mission: { type: 'distance', n: 4300 }, time: 85, note: 'SIGNATURE EVENT — A remote stretch loses its lights in a storm. Navigate the dark with your headlights as lightning reveals the road in flashes.', eventAt: 0.5, eventTitle: 'THE POWER IS OUT', eventText: 'For a few seconds the whole valley disappears. Then the next flash shows the road is still there.' },
   { chapter: 2, title: 'THE LAST CALL', track: 5, car: 0, times: [6, 5], rain: [1, 0], mission: { type: 'distance', n: 3900 }, time: 80, note: 'The storm moves east. In the quiet after it, the last missing piece of the story finally comes into focus.', radio: 'MARA: You do not have to make up for every lost year tonight. Just come home. We can start there.' },
@@ -1829,7 +1835,8 @@ const chapterLegNumber = i => (i % 5) + 1;
 const legSeason = (L, b) => L.seasons ? L.seasons[b] : CHAPTERS[chapterIndex(L)].season;
 const weatherOf = (L, b) => L.rain[b] ? 'RAIN' : legSeason(L, b) === 3 ? 'SNOW' : 'CLEAR';
 const seqUniq = a => a.filter((v, i) => i === 0 || v !== a[i - 1]);
-function missionText(m) { return m.type === 'laps' ? 'Complete ' + m.n + ' laps' : m.type === 'overtakes' ? 'Overtake ' + m.n + ' cars' : m.type === 'distance' ? 'Drive ' + m.n + ' m' : 'Score ' + m.n; }
+function missionText(m) { return m.type === 'laps' ? 'Complete ' + m.n + ' laps' : m.type === 'overtakes' ? 'Overtake ' + m.n + ' cars' : m.type === 'distance' ? 'Drive ' + m.n + ' m' : m.type === 'near' ? 'Make ' + m.n + ' clean near-miss passes' : 'Score ' + m.n; }
+function missionValue(L) { const m=L.mission; return m.type==='laps'?(lap-1)+t:m.type==='overtakes'?overs:m.type==='distance'?dist:m.type==='near'?nearMisses:score; }
 function legScene(L) {
   const idx = L.times.map((_, b) => b);
   return SEASON_NAMES[legSeason(L, 0)] + ((L.seasons && L.seasons[L.seasons.length - 1] !== L.seasons[0]) ? ' \u2192 ' + SEASON_NAMES[L.seasons[L.seasons.length - 1]] : '') + ' \u00B7 ' +
@@ -1882,7 +1889,7 @@ function beginLeg(i, e) {
 }
 function storyTick() {
   const L = LEGS[story.leg], m = L.mission;
-  const cur = m.type === 'laps' ? (lap - 1) + t : m.type === 'overtakes' ? overs : m.type === 'distance' ? dist : score;
+  const cur = missionValue(L);
   const p = Math.min(1, cur / m.n);
   const b = Math.min(L.times.length - 1, Math.floor(p * L.times.length));
   if (!story.eventShown && L.eventTitle && p >= (L.eventAt || 0.5)) { story.eventShown = true; showStoryMoment(L); }
@@ -1890,7 +1897,7 @@ function storyTick() {
     legBucket = b; setLegScene(L, b);
     flash(TIME_NAMES[timeMode] + ' \u00B7 ' + weatherOf(L, b));
   }
-  const txt = m.type === 'laps' ? 'LAP ' + Math.min(m.n, lap) + ' / ' + m.n : m.type === 'overtakes' ? 'OVERTAKES ' + Math.min(m.n, overs) + ' / ' + m.n : m.type === 'distance' ? Math.min(m.n, Math.floor(dist)) + ' / ' + m.n + ' m' : 'SCORE ' + Math.min(m.n, Math.floor(score)) + ' / ' + m.n;
+  const txt = m.type === 'laps' ? 'LAP ' + Math.min(m.n, lap) + ' / ' + m.n : m.type === 'overtakes' ? 'OVERTAKES ' + Math.min(m.n, overs) + ' / ' + m.n : m.type === 'distance' ? Math.min(m.n, Math.floor(dist)) + ' / ' + m.n + ' m' : m.type === 'near' ? 'CLEAN NEAR MISSES ' + Math.min(m.n, nearMisses) + ' / ' + m.n : 'SCORE ' + Math.min(m.n, Math.floor(score)) + ' / ' + m.n;
   const clock = timeLeft < 12 ? ' · \u23F1 ' + Math.ceil(timeLeft) + 's' : (timeLeft < 25 ? ' · ' + Math.ceil(timeLeft) + 's' : '');
   const el = $('mission-txt'); const full = L.title + ' \u00B7 ' + txt + clock;
   if (el.textContent !== full) el.textContent = full;
@@ -1908,7 +1915,7 @@ function completeLeg() {
   $('win-stamp').textContent = final ? '\uD83C\uDFC6' : chapterEnd ? ch.stamp : '\u2714\uFE0F';
   $('win-h').textContent = final ? 'HOME AT LAST' : chapterEnd ? 'CHAPTER COMPLETE' : 'LEG COMPLETE';
   $('win-p').textContent = final ? 'The porch light is on. Spring rain settles over the road as the driver finally comes home. The year is complete — and a new one can begin.' : chapterEnd ? ch.name + ' (' + SEASON_NAMES[ch.season] + ') complete. ' + ch.outro + ' ' + ch.reveal : (L.title + ' complete. ' + (L.radio || 'The road continues.'));
-  $('win-stats').textContent = 'Score ' + Math.floor(score) + ' \u00B7 Overtakes ' + overs + (combo > 1 ? ' \u00B7 Best chain x' + combo : '') + ' \u00B7 Top ' + Math.round(topSpd * 2.237) + ' mph \u00B7 ' + Math.ceil(timeLeft) + 's left';
+  $('win-stats').textContent = 'Score ' + Math.floor(score) + ' \u00B7 Overtakes ' + overs + (combo > 1 ? ' \u00B7 Best chain x' + combo : '') + ' \u00B7 Top ' + Math.round(topSpd * 3.6) + ' km/h \u00B7 ' + Math.ceil(timeLeft) + 's left';
   const nx = $('next-btn');
   nx.style.display = final ? 'none' : '';
   nx.textContent = chapterEnd ? 'NEXT CHAPTER' : 'NEXT LEG';
@@ -2398,17 +2405,13 @@ function chime(f) {
 }
 
 const CARS = [
-  // torquePeak: speed fraction where torque is max; torqueWidth: curve breadth; heatRate/coolRate: tire thermal
-  // GT: balanced mid-range
-  { n: 'GT COUPE', max: 95, boost: 125, acc: 28, brk: -68, st: 55, fr: 11.0, cf: 0.19, lat: 13.4, sp: 8.2, torquePeak: 0.38, torqueWidth: 0.42, heatRate: 0.55, coolRate: 0.35 },
-  // Rally: punchy low-end for exits
-  { n: 'RALLY', max: 88, boost: 118, acc: 32, brk: -72, st: 64, fr: 13.2, cf: 0.14, lat: 15.2, sp: 10.5, torquePeak: 0.22, torqueWidth: 0.36, heatRate: 0.7, coolRate: 0.4 },
-  // Roadster: revs out — peak higher up
-  { n: 'ROADSTER', max: 92, boost: 122, acc: 26, brk: -60, st: 50, fr: 8.8, cf: 0.11, lat: 11.8, sp: 7.2, torquePeak: 0.55, torqueWidth: 0.38, heatRate: 0.6, coolRate: 0.32 },
-  // Endurance: flat, long-legged curve
-  { n: 'ENDURANCE', max: 100, boost: 132, acc: 24, brk: -56, st: 42, fr: 9.4, cf: 0.09, lat: 10.8, sp: 6.8, torquePeak: 0.45, torqueWidth: 0.55, heatRate: 0.4, coolRate: 0.45 },
-  // Muscle: low-end torque monster, falls off up top
-  { n: 'MUSCLE GT', max: 108, boost: 145, acc: 30, brk: -64, st: 45, fr: 9.8, cf: 0.17, lat: 12.6, sp: 7.2, torquePeak: 0.18, torqueWidth: 0.32, heatRate: 0.75, coolRate: 0.28 }
+  // acc is peak longitudinal acceleration in m/s² before the speed-dependent torque and drag curves.
+  // Top-speed limits remain vehicle-specific; this pass improves launch and mid-range response only.
+  { n: 'GT COUPE', max: 83, boost: 94, acc: 13.6, brk: -14.5, st: 55, fr: 11.0, cf: 0.19, lat: 13.4, sp: 8.2, torquePeak: 0.38, torqueWidth: 0.42, heatRate: 0.55, coolRate: 0.35 },
+  { n: 'RALLY', max: 62, boost: 70, acc: 15.0, brk: -15.5, st: 64, fr: 13.2, cf: 0.14, lat: 15.2, sp: 10.5, torquePeak: 0.22, torqueWidth: 0.36, heatRate: 0.7, coolRate: 0.4 },
+  { n: 'ROADSTER', max: 72, boost: 82, acc: 12.4, brk: -13.5, st: 50, fr: 8.8, cf: 0.11, lat: 11.8, sp: 7.2, torquePeak: 0.55, torqueWidth: 0.38, heatRate: 0.6, coolRate: 0.32 },
+  { n: 'ENDURANCE', max: 92, boost: 103, acc: 14.2, brk: -16.0, st: 42, fr: 9.4, cf: 0.09, lat: 10.8, sp: 6.8, torquePeak: 0.45, torqueWidth: 0.55, heatRate: 0.4, coolRate: 0.45 },
+  { n: 'MUSCLE GT', max: 78, boost: 88, acc: 15.4, brk: -14.0, st: 45, fr: 9.8, cf: 0.17, lat: 12.6, sp: 7.2, torquePeak: 0.18, torqueWidth: 0.32, heatRate: 0.75, coolRate: 0.28 }
 ];
 const TRACKS = [
   'GRAND LOOP',
@@ -2436,7 +2439,9 @@ const TRACK_VISUALS = [
   { ground: 0x6a6b42, hills: 0x40452d, fog: 0x9ca57e, accent: 0xfff0a3 },
   { ground: 0x1d5b36, hills: 0x294a3a, fog: 0x6d9a9c, accent: 0xfff4df }
 ];
-const TRAFFIC_LANES = Object.freeze([-5.1, 5.1]);
+// Keep the original 15 m road. The two opposing traffic streams sit at the
+// centre of their respective 7.5 m halves, rather than drifting toward the shoulders.
+const TRAFFIC_LANES = Object.freeze([-3.75, 3.75]);
 function loadBest() {
   try {
     bestScore = parseInt(localStorage.getItem('cd3_b' + trackId + carId) || '0', 10) || 0;
@@ -2587,7 +2592,7 @@ function addYearSetPiece() {
   yearSnowField = null; yearBridgeWater = null;
   if (!story || !LEGS[story.leg]) return;
   const L = LEGS[story.leg];
-  if (!['THE OLD BRIDGE','THE LONG WAY ROUND','THE BLACKOUT','WHITEOUT'].includes(L.title)) return;
+  if (!['THE OLD BRIDGE','THE LONG WAY ROUND','THE BLACKOUT','WHITEOUT','GOLDEN HOUR'].includes(L.title)) return;
   const u = L.eventAt || 0.5, center = curve.getPointAt(u), tangent = curve.getTangentAt(u).normalize();
   const frame = sideUp(tangent), side = frame.side, up = frame.up;
   const basis = new THREE.Matrix4().makeBasis(side, up, tangent);
@@ -2733,6 +2738,50 @@ function addYearSetPiece() {
       const foam=new THREE.Mesh(new THREE.SphereGeometry(0.16+Math.random()*0.2,7,5),new THREE.MeshStandardMaterial({color:0xc3e0dc,roughness:0.3,transparent:true,opacity:0.7}));
       foam.scale.set(2.4,0.22,0.65); foam.position.set((Math.random()-0.5)*ROAD_W*1.8,-1.08,(Math.random()-0.5)*38); foam.userData.waterRipple=true; yearSetPiece.add(foam);
     }
+  } else if (L.title === 'GOLDEN HOUR') {
+    // A layered rockfall field: one substantial slide pile plus smaller isolated
+    // boulders and fragments staggered across the road to create a readable slalom.
+    // Obstacle positions are shared with the collision pass below (local road metres).
+    const rockMats=[mat(0x55534e,0.98),mat(0x77736a,0.94),mat(0x3f4547,1),mat(0x69665e,0.96)];
+    const landslideObstacles=[
+      {x:-4.65,z:0.25,r:1.32,depth:1.18,h:0.98,scale:[1.34,0.82,1.16]},
+      {x:-1.65,z:-5.35,r:0.62,depth:0.68,h:0.48,scale:[0.86,0.68,0.78]},
+      {x:2.15,z:-2.45,r:0.52,depth:0.58,h:0.40,scale:[0.76,0.62,0.70]},
+      {x:5.05,z:3.55,r:0.76,depth:0.82,h:0.60,scale:[1.02,0.74,0.90]},
+      {x:1.15,z:7.35,r:0.43,depth:0.50,h:0.33,scale:[0.68,0.56,0.62]},
+      {x:-3.05,z:5.55,r:0.58,depth:0.66,h:0.44,scale:[0.82,0.66,0.78]},
+      {x:6.05,z:-7.65,r:0.34,depth:0.40,h:0.26,scale:[0.58,0.48,0.56]}
+    ];
+    yearSetPiece.userData.landslideObstacles=landslideObstacles;
+    landslideObstacles.forEach((o,i)=>{
+      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,i===0?2:1),rockMats[i%rockMats.length]);
+      rock.position.set(o.x,o.h*0.58,o.z); rock.scale.set(o.r*o.scale[0],o.r*o.scale[1],o.depth*o.scale[2]);
+      rock.rotation.set(0.12+i*0.13,i*0.77,0.08-i*0.09); rock.castShadow=true; rock.receiveShadow=true;
+      rock.userData.landslideRock=true; yearSetPiece.add(rock);
+      // Broken angular chips at the foot of each boulder make the slide look freshly fractured.
+      for(let k=0;k<(i===0?7:3);k++) {
+        const chip=new THREE.Mesh(new THREE.DodecahedronGeometry(0.18+(k%3)*0.09,0),rockMats[(i+k+1)%rockMats.length]);
+        const a=(k/Math.max(1,(i===0?7:3)))*Math.PI*2+i*0.4, spread=o.r*(0.72+(k%2)*0.28);
+        chip.position.set(o.x+Math.cos(a)*spread,0.12+(k%2)*0.08,o.z+Math.sin(a)*o.depth*0.78);
+        chip.scale.set(1.25,0.72,1.1); chip.rotation.set(k*0.4,i*0.5,k*0.27); chip.castShadow=true; yearSetPiece.add(chip);
+      }
+    });
+    // Fine gravel and fractured shards trail down the slope between the main rocks.
+    for(let i=0;i<34;i++) {
+      const x=-6.8+((i*37)%137)/10, z=-9.2+((i*23)%181)/10;
+      const pebble=new THREE.Mesh(new THREE.DodecahedronGeometry(0.075+(i%4)*0.035,0),rockMats[i%rockMats.length]);
+      pebble.position.set(x,0.055,z); pebble.scale.set(1.5,0.62,1.15); pebble.rotation.set(i*0.2,i*0.61,i*0.13); yearSetPiece.add(pebble);
+    }
+    // Roadside hazard boards frame the debris field without obstructing the shoulder.
+    const hazardBoard=mat(0xd49a37,0.72), hazardDark=mat(0x34383a,0.9), postMat=mat(0x6c6a62,0.9);
+    for(const side of [-1,1]) {
+      const x=side*(ROAD_W*0.5+1.25);
+      addYearBox(yearSetPiece,0.12,1.35,0.12,postMat,x,0.68,-11.2);
+      addYearBox(yearSetPiece,1.05,0.72,0.16,hazardBoard,x,1.55,-11.2);
+      for(let k=-1;k<=1;k++) { const stripe=addYearBox(yearSetPiece,0.17,0.76,0.18,hazardDark,x+k*0.34,1.55,-11.105); stripe.rotation.z=side*0.28; }
+      addYearBox(yearSetPiece,0.12,1.1,0.12,postMat,x,0.55,11.2);
+      addYearBox(yearSetPiece,0.82,0.54,0.16,hazardBoard,x,1.32,11.2);
+    }
   } else if (L.title === 'THE LONG WAY ROUND') {
     // Coastal lookout: a roadside pull-off above a broad ocean vista.
     const cliffMat=mat(0x555b58,0.98), cliffHi=mat(0x77766b,0.94), basalt=mat(0x343d40,0.96);
@@ -2811,6 +2860,35 @@ function addYearSetPiece() {
     if (scene.fog) { scene.fog.color.set(0x03070b); scene.fog.near = 12; scene.fog.far = Math.min(scene.fog.far, 118); }
     if (skyMesh && skyMesh.material.uniforms) { yearBlackoutSky = {horizon:skyMesh.material.uniforms.horizon.value.clone(),zenith:skyMesh.material.uniforms.zenith.value.clone(),glow:skyMesh.material.uniforms.glow.value.clone()}; skyMesh.material.uniforms.horizon.value.set(0x020509); skyMesh.material.uniforms.zenith.value.set(0x010204); skyMesh.material.uniforms.glow.value.set(0x020509); }
   } else if (L.title === 'WHITEOUT') {
+    // Mountain underpass: heavy portal, battered concrete walls, roof slab, ribs and practical lighting.
+    // Decorative geometry only: road surface, collision and vehicle handling are unchanged.
+    const uc = mat(0x626b70,0.94), ue = mat(0x899398,0.78,0.04), us = mat(0x202a30,0.98);
+    const hazard = new THREE.MeshStandardMaterial({color:0xe6d9b5,roughness:0.65,emissive:0x49351b,emissiveIntensity:0.22});
+    addYearBox(yearSetPiece,ROAD_W+8.5,0.9,48,uc,0,6.45,0);
+    addYearBox(yearSetPiece,1.35,6.8,48,uc,-(ROAD_W/2+1.65),2.95,0);
+    addYearBox(yearSetPiece,1.35,6.8,48,uc, ROAD_W/2+1.65,2.95,0);
+    addYearBox(yearSetPiece,ROAD_W+5.4,0.16,46.5,us,0,5.93,0);
+    for (const z of [-23.8,23.8]) {
+      addYearBox(yearSetPiece,ROAD_W+8.8,0.72,1.25,ue,0,6.18,z);
+      for (const x of [-(ROAD_W/2+1.65),ROAD_W/2+1.65]) {
+        addYearBox(yearSetPiece,1.72,7.0,1.45,ue,x,3.0,z);
+        addYearBox(yearSetPiece,2.0,0.42,1.72,ue,x,6.58,z);
+      }
+    }
+    for (let z=-20;z<=20;z+=5) {
+      addYearBox(yearSetPiece,ROAD_W+5.6,0.22,0.42,ue,0,5.82,z);
+      for (const x of [-(ROAD_W/2+1.63),ROAD_W/2+1.63]) {
+        addYearBox(yearSetPiece,0.16,5.9,0.34,us,x,2.95,z);
+        addYearBox(yearSetPiece,0.12,0.13,3.6,hazard,x+(x<0?0.69:-0.69),0.72,z);
+      }
+      const lamp=new THREE.Mesh(new THREE.BoxGeometry(1.35,0.12,0.42),new THREE.MeshStandardMaterial({color:0xf5e9cf,emissive:0xffd99a,emissiveIntensity:1.25,roughness:0.35}));
+      lamp.position.set(0,5.78,z); yearSetPiece.add(lamp);
+      if (z % 10 === 0) { const light=new THREE.PointLight(0xffd7a0,0.72,22,2); light.position.set(0,5.35,z); yearSetPiece.add(light); }
+    }
+    for (const side of [-1,1]) {
+      for (let z=-22;z<=22;z+=4) { const panel=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.55,0.95),hazard); panel.position.set(side*(ROAD_W/2+0.94),1.45,z); yearSetPiece.add(panel); }
+      addYearBox(yearSetPiece,0.34,0.24,47,us,side*(ROAD_W/2+0.82),0.12,0);
+    }
     const stake = mat(0xe3e8e8,0.48,0.12), reflector = new THREE.MeshStandardMaterial({color:0x9fe5ff,emissive:0x6bbde0,emissiveIntensity:1.7,roughness:0.25});
     const stakeSpan = 0.045, stakeStep = 0.0045, stakeOff = ROAD_W * 0.5 + 2.8;   // well clear of the asphalt, the 1.2 m rumble strip and the car's reach at the edge
     const corridor = new THREE.Group(); corridor.name = 'whiteoutStakes';
@@ -2840,10 +2918,12 @@ function addYearSetPiece() {
       const ice=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.22,13),new THREE.MeshStandardMaterial({color:0x9dbac8,roughness:0.2,metalness:0.12,transparent:true,opacity:0.62}));
       ice.position.set(x*1.02,-0.12,2); ice.rotation.y=0.035; yearSetPiece.add(ice);
     }
-    const count = isMobile ? 260 : 620, positions = new Float32Array(count*3);
-    for (let i=0;i<count;i++) { positions[i*3]=(Math.random()-.5)*70; positions[i*3+1]=Math.random()*24-2; positions[i*3+2]=(Math.random()-.5)*105; }
+    const count = isMobile ? 520 : 1450, positions = new Float32Array(count*3);
+    // Local storm volume follows the underpass and road corridor; keep the flakes
+    // above/along the asphalt rather than filling distant off-road terrain.
+    for (let i=0;i<count;i++) { positions[i*3]=(Math.random()-.5)*52; positions[i*3+1]=Math.random()*20-1.5; positions[i*3+2]=(Math.random()-.5)*92; }
     const snowGeo = new THREE.BufferGeometry(); snowGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
-    const snow = new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xeaf4ff,size:isMobile?0.22:0.3,transparent:true,opacity:0.78,depthWrite:false,sizeAttenuation:true}));
+    const snow = new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xeaf4ff,size:isMobile?0.28:0.38,transparent:true,opacity:0.88,depthWrite:false,sizeAttenuation:true}));
     yearSetPiece.add(snow); yearSnowField = snow;
   }
 }
@@ -2854,7 +2934,7 @@ function updateYearSetPiece(dt) {
     return;
   }
   const L=LEGS[story.leg]; if(!L || !L.eventTitle) return;
-  const m=L.mission, cur=m.type==='laps'?(lap-1)+t:m.type==='overtakes'?overs:m.type==='distance'?dist:score;
+  const m=L.mission, cur=missionValue(L);
   const progress=Math.min(1,cur/m.n), active=Math.max(0,1-Math.abs(progress-(L.eventAt||0.5))*5);
   yearSetPieceClock += dt;
   if (L.title==='THE BLACKOUT') {
@@ -2886,7 +2966,7 @@ function updateYearSetPiece(dt) {
   }
   if (L.title==='WHITEOUT' && scene.fog) {
     const baseNear=scene.fog.userData && scene.fog.userData.yearBaseNear, baseFar=scene.fog.userData && scene.fog.userData.yearBaseFar;
-    if (baseNear!==undefined && baseFar!==undefined) { scene.fog.near=Math.max(2,baseNear*(1-active*.72)); scene.fog.far=baseFar-(active*Math.min(140,baseFar*.78)); }
+    if (baseNear!==undefined && baseFar!==undefined) { scene.fog.near=Math.max(2,baseNear*(1-active*.72)); scene.fog.far=baseFar-(active*Math.min(165,baseFar*.82)); }
     if (yearSnowField) {
       const a=yearSnowField.geometry.attributes.position.array;
       for(let i=0;i<a.length;i+=3) { a[i]-=dt*(2.4+Math.sin(i*1.7)*1.1); a[i+1]-=dt*(3.0+(i%7)*.13); a[i+2]+=dt*(8.5+Math.cos(i*.31)*3.2); if(a[i+1]<-3){a[i+1]=22+Math.random()*4;a[i]=(Math.random()-.5)*70;a[i+2]=(Math.random()-.5)*105;} if(a[i+2]>55)a[i+2]=-52; }
@@ -3081,7 +3161,7 @@ function createRoad() {
   roadMesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
     vertexColors: true, map: roadTex, roughness: 0.74, metalness: 0.035,
     bumpMap: roadTex, bumpScale: 0.032,
-    normalMap: roadNormal, normalScale: new THREE.Vector2(0.34, 0.34),
+    normalMap: roadNormal, normalScale: new THREE.Vector2(0.39, 0.39),
     roughnessMap: roadTex,
     envMapIntensity: 0.72,
     clearcoat: 0.17, clearcoatRoughness: 0.36,
@@ -3128,9 +3208,9 @@ function createRoad() {
   lg.setIndex(li); lg.computeVertexNormals();
   // Center dashes: higher metalness + emissive so headlight cones light them up at night.
   const centerLineMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe8e4d5, roughness: 0.58, metalness: 0.06,
-    clearcoat: 0.12, clearcoatRoughness: 0.48,
-    emissive: 0x665b43, emissiveIntensity: 0.075,
+    color: 0xf0eee4, roughness: 0.36, metalness: 0.10,
+    clearcoat: 0.38, clearcoatRoughness: 0.24,
+    emissive: 0x81785f, emissiveIntensity: 0.10,
     side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4
   });
   centerLineMesh = new THREE.Mesh(lg, centerLineMat);
@@ -3148,9 +3228,9 @@ function createRoad() {
     const eg = new THREE.BufferGeometry();
     eg.setAttribute('position', new THREE.Float32BufferAttribute(ep, 3)); eg.setIndex(ei); eg.computeVertexNormals();
     const edgeMat = new THREE.MeshPhysicalMaterial({
-      color: 0xd9dddf, roughness: 0.56, metalness: 0.07,
-      clearcoat: 0.10, clearcoatRoughness: 0.5,
-      emissive: 0x626970, emissiveIntensity: 0.055,
+      color: 0xe6e8e5, roughness: 0.34, metalness: 0.10,
+      clearcoat: 0.32, clearcoatRoughness: 0.26,
+      emissive: 0x7b8285, emissiveIntensity: 0.085,
       side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4
     });
     const edgeMesh = new THREE.Mesh(eg, edgeMat);
@@ -3196,12 +3276,12 @@ function puddleTex() {
   const S = isMobile ? 256 : 512, c = document.createElement('canvas'); c.width = c.height = S;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#e6e6e6'; ctx.fillRect(0, 0, S, S);
-  for (let i = 0; i < 48; i++) {
-    const x = Math.random() * S, y = Math.random() * S, r = S * (0.03 + Math.random() * 0.085), sx = 1 + Math.random() * 1.6;
+  for (let i = 0; i < 76; i++) {
+    const x = Math.random() * S, y = Math.random() * S, r = S * (0.018 + Math.random() * 0.072), sx = 1.1 + Math.random() * 2.1;
     for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) { // wrap around so the texture tiles without seams
       ctx.save(); ctx.translate(x + ox * S, y + oy * S); ctx.scale(sx, 1);
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, 'rgba(46,46,46,0.9)'); g.addColorStop(0.55, 'rgba(46,46,46,0.55)'); g.addColorStop(1, 'rgba(46,46,46,0)');
+      g.addColorStop(0, 'rgba(22,22,22,0.96)'); g.addColorStop(0.38, 'rgba(38,38,38,0.76)'); g.addColorStop(0.72, 'rgba(92,92,92,0.28)'); g.addColorStop(1, 'rgba(180,180,180,0)');
       ctx.fillStyle = g; ctx.fillRect(-r, -r, r * 2, r * 2); ctx.restore();
     }
   }
@@ -3374,6 +3454,42 @@ function asphaltTex() {
     const px = Math.random()*1024, py = Math.random()*1024;
     ctx.fillStyle = `rgba(210,215,230,${0.08+Math.random()*0.18})`;
     ctx.fillRect(px, py, 1+Math.random()*2, 1+Math.random()*3);
+  }
+  // Phase 4 surface pass: scattered aggregate chips and feathered resurfacing seams.
+  // This is baked into the existing map, so it adds close-up material detail with
+  // no extra meshes, draw calls, per-frame work, or additional texture samplers.
+  for (let i = 0; i < (isMobile ? 900 : 2600); i++) {
+    const px = Math.random() * 1024, py = Math.random() * 1024;
+    const bright = Math.random() < 0.38;
+    const shade = bright ? (92 + Math.random() * 48 | 0) : (10 + Math.random() * 22 | 0);
+    ctx.fillStyle = `rgba(${shade},${shade+1},${shade+3},${0.025 + Math.random()*0.075})`;
+    ctx.beginPath();
+    ctx.ellipse(px, py, 0.35 + Math.random()*1.8, 0.25 + Math.random()*1.1, Math.random()*Math.PI, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // Irregular, low-contrast resurfacing islands; softened edges keep them from
+  // looking like decals while creating more believable tonal breakup at speed.
+  for (let i = 0; i < (isMobile ? 22 : 58); i++) {
+    const px = Math.random()*1024, py = Math.random()*1024;
+    const rx = 18 + Math.random()*54, ry = 8 + Math.random()*24;
+    const g = ctx.createRadialGradient(px,py,Math.min(rx,ry)*0.12,px,py,Math.max(rx,ry));
+    const tone = Math.random() < 0.5 ? '12,14,17' : '94,96,99';
+    g.addColorStop(0, `rgba(${tone},${0.035 + Math.random()*0.035})`);
+    g.addColorStop(0.72, `rgba(${tone},${0.018 + Math.random()*0.022})`);
+    g.addColorStop(1, 'rgba(40,42,45,0)');
+    ctx.save(); ctx.translate(px,py); ctx.rotate(Math.random()*Math.PI); ctx.scale(1,ry/rx);
+    ctx.fillStyle=g; ctx.fillRect(-rx,-rx,rx*2,rx*2); ctx.restore();
+  }
+  // Faint longitudinal wear lanes and intermittent braking polish, not continuous stripes.
+  for (let lane = 0; lane < 4; lane++) {
+    const y = 290 + lane*145 + (Math.random()-0.5)*22;
+    for (let j = 0; j < 9; j++) {
+      const x0 = Math.random()*1024, len = 35 + Math.random()*150;
+      ctx.strokeStyle = `rgba(5,7,9,${0.025 + Math.random()*0.045})`;
+      ctx.lineWidth = 1 + Math.random()*3;
+      ctx.beginPath(); ctx.moveTo(x0,y+(Math.random()-0.5)*10);
+      ctx.bezierCurveTo(x0+len*.3,y-3,x0+len*.7,y+3,x0+len,y+(Math.random()-0.5)*8); ctx.stroke();
+    }
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1.8, 56);
@@ -3934,7 +4050,7 @@ function createWorld() {
   leafMat.onBeforeCompile = sh => {
     sh.uniforms.uWind = windUniform;
     sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\n#ifdef USE_INSTANCING\n float sw = sin(uWind * 1.4 + instanceMatrix[3].x * 0.19 + instanceMatrix[3].z * 0.23);\n float hh = max(position.y - 1.0, 0.0);\n transformed.x += sw * 0.075 * hh;\n transformed.z += sw * 0.045 * hh;\n#endif');
+      '#include <begin_vertex>\n#ifdef USE_INSTANCING\n float sw = sin(uWind * 1.4 + instanceMatrix[3].x * 0.19 + instanceMatrix[3].z * 0.23);\n float hh = max(position.y - 1.0, 0.0);\n transformed.x += sw * 0.075 * hh;\n transformed.z += sw * 0.045 * hh;\n float leafFlutter = sin(uWind * 2.65 + position.x * 3.7 + position.z * 2.9 + instanceMatrix[3].x * 0.41);\n transformed.x += leafFlutter * 0.014 * hh;\n transformed.z += cos(uWind * 2.1 + position.z * 3.3 + instanceMatrix[3].z * 0.37) * 0.011 * hh;\n#endif');
   };
   leafMat.customProgramCacheKey = () => 'treeleaf-wind';
   const barkMat = new THREE.MeshStandardMaterial({ color: 0x70503a, roughness: 1, map: getBarkTex(), bumpMap: getBarkTex(), bumpScale: 1.6 });
@@ -4612,14 +4728,14 @@ function applyDayNight() {
       bg: 0x241c30, fog: 0x241c30, fogNear: 38, fogFar: 155,
       hemiI: 0.24, hemiSky: 0x423058, hemiGnd: 0x100e12,
       sunI: 0.18, sunCol: 0xb05070,
-      lights: true, lightPow: 72, exposure: 0.91
+      lights: true, lightPow: 82, exposure: 0.91
     },
     { // night - deep sky, cool ambient, strong beams
       name: 'NIGHT',
       bg: 0x02050c, fog: 0x060a14, fogNear: 30, fogFar: 155,
       hemiI: 0.32, hemiSky: 0x182840, hemiGnd: 0x05070a,
       sunI: 0.05, sunCol: 0x3a5070,
-      lights: true, lightPow: 210, exposure: 1.08
+      lights: true, lightPow: 235, exposure: 1.08
     }
   ];
   const m = modes[timeMode];
@@ -4710,12 +4826,12 @@ function applyDayNight() {
     // Night: longer throw, tighter focus
     const nightish = timeMode >= 5;
     // Longer, tighter night throw so the road ahead stays legible without washing the cabin.
-    headlightL.distance = nightish ? 130 : 78;
-    headlightR.distance = nightish ? 130 : 78;
-    headlightL.angle = nightish ? 0.36 : 0.46;
-    headlightR.angle = nightish ? 0.36 : 0.46;
-    headlightL.penumbra = nightish ? 0.62 : 0.8;
-    headlightR.penumbra = nightish ? 0.62 : 0.8;
+    headlightL.distance = nightish ? 158 : 88;
+    headlightR.distance = nightish ? 158 : 88;
+    headlightL.angle = nightish ? 0.38 : 0.47;
+    headlightR.angle = nightish ? 0.38 : 0.47;
+    headlightL.penumbra = nightish ? 0.68 : 0.82;
+    headlightR.penumbra = nightish ? 0.68 : 0.82;
   }
   updateBeamLevel();
   applyOvercast();
@@ -4860,10 +4976,11 @@ function applyRoadWetness() {
   if (!roadMesh || !roadMesh.material) return;
   const m = roadMesh.material, night = timeMode >= 5;
   // Night still shows a thin film so headlight pools read on asphalt.
-  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 1.05 : 0.78);
+  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 1.34 : 0.82);
   if (m.clearcoat !== undefined) {
-    m.clearcoat = rainOn ? (night ? 0.48 : 0.38) : (night ? 0.20 : 0.10);
-    m.clearcoatRoughness = rainOn ? 0.22 : (night ? 0.38 : 0.50);
+    m.clearcoat = rainOn ? (night ? 0.68 : 0.54) : (night ? 0.24 : 0.12);
+    m.clearcoatRoughness = rainOn ? (night ? 0.16 : 0.20) : (night ? 0.34 : 0.46);
+    m.reflectivity = rainOn ? 0.58 : 0.38;
   }
 }
 function setRain(on) {
@@ -4872,7 +4989,7 @@ function setRain(on) {
     // World-space rainfall: drops fall through the scene and are depth-tested against trees, buildings and the road.
     // Each drop is a camera-facing quad stretched between its two endpoints, with a minimum width in real pixels, so rain stays
     // visible at any resolution (WebGL lines are always 1 px thin, which made the old rain almost invisible).
-    const count = gfxMobile ? 700 : (visualQuality === 'low' ? 900 : (visualQuality === 'medium' ? 1300 : 1900));
+    const count = gfxMobile ? 760 : (visualQuality === 'low' ? 900 : (visualQuality === 'medium' ? 1550 : 2350));
     const p = new Float32Array(count * 6), aAttr = new Float32Array(count * 2);
     rainDropMeta = new Float32Array(count * 3);
     const c = camera.position;
@@ -4882,7 +4999,7 @@ function setRain(on) {
       const y = c.y + 7 + Math.random() * 34;
       const z = c.z + (Math.random() - 0.5) * 72;
       rainDropMeta[i * 3] = 0.75 + Math.random() * 0.8; // fall-speed variation
-      rainDropMeta[i * 3 + 1] = 0.55 + Math.random() * 0.85; // streak length
+      rainDropMeta[i * 3 + 1] = 0.72 + Math.random() * 1.05; // streak length
       rainDropMeta[i * 3 + 2] = 0.55 + Math.random() * 0.9; // gust response
       const op = 0.18 + Math.random() * 0.28;
       p[j] = x; p[j + 1] = y; p[j + 2] = z;
@@ -4957,8 +5074,8 @@ function setRain(on) {
   rainMesh.visible = on;
   if (roadMesh) {
     const night = timeMode >= 5;
-    roadMesh.material.roughness = on ? (night ? 0.32 : 0.38) : (night ? 0.56 : 0.78);
-    roadMesh.material.metalness = on ? 0.065 : 0.035;
+    roadMesh.material.roughness = on ? (night ? 0.24 : 0.30) : (night ? 0.52 : 0.76);
+    roadMesh.material.metalness = on ? 0.085 : 0.035;
     const pud = on ? roadMesh.material.userData.puddle : null;
     if (roadMesh.material.roughnessMap !== pud) { roadMesh.material.roughnessMap = pud; roadMesh.material.needsUpdate = true; }
     roadMesh.material.emissiveIntensity = on ? (night ? 0.055 : 0.035) : (night ? 0.055 : 0.025);
@@ -5284,11 +5401,11 @@ function tickDrift(dt) {
 //  - flakes stretch into a faint trail with relative speed but keep their crisp head, so close flakes never smear into blur
 // Fog, tone mapping and depth testing behave like the rest of the world; headlight glitter is a cone test in the shader (no per-flake lights).
 const SNOW_BOX = 70;
-const SNOW_LEVEL_DENSITY = 2.5, SNOW_WHITEOUT_DENSITY = 5.0;   // multiples of the original flake count: snow levels, and the WHITEOUT leg (double the snow levels)
+const SNOW_LEVEL_DENSITY = 2.8, SNOW_WHITEOUT_DENSITY = 8.0;   // Dense whiteout field; GPU-instanced and camera-wrapped so flakes remain in the road scene
 const _snowFwd = new THREE.Vector3(), _snowV2 = new THREE.Vector2(), _snowLast = new THREE.Vector3(), _snowRaw = new THREE.Vector3();
 let _snowT = 0, _snowLastMs = 0, _snowHaveLast = false, _snowBase = 0, _snowMul = SNOW_LEVEL_DENSITY;
 function initSnow() {
-  _snowBase = gfxMobile ? 750 : (visualQuality === 'low' ? 900 : 2200);
+  _snowBase = gfxMobile ? 820 : (visualQuality === 'low' ? 1000 : (visualQuality === 'medium' ? 2350 : 2700));
   const count = Math.ceil(_snowBase * SNOW_WHITEOUT_DENSITY);   // allocate for the densest case; instanceCount scales it live
   const A = new Float32Array(count * 4), B = new Float32Array(count * 4);
   for (let i = 0; i < count; i++) {
@@ -5315,7 +5432,7 @@ function initSnow() {
       uTime: { value: 0 }, uBox: { value: SNOW_BOX }, uShutter: { value: 0.014 },
       uCam: { value: new THREE.Vector3() }, uCamVel: { value: new THREE.Vector3() }, uFwd: { value: new THREE.Vector3(0, 0, -1) },
       uView: { value: new THREE.Vector2(1280, 720) }, uAmb: { value: 1 }, uHead: { value: 0 },
-      uColor: { value: new THREE.Vector3(0.905, 0.95, 1.0) }
+      uColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) }
     }]),
     vertexShader: `
       attribute vec4 aA; attribute vec4 aB;
@@ -5403,7 +5520,7 @@ function initSnow() {
         }
         float a = vA * 0.95 * shape;
         if (a < 0.01) discard;
-        gl_FragColor = vec4(uColor * vBr, a);
+        gl_FragColor = vec4(uColor * min(1.28, vBr + 0.16), min(1.0, a * 1.12));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         #include <fog_fragment>
@@ -5413,12 +5530,16 @@ function initSnow() {
   scene.add(snowMesh);
 }
 function tickSnow(dt) {
-  if (!snowMesh || !snowMesh.visible) return;
+  if (!snowMesh) return;
+  const whiteoutActive = !!(story && LEGS[story.leg] && LEGS[story.leg].title === 'WHITEOUT');
+  if (whiteoutActive && season === 3) snowMesh.visible = true;
+  if (!snowMesh.visible) return;
   const u = snowMesh.material.uniforms, c = camera.position;
   _snowT += Math.min(dt, 0.1);
   u.uTime.value = _snowT;
-  // Flakes are in random order, so changing instanceCount thickens/thins evenly. Ramp to double density while the WHITEOUT snow field is active.
-  const wantMul = (typeof yearSnowField !== 'undefined' && yearSnowField && yearSnowField.visible) ? SNOW_WHITEOUT_DENSITY : SNOW_LEVEL_DENSITY;
+  // Flakes are in random order, so changing instanceCount thickens/thins evenly. Ramp to the full dense WHITEOUT particle field while the signature event is active.
+  const wantMul = whiteoutActive || (typeof yearSnowField !== 'undefined' && yearSnowField && yearSnowField.visible) ? SNOW_WHITEOUT_DENSITY : SNOW_LEVEL_DENSITY;
+  if (whiteoutActive && season === 3) snowMesh.visible = true;
   _snowMul += (wantMul - _snowMul) * Math.min(1, dt * 1.5);
   snowMesh.geometry.instanceCount = Math.round(_snowBase * _snowMul);
   u.uCam.value.copy(c);
@@ -5491,9 +5612,10 @@ function getMobileCarMats() {
 // Every car model (sedan, hatch, SUV, sports, van, bus, truck) is built ONCE with all its parts merged into a handful of
 // meshes (one per material), in a detailed close-up version and a simple distant version. Cars then just reuse that
 // geometry with their own paint, so 22 cars cost a few dozen draw calls instead of a couple of thousand.
-let _plateTexture = null;
-function licensePlateTexture() {
-  if (_plateTexture) return _plateTexture;
+const _plateTextures = new Map();
+function licensePlateTexture(code) {
+  code = code || '7K3 91A';
+  if (_plateTextures.has(code)) return _plateTextures.get(code);
   // High-contrast plate at 1024x256: the number fills ~84% of the width and ~55% of the height so it stays readable at following distance.
   // Small header/footer text was dropped or lightened because it just turned into grey noise in the mip chain.
   const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
@@ -5504,10 +5626,11 @@ function licensePlateTexture() {
   x.strokeStyle = '#10283a'; x.lineWidth = 14; x.strokeRect(10, 10, 1004, 236);
   x.textAlign = 'center'; x.textBaseline = 'alphabetic';
   x.fillStyle = '#31566e'; x.font = 'bold 46px Arial'; x.fillText('BRITISH COLUMBIA', 512, 66);
-  x.fillStyle = '#050d14'; x.font = '900 190px Arial'; x.fillText('7K3 91A', 512, 216, 860);
+  x.fillStyle = '#050d14'; x.font = '900 190px Arial'; x.fillText(code, 512, 216, 900);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = (typeof renderer !== 'undefined' && renderer) ? Math.min(16, renderer.capabilities.getMaxAnisotropy()) : 8;
-  return (_plateTexture = t);
+  if (_plateTextures.size > 64) { const first=_plateTextures.keys().next().value; const old=_plateTextures.get(first); if(old) old.dispose(); _plateTextures.delete(first); }
+  _plateTextures.set(code,t); return t;
 }
 function addCarPlates(b, front, rear) {
   const addOne = (spec, isRear) => {
@@ -5543,8 +5666,8 @@ function carMats() {
     rotor: S(0x808890, 0.3, 0.88, { side: THREE.DoubleSide, envMapIntensity: 1.2 }),
     tire: S(0x0a0a0c, 0.88, 0.02, { side: THREE.DoubleSide }),
     caliper: S(0xc42822, 0.35, 0.45, { envMapIntensity: 0.5 }),
-    head: new THREE.MeshStandardMaterial({ color: 0xf2ecde, emissive: 0xffe2a8, emissiveIntensity: 0.55, roughness: 0.18, envMapIntensity: 1.2 }),
-    tail: new THREE.MeshStandardMaterial({ color: 0xff2218, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.2, envMapIntensity: 0.8 }),
+    head: new THREE.MeshPhysicalMaterial({ color: 0xfff7e8, emissive: 0xffe2a8, emissiveIntensity: 0.72, roughness: 0.12, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.65 }),
+    tail: new THREE.MeshPhysicalMaterial({ color: 0xff3025, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.13, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.05 }),
     plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), emissive: 0xffffff, emissiveMap: licensePlateTexture(), emissiveIntensity: [0, 0, 0, 0, 0.09, 0.36, 0.52][timeMode], roughness: 0.62, metalness: 0, side: THREE.DoubleSide, envMapIntensity: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     white: S(0xe6eaec, 0.5, 0.15),
@@ -5556,11 +5679,11 @@ const _paintMats = {};
 function carPaint(color) {
   // Cache by color; small roughness/metalness jitter is applied per-instance via a cloned material when needed.
   return _paintMats[color] || (_paintMats[color] = isMobile
-    ? new THREE.MeshStandardMaterial({ color, roughness: 0.30, metalness: 0.34, envMapIntensity: 1.25 })
+    ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.24, metalness: 0.42, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 1.65, reflectivity: 0.78 })
     : new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.15, metalness: 0.58,
-        clearcoat: 1.0, clearcoatRoughness: 0.045,
-        envMapIntensity: 2.0, reflectivity: 0.92,
+        color, roughness: 0.19, metalness: 0.52,
+        clearcoat: 1.0, clearcoatRoughness: 0.075,
+        envMapIntensity: 2.25, reflectivity: 0.96,
         specularIntensity: 0.9,
         sheen: 0.18, sheenRoughness: 0.18, sheenColor: new THREE.Color(0xffffff)
       }));
@@ -5611,9 +5734,9 @@ function carWheel(b, x, z, r, w) {
   b.add('rotor', gCylX(r * 0.435, r * 0.435, 0.018, 28, rotorX, r, z), 1);
   b.add('rim', gCylX(r * 0.5, r * 0.5, 0.025, 20, x - s * w * 0.18, r, z), 3);
   b.add('caliper', gBox(w * 0.3, r * 0.5, r * 0.2, x - s * w * 0.12, r + r * 0.18, z + r * 0.5), 1);
-  for (let i = 0; i < 10; i++) {
-    const a = i * Math.PI * 2 / 10;
-    b.add('rim', gBox(0.032, r * 0.52, 0.055, x + out * 0.92, r + Math.cos(a) * r * 0.3, z + Math.sin(a) * r * 0.3, a), 1);
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI * 2 / 12;
+    b.add('rim', gBox(0.025, r * 0.54, 0.048, x + out * 0.92, r + Math.cos(a) * r * 0.3, z + Math.sin(a) * r * 0.3, a), 1);
   }
   b.add('chrome', _gp(new THREE.TorusGeometry(r * 0.6, 0.016, 8, 28), x + out, r, z, 0, Math.PI / 2, 0), 1);
   b.add('dark', gCylX(r * 0.16, r * 0.16, 0.03, 14, x + out * 0.55, r, z), 1);
@@ -6076,11 +6199,12 @@ function carTemplate(key) {
   addVehicleSignature(b, key);
   return (_carTpl[key] = b.done());
 }
-function carInstance(color, big) {
+function carInstance(color, big, plateCode) {
   const r = Math.random();
-  const key = big ? (r < 0.4 ? 'bus' : 'truck') : r < 0.28 ? 'sedan' : r < 0.48 ? 'hatch' : r < 0.68 ? 'suv' : r < 0.86 ? 'sports' : 'van';
+  const key = plateCode === 'RIV 2048' ? 'sports' : plateCode === 'RIV 7316' ? 'muscle' : big ? (r < 0.4 ? 'bus' : 'truck') : r < 0.28 ? 'sedan' : r < 0.48 ? 'hatch' : r < 0.68 ? 'suv' : r < 0.86 ? 'sports' : 'van';
   const tpl = carTemplate(key), mats = carMats(), paint = carPaintVariant(color);
-  const mk = list => { const grp = new THREE.Group(); for (const p of list) grp.add(new THREE.Mesh(p.geo, p.mat === 'paint' ? paint : mats[p.mat])); return grp; };
+  const plateMat = mats.plate.clone(); plateMat.map = licensePlateTexture(plateCode); plateMat.emissiveMap = plateMat.map; plateMat.needsUpdate = true;
+  const mk = list => { const grp = new THREE.Group(); for (const p of list) grp.add(new THREE.Mesh(p.geo, p.mat === 'paint' ? paint : p.mat === 'plate' ? plateMat : mats[p.mat])); return grp; };
   const g = new THREE.Group(), hiG = mk(tpl.hi), loG = mk(tpl.lo);
   loG.visible = false;
   g.add(hiG, loG);
@@ -6114,7 +6238,7 @@ const _gv = new THREE.Vector3();
 function tickTrafficGlow() {
   let blackout = false;
   if (story && LEGS[story.leg] && LEGS[story.leg].title === 'THE BLACKOUT') {
-    const L=LEGS[story.leg], m=L.mission, cur=m.type==='laps'?(lap-1)+t:m.type==='overtakes'?overs:m.type==='distance'?dist:score;
+    const L=LEGS[story.leg], m=L.mission, cur=missionValue(L);
     const active=Math.max(0,1-Math.abs(Math.min(1,cur/m.n)-(L.eventAt||0.5))*5);
     blackout = active > 0.02;
   }
@@ -6157,7 +6281,7 @@ function carLod(mesh, dist, big) {
   if (ud.nearCar !== near) { ud.nearCar = near; ud.hiG.visible = near; ud.loG.visible = !near; }
 }
 
-function makeCar(color, big) {
+function makeCar(color, big, plateCode) {
   if (gfxMobile) {
     const g = new THREE.Group();
     const sm = getMobileCarMats();
@@ -6220,10 +6344,12 @@ function makeCar(color, big) {
     [-0.55, 0.55].forEach(x => lamp(x, 0.55, 2.08, 0.34, sm.hl));
     [-0.58, 0.58].forEach(x => lamp(x, 0.6, -2.08, 0.4, sm.tl));
     addMobilePlate(.52, .13, .52, -2.15, true); addMobilePlate(.52, .13, .49, 2.15, false);
+    const uniquePlateMat = sm.plate.clone(); uniquePlateMat.map = licensePlateTexture(plateCode); uniquePlateMat.emissiveMap = uniquePlateMat.map; uniquePlateMat.needsUpdate = true;
+    g.traverse(o => { if (o.isMesh && o.material === sm.plate) o.material = uniquePlateMat; });
     shadow(2, 4.3, 0);
     return g;
   }
-  return carInstance(color, big);
+  return carInstance(color, big, plateCode);
 }
 
 
@@ -6242,10 +6368,14 @@ function spawnTraffic() {
     0x1a1a1e, 0xf5f5f0, 0xc0392b, 0x2980b9, 0x16a085, 0xd35400, 0x8e44ad, 0xbdc3c7
   ];
   for (let i = 0; i < CARS_N; i++) {
-    const big = Math.random() < 0.16;
-    const col = cols[Math.random() * cols.length | 0];
+    const isRivalSlot = (i % 11 === 3) || (i % 11 === 8);
+    const big = !isRivalSlot && Math.random() < 0.16;
+    const rivalIndex = (i % 11 === 3) ? 0 : (i % 11 === 8) ? 1 : -1;
+    const rivalCodes = ['RIV 2048', 'RIV 7316'];
+    const plateCode = rivalIndex >= 0 ? rivalCodes[rivalIndex] : (String.fromCharCode(65+(Math.random()*26|0),65+(Math.random()*26|0),65+(Math.random()*26|0)) + ' ' + String(1000+(Math.random()*9000|0)));
+    const col = rivalIndex === 0 ? 0xd84335 : rivalIndex === 1 ? 0x243b55 : cols[Math.random() * cols.length | 0];
     // Every vehicle is generated locally from our own Three.js geometry.
-    const mesh = makeCar(col, big);
+    const mesh = makeCar(col, big, plateCode);
     // slight random scale so traffic doesn't look instanced
     const s = 0.92 + Math.random() * 0.16;
     mesh.scale.set(s, s * (0.96 + Math.random() * 0.08), s);
@@ -6270,9 +6400,10 @@ function spawnTraffic() {
       targetOff: TRAFFIC_LANES[lane],
       passLane: -1,
       passTimer: 0,
-      spd: big ? 20 + Math.random() * 6 : 25 + Math.random() * 10,
+      spd: big ? 20 + Math.random() * 6 : rivalIndex >= 0 ? 33 + Math.random() * 5 : 25 + Math.random() * 10,
       big,
       color: col,
+      rival: rivalIndex >= 0, rivalIndex, plateCode, rivalPass: false, nearMissed: false,
       bodyLength: big ? 9.2 : 4.3,
       bodyWidth: big ? 2.45 : 1.9,
       done: false,
@@ -6748,9 +6879,9 @@ function buildDial(host, o) {
 }
 function buildDials() {
   const sp = [], tc = [];
-  for (let v = 0; v <= 200; v += 40) sp.push({ f: v / 220, t: v });
+  for (let v = 0; v <= 400; v += 80) sp.push({ f: v / 400, t: v });
   for (let v = 0; v <= 10; v += 2) tc.push({ f: v / 10, t: v });
-  buildDial(document.getElementById('speedo'), { id: 'sp', max: 220, major: 20, minor: 10, labels: sp, label: 'MPH', fs: 15 });
+  buildDial(document.getElementById('speedo'), { id: 'sp', max: 400, major: 40, minor: 20, labels: sp, label: 'KM/H', fs: 13 });
   buildDial(document.getElementById('tacho'), { id: 'tc', max: 10, major: 1, minor: .5, labels: tc, red: [0.8, 1], label: 'RPM', label2: 'x1000', fs: 17 });
   const mini = { a0: -65, span: 130, max: 4, major: 1, minor: .5 };
   buildDial(document.getElementById('mg-fuel'), Object.assign({ id: 'fu', labels: [{ f: 0, t: 'E' }, { f: 1, t: 'F' }], label: 'FUEL', ly: 150, fs: 24 }, mini));
@@ -6769,12 +6900,12 @@ let tempState = 0.3;
 const motion = { lat: 0, acc: 0, bg: 0 };
 
 function updateDash() {
-  const mph = Math.round(spd * 2.237);
-  const gear = spd < 1 ? 'N' : spd < 18 ? '1' : spd < 32 ? '2' : spd < 48 ? '3' : spd < 62 ? '4' : '5';
+  const speedKmh = Math.round(spd * 3.6);
+  const gear = spd < 1 ? 'N' : spd < 15 ? '1' : spd < 25 ? '2' : spd < 37 ? '3' : spd < 50 ? '4' : spd < 65 ? '5' : '6';
   const speedReadout = document.getElementById('speed-readout');
   const speedUnit = document.getElementById('speed-unit');
-  speedReadout.firstChild.nodeValue = mph;
-  speedUnit.textContent = 'mph · ' + gear;
+  speedReadout.firstChild.nodeValue = speedKmh;
+  speedUnit.textContent = 'km/h · ' + gear;
   document.getElementById('dash-lap-value').textContent = lap;
   document.getElementById('dash-score-value').textContent = Math.floor(score);
   const status = document.getElementById('dash-status');
@@ -6787,7 +6918,7 @@ function updateDash() {
   motion.lat += (lat - motion.lat) * (1 - Math.exp(-6 * ndt));
   motion.acc += (Math.max(-60, Math.min(60, accel)) - motion.acc) * (1 - Math.exp(-5 * ndt));
   motion.bg += ((boosting ? 1 : 0) - motion.bg) * (1 - Math.exp(-(boosting ? 8 : 3) * ndt));
-  const shk = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 260);
+  const shk = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 95);
   const jx = Math.sin(now0 * 0.093) * shk * 0.8, jy = Math.sin(now0 * 0.061 + 1.3) * shk * 0.9;
   const sx = -motion.lat * 14 + jx, sy = Math.max(-10, Math.min(10, motion.acc * 0.09)) + jy;
   const dsh = document.getElementById('dash');
@@ -6796,7 +6927,7 @@ function updateDash() {
   if (!isMobile || Math.abs((dsh._bg || 0) - motion.bg) > 0.02) { dsh._bg = motion.bg; dsh.style.setProperty('--bg', motion.bg.toFixed(2)); }
   const brk = Math.min(1, Math.max(0, -motion.acc) / 30);          // hard braking makes the needles shudder
   const rpm = Math.min(1, rpmOf() + (boosting ? 0.06 : 0));
-  needleSet('spd-needle', Math.min(220, mph) / 220 + Math.sin(now0 * 0.045) * 0.010 * brk, ndt, -120, 240);
+  needleSet('spd-needle', Math.min(400, speedKmh) / 400 + Math.sin(now0 * 0.045) * 0.010 * brk, ndt, -120, 240);
   needleSet('rpm-needle', rpm + Math.sin(now0 * 0.06) * 0.012 * (brk + motion.bg), ndt, -120, 240);
   tempState += ((0.30 + 0.42 * Math.min(1, spd / MAX_SPD) + (boosting ? 0.2 : 0)) - tempState) * Math.min(1, ndt * 0.5);
   needleSet('fuel-needle', Math.min(1, timeLeft / 60), ndt, -65, 130);
@@ -6818,7 +6949,7 @@ function updateDash() {
   const wdt = Math.min(0.05, Math.max(0.001, (tms - (updateDash._t || tms)) / 1000)); updateDash._t = tms;
   wheelAngle += (targetWheel - wheelAngle) * (1 - Math.exp(-16 * wdt));   // real frame-rate independent follow (was a hard-coded 0.016)
   // road feel: the wheel shakes a little off-road / on boost / at speed
-  const rough = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 260);
+  const rough = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 95);
   const jit = Math.sin(tms * 0.071) * rough * 1.1, bob = Math.sin(tms * 0.043) * rough * 0.9;
   const el = document.getElementById('wheel');
   el.style.transformOrigin = '50% 50%';
@@ -6865,7 +6996,7 @@ function updateDash() {
   if (tb) tb.textContent = Math.round(boost) + '%';
   const yg = document.getElementById('yoke-gear'), ys = document.getElementById('yoke-spd');
   if (yg) yg.textContent = gear;
-  if (ys) ys.textContent = mph + ' MPH';
+  if (ys) ys.textContent = speedKmh + ' KM/H';
   if (speedGlow) {
     const speedFactor = THREE.MathUtils.clamp((spd - 38) / 42, 0, 1);
     speedGlow.style.opacity = String((speedFactor * 0.62) + (boosting ? 0.18 : 0));
@@ -6894,9 +7025,9 @@ function update(dt) {
   if (boosting) {
     boost = Math.max(0, boost - 16 * dt);
     const boostEff = 1 - 0.22 * Math.min(1, spd / Math.max(1, BOOST_SPD));
-    spd += ACCEL * 1.68 * boostEff * dt;
+    spd += ACCEL * 1.22 * boostEff * dt;
     // One-frame punch when boost engages (pairs with existing FOV kick)
-    if (!wasBoost) spd += Math.min(4.5, ACCEL * 0.12);
+    if (!wasBoost) spd += Math.min(1.1, ACCEL * 0.10);
   } else {
     const regen = gasIn > 0.25 ? 8.5 : 15;
     boost = Math.min(100, boost + regen * dt);
@@ -6904,15 +7035,26 @@ function update(dt) {
   // Throttle: per-car torque curve (peak + width) × aero drag near redline
   if (gasIn > 0) {
     const nd = spd / Math.max(1, MAX_SPD);
-    // Smooth bell-ish curve around torquePeak — Rally/Muscle hit early, Roadster later
+    // Broad low/mid-range torque plateau: the previous narrow bell left several
+    // cars feeling flat off the line. Keep each car's torquePeak/width personality,
+    // but use a wider low-speed shoulder and a gradual high-speed fall-off.
     const x = (nd - TORQUE_PEAK) / Math.max(0.12, TORQUE_WIDTH);
-    const torqueCurve = Math.max(0.22, Math.exp(-x * x * 1.8)) * (1.05 + 0.25 * (1 - nd));
-    const drag = 0.16 * Math.pow(nd, 1.2) + 0.68 * Math.pow(nd, 3.5);
+    const torqueShape = Math.exp(-x * x * 1.2);
+    // Give every car a convincing launch without flattening its individual torque peak.
+    // The former 0.58 floor combined with the low-end multiplier left only about
+    // half of rated acceleration available at zero speed, making full throttle
+    // feel oddly lazy off the line. A stronger floor restores response while the
+    // per-car peak/width still shapes the mid-range and aero drag still owns top speed.
+    const lowEndPlateau = 0.84 + 0.16 * Math.min(1, nd / 0.22);
+    const torqueCurve = Math.max(0.72, torqueShape) * lowEndPlateau * (1.18 + 0.14 * (1 - nd));
+    // Aerodynamic resistance becomes dominant near each vehicle's real speed ceiling.
+    const drag = 0.13 * Math.pow(nd, 1.2) + 0.72 * Math.pow(nd, 3.5);
     spd += ACCEL * gasIn * torqueCurve * Math.max(0.07, 1 - drag) * dt;
   } else if (brakeIn > 0) {
-    // Strong initial bite; trail-brake friendly (doesn't fall off a cliff at low speed)
+    // Stronger initial bite (+14%) while retaining per-car brake balance and
+    // a progressive pedal response; wet braking remains deliberately more cautious.
     const bite = 1 + 0.22 * Math.min(1, spd / 32);
-    spd += BRAKE * brakeIn * bite * (rainOn ? 0.88 : 1) * dt;
+    spd += BRAKE * 1.14 * brakeIn * bite * (rainOn ? 0.90 : 1) * dt;
   } else {
     // Engine braking scales with speed so high-speed lift-off settles the nose
     spd += COAST * (0.72 + 0.40 * Math.min(1, spd / Math.max(1, MAX_SPD))) * dt;
@@ -6957,7 +7099,7 @@ function update(dt) {
       }
     }
   }
-  if (drafting) spd += 11 * dt;  // slipstream: meaningful top-speed help behind traffic
+  if (drafting) spd += 2.8 * dt;  // slipstream: meaningful top-speed help behind traffic
   drafting = false;
   // Hills: climb costs, descents help — softened so grades don't dominate handling
   spd -= getT(t).y * 12 * dt;
@@ -6966,19 +7108,22 @@ function update(dt) {
   if (spd < 0) spd = 0;
 
   let keySteer = (kL ? 1 : 0) + (kR ? -1 : 0);
-  if (ASSIST) { btnRamp += (keySteer - btnRamp) * Math.min(1, (keySteer === 0 ? 14 : 5.5) * dt); keySteer = btnRamp; }
+  if (ASSIST) { btnRamp += (keySteer - btnRamp) * (1 - Math.exp(-(keySteer === 0 ? 16 : 8.0) * dt)); keySteer = btnRamp; }
   const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer, -1, 1);
   const steerReturning = Math.abs(steerTarget) < Math.abs(steerValue) || steerTarget * steerValue < 0;
   const speedFrac = Math.min(1, spd / Math.max(1, MAX_SPD));
-  const steerRate = steerReturning ? 24 : (18 - 7 * speedFrac);
-  steerValue += (steerTarget - steerValue) * Math.min(1, steerRate * dt);
-  const steerIn = Math.sign(steerValue) * Math.pow(Math.abs(steerValue), 1.12);
+  const steerRate = steerReturning ? 27 : (23 - 5.5 * speedFrac);
+  // Exponential response keeps steering feel consistent when frame time varies.
+  steerValue += (steerTarget - steerValue) * (1 - Math.exp(-steerRate * dt));
+  // A flatter input curve gives finer mid-corner control and makes full steering
+  // authority easier to reach without making the first few percent twitchy.
+  const steerIn = Math.sign(steerValue) * Math.pow(Math.abs(steerValue), 1.06);
   const kappa = getKappa(t);
 
   // ——— Advanced physics pack (arcade-sim hybrid) ———
   // 1) Weight transfer: braking loads the nose (more turn-in); throttle unloads it (looser rear).
   const wtTarget = THREE.MathUtils.clamp(brakeIn * 0.85 - gasIn * 0.55 - (boosting ? 0.2 : 0), -1, 1);
-  weightTransfer += (wtTarget - weightTransfer) * Math.min(1, 7 * dt);
+  weightTransfer += (wtTarget - weightTransfer) * (1 - Math.exp(-7 * dt));
 
   // 2) Surface µ: center asphalt → shoulder paint → dirt off-road
   const absPx = Math.abs(px);
@@ -6993,7 +7138,7 @@ function update(dt) {
   const aero = 1 + 0.22 * speedFrac * speedFrac;
 
   // 4) Slip-angle proxy + Pacejka-lite: lateral force peaks then falls when the tire is past the limit
-  slipAngle += ((pvx / Math.max(4, spd)) - slipAngle) * Math.min(1, 10 * dt);
+  slipAngle += ((pvx / Math.max(4, spd)) - slipAngle) * (1 - Math.exp(-10 * dt));
   const slipMag = Math.abs(slipAngle);
   const peak = 0.42; // peak lateral usefulness
   const pace = slipMag <= peak
@@ -7003,8 +7148,12 @@ function update(dt) {
   const cornerLoad = spd * spd * Math.abs(kappa);
   const wetGrip = rainOn ? 0.68 : 1;
   const loadLoss = THREE.MathUtils.clamp((cornerLoad - 24) / 820, 0, 0.32);
-  // Trail-brake amplified by nose weight; power-on oversteer amplified when nose is light
+  // Trail braking loads the front axle and helps initial turn-in, but it also
+  // unloads the rear. Model that rear-axle instability separately so a hard
+  // brake-and-turn input can develop a controllable, progressive rotation.
   const trailBrake = 1 + (0.18 + 0.12 * Math.max(0, weightTransfer)) * brakeIn * (1 - 0.35 * speedFrac);
+  const brakeCornerLoad = brakeIn * Math.abs(steerIn) * speedFrac;
+  const rearBreakaway = THREE.MathUtils.clamp(brakeCornerLoad * (rainOn ? 1.28 : 1.02), 0, 1);
   const powerLoose = 1 - (0.10 + 0.08 * Math.max(0, -weightTransfer)) * gasIn * speedFrac * (boosting ? 1.15 : 1);
   // Tire heat: builds with slip + hard cornering; cools on calm driving. Overheat → grip fade.
   const heatIn = (tireSlip * 1.15 + Math.min(1, cornerLoad / 90) * 0.35 + (boosting ? 0.2 : 0)) * HEAT_RATE;
@@ -7013,11 +7162,29 @@ function update(dt) {
   const heatPenalty = 1 - 0.38 * Math.pow(tireHeat, 1.4); // up to -38% grip when cooked
   // Hard sim: less forgiveness on the limit
   const hardMul = SIM_HARD ? (0.88 - 0.12 * tireSlip) : 1;
-  const tireGrip = wetGrip * surfaceMu * aero * (1 - loadLoss) * powerLoose * (0.75 + 0.25 * pace) * heatPenalty * hardMul;
-  const speedSteer = Math.min(1, spd / 6.8) * (1 - 0.18 * speedFrac);
+  // Signature-event surfaces add a small, local handling challenge without changing the base car physics.
+  let eventGrip = 1;
+  if (story && LEGS[story.leg]) {
+    const eventLeg=LEGS[story.leg];
+    if (eventLeg.title === 'THE OLD BRIDGE') {
+      const bridgeGap=Math.abs((((t-(eventLeg.eventAt||0.52)+0.5)%1)-0.5)*trackLen);
+      if (bridgeGap < 24) eventGrip=0.84; // standing water across the bridge deck; careful steering and braking matter
+    } else if (eventLeg.title === 'WHITEOUT') {
+      const eventProgress=Math.min(1,dist/eventLeg.mission.n);
+      const whiteoutIntensity=Math.max(0,1-Math.abs(eventProgress-(eventLeg.eventAt||0.5))*5);
+      eventGrip=1-whiteoutIntensity*0.065; // loose snow and gusting crosswind
+    }
+  }
+  // Braking while cornering trims rear stability rather than simply reducing
+  // all grip equally. The effect builds with speed and steering commitment.
+  const tireGrip = wetGrip * surfaceMu * aero * (1 - loadLoss) * powerLoose * (0.75 + 0.25 * pace) * heatPenalty * hardMul * eventGrip * (1 - 0.20 * rearBreakaway);
+  const speedSteer = Math.min(1, spd / 5.0) * (1 - 0.055 * speedFrac);
   const previousPvx = pvx;
   const counterSteer = steerIn * pvx < 0 ? 1 + Math.min(0.48, Math.abs(pvx) / Math.max(1, MAX_LAT_VEL) * 0.6) : 1;
-  pvx += steerIn * STEER_ACCEL * speedSteer * tireGrip * trailBrake * counterSteer * dt;
+  // Steering authority refinement: more useful front-end response for quick traffic
+  // placement, while retaining each car's steering rating and tyre grip limits.
+  // Lateral damping eases slightly only while the driver is actively steering.
+  pvx += steerIn * STEER_ACCEL * 1.48 * speedSteer * tireGrip * trailBrake * counterSteer * dt;
   pvx += -spd * spd * kappa * CURVE_FORCE * (ROAD_ASSIST ? 0.72 : 1) * dt;
 
   // Cornering drag + sliding scrub (stronger past the slip peak)
@@ -7032,14 +7199,18 @@ function update(dt) {
 
   const slipRatio = THREE.MathUtils.clamp(Math.abs(pvx) / Math.max(1, MAX_LAT_VEL * wetGrip * surfaceMu), 0, 1.65);
   const slipTarget = THREE.MathUtils.clamp((slipRatio - 0.34) / 0.70, 0, 1);
-  tireSlip += (slipTarget - tireSlip) * Math.min(1, 11 * dt);
-  const lateralDamping = LAT_FRICTION * surfaceMu * (rainOn ? 0.66 : 1) * (1 + tireSlip * (SIM_HARD ? 0.7 : 0.42)) * (0.85 + 0.15 * pace) * (SIM_HARD ? 1.12 : 1);
-  pvx -= pvx * lateralDamping * dt;
-  const latCap = MAX_LAT_VEL * surfaceMu * (rainOn ? 0.92 : 1) * (brakeIn > 0.5 ? 0.94 : 1) * aero;
+  tireSlip += (slipTarget - tireSlip) * (1 - Math.exp(-11 * dt));
+  // Let the rear rotate a little more freely under committed trail braking;
+  // normal coasting and ordinary steering retain their existing stability.
+  const lateralDamping = LAT_FRICTION * surfaceMu * (rainOn ? 0.66 : 1) * (1 + tireSlip * (SIM_HARD ? 0.7 : 0.42)) * (0.85 + 0.15 * pace) * (SIM_HARD ? 1.12 : 1) * (1 - 0.34 * rearBreakaway) * (1 - 0.07 * Math.abs(steerIn) * (1 - tireSlip));
+  // Exact exponential decay avoids frame-step overshoot when lateral grip is low.
+  pvx *= Math.exp(-lateralDamping * dt);
+  const latCap = MAX_LAT_VEL * 1.22 * surfaceMu * (rainOn ? 0.92 : 1) * (brakeIn > 0.5 ? 0.97 : 1) * aero;
   pvx = THREE.MathUtils.clamp(pvx, -latCap, latCap);
   lateralG = dt > 0 ? THREE.MathUtils.clamp((pvx - previousPvx) / dt / 26, -1, 1) : 0;
-  // Gentle center pull only near the edge paint — full lane width stays free
-  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - (ROAD_W * 0.5 - 1.35)) * CENTER_SPRING * 0.45 * (ROAD_ASSIST ? 1.5 : 1) * dt;
+  // Keep the road centre neutral and allow a committed line close to either edge.
+  // The soft return begins only in the final ~0.6 m before the edge paint.
+  pvx -= Math.sign(px) * Math.max(0, Math.abs(px) - (ROAD_W * 0.5 - 0.6)) * CENTER_SPRING * 0.20 * (ROAD_ASSIST ? 1.15 : 1) * dt;
   // Stability: never let non-finite values poison the sim
   if (!Number.isFinite(spd)) spd = 0;
   if (!Number.isFinite(pvx)) pvx = 0;
@@ -7048,15 +7219,15 @@ function update(dt) {
   px += pvx * dt;
   px = THREE.MathUtils.clamp(px, -ROAD_W * 0.9, ROAD_W * 0.9);
   if (ROAD_ASSIST) {
-    // Safety rail kicks in near the paint, not mid-lane — leaves room for committed cornering
-    const edgeStart = ROAD_W * 0.5 - 0.25;
-    const edgeLimit = ROAD_W * 0.5 + 0.85;
+    // Let the player use nearly all the asphalt before the safety assist intervenes.
+    const edgeStart = ROAD_W * 0.5 - 0.06;
+    const edgeLimit = ROAD_W * 0.5 + 0.70;
     const edgeDistance = Math.abs(px);
     const edgeSign = Math.sign(px);
     if (edgeDistance > edgeStart) {
       const pressure = Math.min(1, (edgeDistance - edgeStart) / (edgeLimit - edgeStart));
-      pvx -= edgeSign * (2.5 + pressure * 20) * dt;
-      spd -= spd * (0.04 + pressure * 0.26) * dt;
+      pvx -= edgeSign * (1.0 + pressure * 9.0) * dt;
+      spd -= spd * (0.012 + pressure * 0.10) * dt;
     }
     if (edgeDistance > edgeLimit) {
       px = edgeSign * edgeLimit;
@@ -7074,7 +7245,7 @@ function update(dt) {
   slide = Math.max(tireSlip, loadSlide);
 
   prevT = t;
-  // Visual scale: push a bit more asphalt under the car so high mph feels matched to the dial
+  // Visual scale: push a bit more asphalt under the car so high km/h feels matched to the dial
   t = (t + (spd * 1.4 * dt) / trackLen) % 1;
   lapTime += dt;
   dbgGame += dt;
@@ -7127,10 +7298,18 @@ function update(dt) {
     playerCarModel.position.copy(vehicleCenter).addScaledVector(up, 0.02);
     // Body motion: the nose points a little into the direction of travel (yaw follows lateral velocity and wheel
     // angle) and the body rolls with cornering load, both smoothed so it never jitters.
-    const yawT = THREE.MathUtils.clamp(pvx / Math.max(spd, 14) * 0.85 + steerIn * 0.06 * Math.min(1, spd / 30), -0.24, 0.24);
-    const rollT = THREE.MathUtils.clamp(-pvx * 0.018 - lateralG * 0.035 - steerIn * 0.025, -0.13, 0.13) * 0.7;
-    carYaw += (yawT - carYaw) * Math.min(1, 9 * dt);
-    carRoll += (rollT - carRoll) * Math.min(1, 7 * dt);
+    // The chassis should visibly take a set into a turn instead of translating
+    // sideways like a cursor. Steering leads the yaw; lateral slip adds rotation
+    // as the tyres approach their limit, especially during trail braking.
+    const yawT = THREE.MathUtils.clamp(
+      steerIn * (0.19 + 0.14 * Math.min(1, spd / 38)) +
+      (pvx / Math.max(spd, 14)) * (0.82 + 0.22 * rearBreakaway),
+      -0.38, 0.38
+    );
+    const rollT = THREE.MathUtils.clamp(-pvx * 0.020 - lateralG * 0.042 - steerIn * 0.038, -0.16, 0.16) * 0.76;
+    // Slower chassis response gives the car a little rotational inertia.
+    carYaw += (yawT - carYaw) * (1 - Math.exp(-7.0 * dt));
+    carRoll += (rollT - carRoll) * (1 - Math.exp(-6.5 * dt));
     playerCarModel.up.copy(up).applyAxisAngle(vehicleForward, carRoll);
     playerCarModel.lookAt(vehicleCenter.clone().add(vehicleForward).addScaledVector(vehicleSide, carYaw));
     // Suspension compresses subtly under lateral load and speed; this is purely
@@ -7186,6 +7365,10 @@ function update(dt) {
     const ahead = ((c.t - t) + 1) % 1;
     if (ahead > 0.004 && ahead < 0.03 && Math.abs(px - c.off) < 2.2) drafting = true;
     let aiSpd = c.spd * (1 + Math.min(0.08, (lap - 1) * 0.01));
+    // Two recurring rivals run a little harder than normal traffic and react when the player closes.
+    const playerGapFromCar = ((t - c.t) + 1) % 1 * trackLen;
+    if (c.rival && playerGapFromCar > 5 && playerGapFromCar < 42 && Math.abs(px - c.off) < 5.2) aiSpd = Math.min(43, aiSpd * 1.10 + 2.2);
+    if (c.rival && ahead < 0.018 && ahead > 0 && Math.abs(px - c.off) < 5.0) aiSpd = Math.min(44, aiSpd * 1.07 + 1.5);
     // If the player is closing fast in-lane, ease the AI so the pass reads clearly
     if (ahead < 0.05 && ahead > 0 && Math.abs(px - c.off) < 4.5) {
       const close = Math.max(0, spd - aiSpd);
@@ -7202,19 +7385,32 @@ function update(dt) {
       }
     }
 
+    if (c.rival && c.passTimer <= 0 && playerGapFromCar > 4 && playerGapFromCar < 26 && Math.abs(px - c.off) < 2.35) {
+      const rivalLane = c.lane === 0 ? 1 : 0;
+      const rivalLaneClear = traffic.every(d => {
+        if (d === c) return true;
+        const occupies = d.lane === rivalLane || Math.abs((d.targetOff ?? d.off) - TRAFFIC_LANES[rivalLane]) < 1.65;
+        const gap = Math.abs((((d.t-c.t+0.5)%1)-0.5)*trackLen);
+        return !occupies || gap > (d.cur > c.cur ? 26 : 20);
+      });
+      const playerLaneClear = Math.abs(px - TRAFFIC_LANES[rivalLane]) > 2.8;
+      if (rivalLaneClear && playerLaneClear) { c.passLane=rivalLane; c.targetOff=TRAFFIC_LANES[rivalLane]; c.passTimer=5.2; c.rivalPass=true; }
+    }
+
     if (blocker && blocker.gap < 30 && c.passTimer <= 0) {
       const otherLane = c.lane === 0 ? 1 : 0;
       const laneClear = traffic.every((d) => {
         if (d === c || d === blocker.car) return true;
         const gap = Math.abs((((d.t - c.t) + 0.5) % 1) - 0.5) * trackLen;
-        return d.lane !== otherLane || gap > 18 || Math.abs(d.off - TRAFFIC_LANES[otherLane]) > 2.4;
+        const occupies = d.lane === otherLane || Math.abs((d.targetOff ?? d.off) - TRAFFIC_LANES[otherLane]) < 1.65;
+        return !occupies || gap > (d.cur > c.cur ? 25 : 19);
       });
       const playerClear = Math.abs(px - TRAFFIC_LANES[otherLane]) > 2.6 ||
         Math.abs((((t - c.t) + 0.5) % 1) - 0.5) * trackLen > 18;
       if (laneClear && playerClear) {
         c.passLane = otherLane;
         c.targetOff = TRAFFIC_LANES[otherLane];
-        c.passTimer = 4.5;
+        c.passTimer = 5.6;
       }
     }
 
@@ -7224,15 +7420,16 @@ function update(dt) {
       if (passGap > trackLen - 8 || c.passTimer <= 0) {
         c.passTimer = 0;
         c.passLane = -1;
+        c.rivalPass = false;
         c.targetOff = TRAFFIC_LANES[c.lane];
       }
     }
-    c.off += (c.targetOff - c.off) * Math.min(1, 3.8 * dt);
+    c.off += (c.targetOff - c.off) * (1 - Math.exp(-4.8 * dt));
     if (c.passTimer <= 0 && Math.abs(c.off - TRAFFIC_LANES[c.lane]) < 0.08) {
       c.off = TRAFFIC_LANES[c.lane];
     }
     if (!c.cur) c.cur = tgt;
-    c.cur += (tgt - c.cur) * Math.min(1, 6 * dt);
+    c.cur += (tgt - c.cur) * (1 - Math.exp(-4.8 * dt));
     c.t = (c.t + (c.cur * dt) / trackLen) % 1;
     place(c.mesh, c.t, c.off);
     const dT = ((c.t - t) + 1) % 1;
@@ -7250,9 +7447,16 @@ function update(dt) {
     const lateralLimit = (c.bodyWidth + 1.8) * 0.5;
     const carAhead = ((c.t - t) + 1) % 1;
     const nearDT = ((t - c.t) + 1) % 1;
+    // Reward a genuinely close, non-contact pass. A car must clear the bodywork before the encounter can score again.
+    if (longitudinalGap > 14) c.nearMissed = false;
+    if (!c.nearMissed && longitudinalGap > 4.8 && longitudinalGap < 10.5 && lat < lateralLimit + 0.72 && lat > lateralLimit * 0.78 && spd > 27) {
+      c.nearMissed = true; nearMisses++; score += 110; boost = Math.min(100, boost + 3);
+      if (story && LEGS[story.leg].mission.type === 'near') timeLeft = Math.min(99, timeLeft + 1.1);
+      flash(c.rival ? 'RIVAL CLOSE CALL +110' : 'NEAR MISS +110'); chime(1040);
+    }
     if (!c.done && carAhead > 0.003 && carAhead < 0.30 && lat < 5.5) c.wasAhead = true;
     if (!c.done && c.wasAhead && nearDT > 0 && nearDT < 0.018 && lat < 4.8) {
-      c.done = true; c.wasAhead = false; overs++; combo++; comboT = 4.2;
+      c.done = true; c.wasAhead = false; overs++; if (c.rival) c.rivalPass = false; combo++; comboT = 4.2;
       const close = lat < 2.7 && spd > 30;
       const razor = lat < 1.9 && spd > 38;
       const pts = 170 + combo * 42 + (razor ? 150 : close ? 95 : 0);
@@ -7262,7 +7466,8 @@ function update(dt) {
         const timeGain = 1.5 + Math.min(1.4, combo * 0.18) + (razor ? 1.3 : close ? 0.8 : 0);
         timeLeft = Math.min(99, timeLeft + timeGain);
       }
-      if (razor) flash((combo > 1 ? 'x' + combo + ' ' : '') + 'RAZOR PASS +' + pts);
+      if (c.rival) flash('RIVAL PASSED +' + pts);
+      else if (razor) flash((combo > 1 ? 'x' + combo + ' ' : '') + 'RAZOR PASS +' + pts);
       else if (close) flash((combo > 1 ? 'x' + combo + ' ' : '') + 'CLOSE PASS +' + pts);
       else flash(combo > 1 ? 'x' + combo + ' OVERTAKE +' + pts : 'OVERTAKE +' + pts);
       chime(820 + Math.min(420, combo * 45));
@@ -7284,18 +7489,18 @@ function update(dt) {
         c.hit = true;
         if (sideSwipe) {
           // Glancing blow: yaw kick, partial speed loss, stay in the fight
-          spd *= 0.72 - 0.08 * massRatio;
-          pvx = pushDirection * Math.max(6, 8 + closing * 0.12 + penetration) * massRatio;
+          spd *= 0.82 - 0.035 * massRatio;
+          pvx = pushDirection * Math.max(4.5, 6 + closing * 0.09 + penetration) * massRatio;
           px += pushDirection * Math.min(1.8, 0.55 + penetration * 0.25);
-          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.14);
+          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.10);
           timeLeft -= 1.5; score = Math.max(0, score - 25); shake = 0.35; combo = 0;
           flash('SIDE SWIPE');
         } else {
           // Rear/front contact: stronger longitudinal hit
-          spd *= 0.5 - 0.06 * massRatio;
-          pvx = pushDirection * Math.max(4, 5.5 + penetration * 1.2) * massRatio;
+          spd *= 0.66 - 0.035 * massRatio;
+          pvx = pushDirection * Math.max(3.5, 4.5 + penetration * 0.9) * massRatio;
           px += pushDirection * Math.min(2.2, 0.7 + penetration * 0.3);
-          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.28);
+          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.20);
           timeLeft -= 3; score = Math.max(0, score - 50); shake = 0.55; combo = 0;
           flash('CONTACT');
         }
@@ -7312,6 +7517,31 @@ function update(dt) {
       px = THREE.MathUtils.clamp(px, -ROAD_W * 0.86, ROAD_W * 0.86);
     }
   }
+
+  if (story && LEGS[story.leg] && LEGS[story.leg].title === 'GOLDEN HOUR') {
+    const eventT=LEGS[story.leg].eventAt || 0.52;
+    // Signed distance follows the event's local forward axis, allowing each
+    // staggered rock to have its own fair, spatially accurate collision window.
+    const signedEventGap=((((t-eventT)+1.5)%1)-0.5)*trackLen;
+    const obstacles=yearSetPiece?.userData?.landslideObstacles || [];
+    if (!story.landslideHits) story.landslideHits={};
+    for(let i=0;i<obstacles.length;i++) {
+      const rock=obstacles[i];
+      if(story.landslideHits[i]) continue;
+      const longitudinalClearance=rock.depth*0.5+2.0;
+      const lateralClearance=rock.r+1.08;
+      if(Math.abs(signedEventGap-rock.z)<longitudinalClearance && Math.abs(px-rock.x)<lateralClearance) {
+        story.landslideHits[i]=true; story.landslideHit=true;
+        const side=Math.sign(px-rock.x)|| (px>=0?1:-1);
+        const severity=THREE.MathUtils.clamp(rock.r/1.32,0.28,1);
+        spd*=1-0.22*severity; pvx+=side*(2.8+2.8*severity);
+        score=Math.max(0,score-Math.round(12+22*severity)); timeLeft-=0.7+0.9*severity; shake=0.22+0.2*severity;
+        if(playerCarModel && playerCarModel.userData) playerCarModel.userData.damageLevel=Math.min(1,(playerCarModel.userData.damageLevel||0)+0.035+0.055*severity);
+        flash(severity>0.72?'BOULDER STRIKE — FIND THE CLEAR LINE':'ROCK DEBRIS — WATCH YOUR LINE'); chime(170);
+        break;
+      }
+    }
+  } else if (story && story.landslideHit) { story.landslideHit=false; story.landslideHits={}; }
 
   if (Math.abs(px) > ROAD_W * 0.5 + 0.6 && spd > 28) offT += dt; else offT = Math.max(0, offT - dt * 2);
   if (!ROAD_ASSIST && (offT > 0.9 || (Math.abs(px) > ROAD_W * 0.8 && spd > MAX_SPD * 0.4))) { doCrash('RAN OFF THE ROAD!'); return; }
@@ -7370,11 +7600,11 @@ function update(dt) {
       moonGlow.position.copy(moonDisc.position);
     }
   }
-  if (boosting && !wasBoosting) fovKick = 14; wasBoosting = boosting;
+  if (boosting && !wasBoosting) fovKick = 6; wasBoosting = boosting;
   fovKick *= Math.exp(-3.2 * dt);
-  // Aggressive FOV stretch so 200 mph reads as a rush, not a cruise.
+  // Progressive speed sensation without extreme wide-angle distortion.
   const spdF = Math.min(1, spd / Math.max(1, MAX_SPD));
-  const targetFov = 72 + spdF * 52 + (boosting ? 14 : 0) + fovKick; // ~72 → 138
+  const targetFov = 70 + spdF * 24 + (boosting ? 5 : 0) + fovKick; // ~70 → 99
   fovNow += (targetFov - fovNow) * (1 - Math.exp(-18 * dt));
   camera.fov = fovNow;
   camera.updateProjectionMatrix();
@@ -7457,7 +7687,7 @@ function doCrash(why) {
   document.getElementById('final').textContent = Math.floor(bestScore > score ? bestScore : score) + ' (run ' + Math.floor(score) + ')';
   const fl = document.getElementById('final-lap');
   if (fl) fl.textContent = bestLap > 0 ? formatTime(bestLap) : '—';
-  document.getElementById('final-stats').textContent = 'Laps ' + (lap - 1) + ' · Overtakes ' + overs + ' · Top ' + Math.round(topSpd * 2.237) + ' mph';
+  document.getElementById('final-stats').textContent = 'Laps ' + (lap - 1) + ' · Overtakes ' + overs + ' · Top ' + Math.round(topSpd * 3.6) + ' km/h';
   const tipEl = document.getElementById('crash-tip');
   if (tipEl) {
     let tip = 'Brake earlier, then feed throttle out of the bend.';
@@ -7519,7 +7749,7 @@ function frame() {
       dbgAcc = 0;
       if (!dbgEl) { dbgEl = document.createElement('div'); dbgEl.style.cssText = 'position:fixed;left:6px;top:6px;z-index:99999;font:11px/1.3 monospace;color:#9ff;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre'; document.body.appendChild(dbgEl); }
       const fps = dbgReal > 0 ? dbgFrames / dbgReal : 0, ratio = dbgReal > 0 ? dbgGame / dbgReal : 0;
-      dbgEl.textContent = 'fps ' + fps.toFixed(0) + '  calls ' + renderer.info.render.calls + '  tris ' + ((renderer.info.render.triangles / 1000) | 0) + 'k  clock x' + ratio.toFixed(2) + '\nspeed ' + Math.round(spd * 2.237) + ' mph  µ ' + surfaceMu.toFixed(2) + '  slip ' + tireSlip.toFixed(2) + '  heat ' + tireHeat.toFixed(2) + '\nlap ' + lap + '  wt ' + weightTransfer.toFixed(2) + '  sim ' + (SIM_HARD ? 'HARD' : 'normal');
+      dbgEl.textContent = 'fps ' + fps.toFixed(0) + '  calls ' + renderer.info.render.calls + '  tris ' + ((renderer.info.render.triangles / 1000) | 0) + 'k  clock x' + ratio.toFixed(2) + '\nspeed ' + Math.round(spd * 3.6) + ' km/h  µ ' + surfaceMu.toFixed(2) + '  slip ' + tireSlip.toFixed(2) + '  heat ' + tireHeat.toFixed(2) + '\nlap ' + lap + '  wt ' + weightTransfer.toFixed(2) + '  sim ' + (SIM_HARD ? 'HARD' : 'normal');
       if (dbgReal > 3) { dbgReal = dbgGame = dbgFrames = 0; }
     }
   }
@@ -7650,7 +7880,7 @@ function start() {
   won = false;
   showUI(true);
   document.getElementById('mission').style.display = story ? 'block' : 'block';
-  spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; lap = 1;
+  spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; nearMisses = 0; lap = 1;
   if (playerCarModel) playerCarModel.userData.damageLevel = 0;
   boost = 100; dead = false; run = true; shake = 0; slide = 0; tireSlip = 0; tireHeat = 0; weightTransfer = 0; slipAngle = 0; lateralG = 0; carYaw = 0; carRoll = 0; combo = 0; prevT = 0; wheelAngle = 0;
   paused = false; lapTime = 0; timeLeft = 60; offT = 0;
@@ -7720,7 +7950,7 @@ function init() {
   // 512² + tight frustum around the car ≈ same on-screen quality as a larger map
   // over a huge world volume, at ~1/4 the shadow fill cost of 1024².
   // Tighter frustum + bigger map: ~5 cm/texel on desktop (was ~14 cm), ~15 cm on phones (was ~28 cm).
-  const shadowRes = visualQuality === 'high' ? 2048 : (visualQuality === 'medium' ? 768 : 512);
+  const shadowRes = visualQuality === 'high' ? 2048 : (visualQuality === 'medium' ? 1024 : 512);
   const shExt = visualQuality === 'high' ? 48 : 56;
   sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.camera.near = 4;
