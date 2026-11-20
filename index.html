@@ -34,9 +34,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #mirror-label{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:.12em;color:rgba(200,220,235,.55);font-weight:700;text-shadow:0 1px 3px #000;z-index:2;pointer-events:none}
 #mirror-label{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:8px;color:#555}
 #hood{
-  position:absolute;left:0;right:0;bottom:34%;height:5%;
-  background:linear-gradient(180deg,transparent 0%,rgba(20,20,24,.7) 60%,#141418 100%);
-  display:none;z-index:5;pointer-events:none;
+  display:none!important;visibility:hidden!important;
+  pointer-events:none!important;
 }
 #lines{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 45%,transparent 0 5deg,rgba(255,255,255,.12) 5.4deg 6deg);-webkit-mask:radial-gradient(circle at 50% 45%,transparent 30%,#000 85%);mask:radial-gradient(circle at 50% 45%,transparent 30%,#000 85%)}
 /* ===== DASH ===== */
@@ -302,7 +301,6 @@ body.non-cockpit:not(.hood-view) #dash,body.non-cockpit #mirror{display:none!imp
 /* Hood view intentionally keeps both the bonnet foreground and instrument dashboard visible. */
 body.hood-view #dash{display:block!important;visibility:visible!important}
 body.hood-view #hood{display:block!important;visibility:visible!important}
-body.non-cockpit body.hood-view #hood{display:block!important;visibility:visible!important;bottom:31%;height:8%;background:linear-gradient(180deg,transparent,rgba(20,22,25,.22) 22%,#25282a 100%);border-radius:48% 48% 0 0;clip-path:polygon(8% 100%,18% 35%,34% 8%,66% 8%,82% 35%,92% 100%)}
 #vig{position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.42))}
 body.rally #dash{background:linear-gradient(180deg,#303030,#161616);border-top:4px solid #e8641a;border-radius:0;box-shadow:none}
 body.rally #dash:before{content:"";position:absolute;left:0;right:0;top:-26%;height:8px;background:linear-gradient(#b8b8b8,#555);box-shadow:0 2px 5px #000}
@@ -622,57 +620,207 @@ body.roadster #dash-fx::after{background:
 }
 #dash-inner::before { display: none !important; }
 
-/* Sculpted 3D-shaded hood peeking gently above the dash with body-roll & headlight bounce */
-#hood {
+/* ===== HOOD VIEW — clean painted bonnet (redesign) =====
+   Camera sits on the hood: show body-coloured paint, not the cockpit.
+   Hide the wheel / big dash chrome so the road + bonnet read clearly. */
+body.hood-view #hood {
   display: block !important;
+  visibility: visible !important;
   position: absolute !important;
-  left: 6% !important;
-  right: 6% !important;
-  bottom: 24% !important;
-  height: 9.5% !important;
-  z-index: 4 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 34% !important;
+  z-index: 7 !important;
   pointer-events: none;
-  border-radius: 48% 48% 0 0 / 70% 70% 0 0;
-  background:
-    radial-gradient(ellipse 38% 65% at 50% 18%, rgba(255, 255, 255, calc(0.06 + var(--sun, 1) * 0.14 + var(--headlight, 0) * 0.28)), transparent 72%),
-    radial-gradient(ellipse 46% 55% at 50% 12%, rgba(255, 65, 45, calc(var(--brake-bounce, 0) * 0.34)), transparent 75%),
-    linear-gradient(180deg, rgba(38, 44, 52, 0.88) 0%, rgba(16, 19, 23, 0.96) 55%, #0a0c0e 100%);
-  box-shadow:
-    inset 0 2px 3px var(--sky-rim),
-    inset 0 10px 22px rgba(255, 255, 255, calc(0.03 + var(--sun, 1) * 0.06)),
-    0 -3px 14px rgba(0, 0, 0, 0.45);
+  overflow: visible;
   transform-origin: 50% 100%;
-  will-change: transform;
 }
-#hood::before {
-  /* Subtle twin power-dome creases on the hood */
+/* Hide interior clutter — this is a hood cam, not cockpit */
+body.hood-view #dash #wheel,
+body.hood-view #dash .gauge,
+body.hood-view #dash #center-stack,
+body.hood-view #dash #boost-bar,
+body.hood-view #dash #boost-label,
+body.hood-view #dash .mini-gauge,
+body.hood-view #dash #dash-shell,
+body.hood-view #dash #dash-fx,
+body.hood-view #dash #vent,
+body.hood-view #dash .dash-card {
+  display: none !important;
+  visibility: hidden !important;
+}
+body.hood-view #dash {
+  height: 14% !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(8,10,12,0.55) 40%, rgba(6,8,10,0.92) 100%) !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  z-index: 8 !important;
+}
+body.hood-view #dash-inner {
+  max-width: 100% !important;
+}
+body.hood-view #speed-readout {
+  top: 28% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-size: clamp(20px, 3.2vw, 32px) !important;
+  background: rgba(0,0,0,0.45) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+body.hood-view #dash-status,
+body.hood-view #dash-caption {
+  display: none !important;
+}
+
+/* The bonnet surface itself */
+body.hood-view #hood .hood-surface {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  /* Soft trapezoid: wider near the camera (bottom), narrower toward the windshield */
+  clip-path: polygon(0% 100%, 4% 55%, 12% 22%, 28% 4%, 72% 4%, 88% 22%, 96% 55%, 100% 100%);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 -12px 28px rgba(0,0,0,0.55));
+}
+body.hood-view #hood .hood-paint {
+  position: absolute;
+  inset: 0;
+  background:
+    /* top sky reflection */
+    linear-gradient(180deg,
+      rgba(255,255,255,calc(0.18 + var(--sun,1)*0.2)) 0%,
+      rgba(255,255,255,0.04) 16%,
+      transparent 32%),
+    /* side falloff */
+    linear-gradient(90deg,
+      rgba(0,0,0,0.45) 0%,
+      transparent 18%,
+      transparent 82%,
+      rgba(0,0,0,0.45) 100%),
+    /* depth toward front edge */
+    linear-gradient(180deg,
+      transparent 50%,
+      rgba(0,0,0,0.25) 85%,
+      rgba(0,0,0,0.5) 100%),
+    var(--hood-paint, linear-gradient(180deg, #3a4a58 0%, #1a242e 60%, #0c1218 100%));
+  border-radius: 40% 40% 0 0 / 18% 18% 0 0;
+}
+/* Soft specular streak */
+body.hood-view #hood .hood-shine {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 6%;
+  height: 28%;
+  border-radius: 50% 50% 40% 40% / 100% 100% 40% 40%;
+  background: radial-gradient(ellipse at 50% 30%,
+    rgba(255,255,255,calc(0.2 + var(--sun,1)*0.25)),
+    transparent 68%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+/* Twin character lines */
+body.hood-view #hood .hood-line {
+  position: absolute;
+  top: 12%;
+  bottom: 18%;
+  width: 2px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.22),
+    rgba(255,255,255,0.05) 40%,
+    rgba(0,0,0,0.35));
+  border-radius: 1px;
+  opacity: 0.75;
+}
+body.hood-view #hood .hood-line-l { left: 31%; transform: rotate(1.5deg); }
+body.hood-view #hood .hood-line-r { right: 31%; transform: rotate(-1.5deg); }
+/* Optional scoop (muscle) */
+body.hood-view #hood .hood-scoop {
+  display: none;
+  position: absolute;
+  left: 36%;
+  right: 36%;
+  top: 24%;
+  height: 26%;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, #0a0c0e, #1a1e22 40%, #0e1012);
+  box-shadow:
+    inset 0 6px 14px rgba(0,0,0,0.8),
+    0 1px 0 rgba(255,255,255,0.08);
+  border: 1px solid rgba(0,0,0,0.5);
+}
+body.hood-view #hood .hood-scoop::after {
   content: "";
   position: absolute;
-  inset: 12% 24% 0 24%;
-  border-left: 1px solid rgba(255, 255, 255, calc(0.05 + var(--sun, 1) * 0.08));
-  border-right: 1px solid rgba(255, 255, 255, calc(0.05 + var(--sun, 1) * 0.08));
-  border-radius: 36% 36% 0 0 / 80% 80% 0 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 65%);
+  left: 10%; right: 10%; top: 20%; height: 30%;
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, #1a1e24 0 5px, #080a0c 5px 8px);
+  opacity: 0.9;
 }
-body.rally #hood {
+/* Side vents (rally / endurance) */
+body.hood-view #hood .hood-vent-l,
+body.hood-view #hood .hood-vent-r {
+  display: none;
+  position: absolute;
+  top: 36%;
+  width: 11%;
+  height: 16%;
+  border-radius: 4px;
   background:
-    radial-gradient(ellipse 45% 65% at 50% 18%, rgba(255, 190, 120, calc(0.06 + var(--headlight, 0) * 0.3)), transparent 72%),
-    linear-gradient(180deg, #3c3a38 0%, #1c1b1a 60%, #0d0c0b 100%);
+    repeating-linear-gradient(180deg, #1a1e24 0 3px, #080a0c 3px 6px);
+  box-shadow: inset 0 0 8px #000, 0 1px 0 rgba(255,255,255,0.06);
+  border: 1px solid rgba(0,0,0,0.45);
+  opacity: 0.9;
 }
-body.roadster #hood {
-  border-radius: 50% 50% 0 0 / 85% 85% 0 0;
-  background:
-    radial-gradient(ellipse 32% 75% at 50% 14%, rgba(180, 255, 245, calc(0.08 + var(--sun, 1) * 0.16)), transparent 70%),
-    linear-gradient(180deg, #27484d 0%, #112226 62%, #081012 100%);
+body.hood-view #hood .hood-vent-l { left: 8%; }
+body.hood-view #hood .hood-vent-r { right: 8%; }
+/* Cowl strip at the windshield base (top of hood toward the cabin) */
+body.hood-view #hood .hood-cowl {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 0;
+  height: 11%;
+  border-radius: 40% 40% 0 0 / 100% 100% 0 0;
+  background: linear-gradient(180deg, #0a0c0e 0%, #161a1e 70%, transparent);
+  box-shadow: inset 0 -3px 8px rgba(0,0,0,0.4);
 }
-body.endurance #hood {
-  left: 10% !important;
-  right: 10% !important;
-  height: 11% !important;
-  border-radius: 42% 42% 0 0 / 90% 90% 0 0;
-  background:
-    radial-gradient(ellipse 30% 70% at 50% 15%, rgba(255, 225, 165, calc(0.07 + var(--sun, 1) * 0.15)), transparent 70%),
-    linear-gradient(180deg, #3a3126 0%, #181410 60%, #0a0807 100%);
+
+/* Per-car paint */
+body:not(.rally):not(.roadster):not(.endurance):not(.muscle).hood-view #hood {
+  --hood-paint: linear-gradient(165deg, #4a6278 0%, #2a3c4c 45%, #152028 100%);
+}
+body.rally.hood-view #hood {
+  --hood-paint: linear-gradient(165deg, #5a5550 0%, #3a3632 45%, #1c1a18 100%);
+}
+body.rally.hood-view #hood .hood-vent-l,
+body.rally.hood-view #hood .hood-vent-r { display: block; }
+body.roadster.hood-view #hood {
+  --hood-paint: linear-gradient(165deg, #3a7a76 0%, #1e4a4c 45%, #0e2428 100%);
+}
+body.roadster.hood-view #hood .hood-surface {
+  clip-path: polygon(2% 100%, 8% 50%, 18% 18%, 32% 3%, 68% 3%, 82% 18%, 92% 50%, 98% 100%);
+}
+body.endurance.hood-view #hood {
+  --hood-paint: linear-gradient(165deg, #6a5840 0%, #403428 45%, #1c1610 100%);
+}
+body.endurance.hood-view #hood .hood-vent-l,
+body.endurance.hood-view #hood .hood-vent-r { display: block; }
+body.muscle.hood-view #hood {
+  --hood-paint: linear-gradient(165deg, #8a3a30 0%, #5a241c 40%, #2a1210 100%);
+}
+body.muscle.hood-view #hood .hood-scoop { display: block; }
+body.muscle.hood-view #hood .hood-line-l { left: 26%; }
+body.muscle.hood-view #hood .hood-line-r { right: 26%; }
+
+@media (max-width: 640px) {
+  body.hood-view #hood { height: 30% !important; }
 }
 
 /* Continuous Sculpted SVG Dash Shell */
@@ -953,7 +1101,7 @@ body.endurance #yoke-hud { display: block; }
 #console-telemetry b { color: #fff; }
 @media (max-width: 640px) {
   #vent { display: none !important; }
-  #hood { bottom: 26% !important; height: 7% !important; }
+  body.hood-view #hood { height: 30% !important; }
 }
 
 
@@ -964,6 +1112,12 @@ body.endurance #yoke-hud { display: block; }
 }
 
 #fx-overlay{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:screen}
+
+/* Hood view removed — never show the bonnet overlay */
+#hood, body.hood-view #hood { display:none!important; visibility:hidden!important; pointer-events:none!important; }
+body.hood-view #dash #wheel,
+body.hood-view #dash .gauge { display:revert; }
+
 </style>
 <style id="phase-4-windscreen">
 
@@ -992,8 +1146,8 @@ body.endurance #yoke-hud { display: block; }
 </style>
 
 <style id="road-view-cockpit-fix">
-  /* Keep the bonnet out of cockpit view, but restore it as a proper foreground element in hood view. */
-  body:not(.hood-view) #hood, body:not(.hood-view) #hood::before { display: none !important; visibility: hidden !important; }
+  /* Bonnet overlay only in hood camera; cockpit stays clear. */
+  body:not(.hood-view) #hood { display: none !important; visibility: hidden !important; }
   body.hood-view #hood { display: block !important; visibility: visible !important; }
   body.hood-view #dash { display: block !important; visibility: visible !important; }
 </style>
@@ -1003,6 +1157,40 @@ body.endurance #yoke-hud { display: block; }
   #mirror, #mirror-label { display: none !important; visibility: hidden !important; }
 }
 </style>
+
+<style id="windshield-crack-css">
+#windshield-crack {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9;               /* above the dash, below the CRASHED panel so the text stays readable */
+  pointer-events: none;
+  opacity: 0;
+}
+#windshield-crack.on {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+#windshield-crack canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Light dim so the glass reads, but KEEP the cockpit view */
+body.crashed #crash {
+  background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.5) 100%) !important;
+  backdrop-filter: none !important;
+}
+body.crashed #dash,
+body.crashed #glass-reflection {
+  display: block !important;
+  visibility: visible !important;
+}
+</style>
+
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -1010,6 +1198,7 @@ body.endurance #yoke-hud { display: block; }
 <div id="cinematic-fx"></div>
 <div id="speed-glow"></div>
 <div id="glass-reflection" aria-hidden="true"></div>
+<div id="windshield-crack" aria-hidden="true"><canvas id="wc-cv"></canvas></div>
 <button id="mode-btn">DAY</button>
 <button id="pause-btn" aria-label="Pause game">PAUSE</button>
 <button id="car-btn">CAR</button>
@@ -1025,7 +1214,18 @@ body.endurance #yoke-hud { display: block; }
 <div id="combo"></div>
 <div id="minimap"><canvas id="mc" width="90" height="90"></canvas></div>
 <div id="mirror"><canvas id="mrc" width="380" height="104"></canvas><div id="mirror-label">REAR VIEW</div></div>
-<div id="hood"></div>
+<div id="hood" aria-hidden="true">
+  <div class="hood-surface">
+    <div class="hood-paint"></div>
+    <div class="hood-shine"></div>
+    <div class="hood-line hood-line-l"></div>
+    <div class="hood-line hood-line-r"></div>
+    <div class="hood-scoop"></div>
+    <div class="hood-vent-l"></div>
+    <div class="hood-vent-r"></div>
+    <div class="hood-cowl"></div>
+  </div>
+</div>
 <div id="lines"></div>
 <div id="vig"></div>
 <div id="dash">
@@ -2049,7 +2249,7 @@ let rainOn = false, rainMesh = null, rainSplash = null, rainDropMeta = null, rai
 let cinematicFx = null, speedGlow = null;
 let cameraView = 0, playerCarModel = null;
 let cameraLookSmoothed = null;
-const CAMERA_VIEW_NAMES = ['COCKPIT', 'HOOD', 'BUMPER', 'CHASE', 'CINEMATIC'];
+const CAMERA_VIEW_NAMES = ['COCKPIT', 'BUMPER', 'CHASE', 'CINEMATIC'];
 
 let engOsc2 = null, engOsc3 = null, engFilter = null, engFilter2 = null, engNoiseGain = null, engNoiseFilter = null;
 let masterGain = null, windGain = null, windFilter = null, rainGain = null, boostGain = null;
@@ -2407,11 +2607,11 @@ function chime(f) {
 const CARS = [
   // acc is peak longitudinal acceleration in m/s² before the speed-dependent torque and drag curves.
   // Top-speed limits remain vehicle-specific; this pass improves launch and mid-range response only.
-  { n: 'GT COUPE', max: 83, boost: 94, acc: 13.6, brk: -14.5, st: 55, fr: 11.0, cf: 0.19, lat: 13.4, sp: 8.2, torquePeak: 0.38, torqueWidth: 0.42, heatRate: 0.55, coolRate: 0.35 },
-  { n: 'RALLY', max: 62, boost: 70, acc: 15.0, brk: -15.5, st: 64, fr: 13.2, cf: 0.14, lat: 15.2, sp: 10.5, torquePeak: 0.22, torqueWidth: 0.36, heatRate: 0.7, coolRate: 0.4 },
-  { n: 'ROADSTER', max: 72, boost: 82, acc: 12.4, brk: -13.5, st: 50, fr: 8.8, cf: 0.11, lat: 11.8, sp: 7.2, torquePeak: 0.55, torqueWidth: 0.38, heatRate: 0.6, coolRate: 0.32 },
-  { n: 'ENDURANCE', max: 92, boost: 103, acc: 14.2, brk: -16.0, st: 42, fr: 9.4, cf: 0.09, lat: 10.8, sp: 6.8, torquePeak: 0.45, torqueWidth: 0.55, heatRate: 0.4, coolRate: 0.45 },
-  { n: 'MUSCLE GT', max: 78, boost: 88, acc: 15.4, brk: -14.0, st: 45, fr: 9.8, cf: 0.17, lat: 12.6, sp: 7.2, torquePeak: 0.18, torqueWidth: 0.32, heatRate: 0.75, coolRate: 0.28 }
+  { n: 'GT COUPE', max: 83, boost: 94, acc: 18.5, brk: -14.5, st: 55, fr: 11.0, cf: 0.19, lat: 13.4, sp: 8.2, torquePeak: 0.32, torqueWidth: 0.48, heatRate: 0.55, coolRate: 0.35 },
+  { n: 'RALLY', max: 62, boost: 70, acc: 20.0, brk: -15.5, st: 64, fr: 13.2, cf: 0.14, lat: 15.2, sp: 10.5, torquePeak: 0.18, torqueWidth: 0.40, heatRate: 0.7, coolRate: 0.4 },
+  { n: 'ROADSTER', max: 72, boost: 82, acc: 17.0, brk: -13.5, st: 50, fr: 8.8, cf: 0.11, lat: 11.8, sp: 7.2, torquePeak: 0.48, torqueWidth: 0.42, heatRate: 0.6, coolRate: 0.32 },
+  { n: 'ENDURANCE', max: 92, boost: 103, acc: 18.8, brk: -16.0, st: 42, fr: 9.4, cf: 0.09, lat: 10.8, sp: 6.8, torquePeak: 0.40, torqueWidth: 0.58, heatRate: 0.4, coolRate: 0.45 },
+  { n: 'MUSCLE GT', max: 78, boost: 88, acc: 21.0, brk: -14.0, st: 45, fr: 9.8, cf: 0.17, lat: 12.6, sp: 7.2, torquePeak: 0.14, torqueWidth: 0.36, heatRate: 0.75, coolRate: 0.28 }
 ];
 const TRACKS = [
   'GRAND LOOP',
@@ -2559,7 +2759,7 @@ function applyCar() {
   document.body.classList.toggle('endurance', carId === 3);
   document.body.classList.toggle('muscle', carId === 4);
   // Keep the selected camera when changing cars; hood view is supported by every vehicle.
-  document.body.classList.toggle('hood-view', cameraView === 1);
+  document.body.classList.remove('hood-view');
   if (playerCarModel) ensurePlayerCarModel();
   buildWheelSVG(carId);
   loadBest();
@@ -4743,8 +4943,8 @@ function applyDayNight() {
   // unmistakable running lamps from dusk onward, with a readable rear plate at night.
   const tailGlow = [0.035, 0.025, 0.02, 0.02, 0.22, 0.9, 1.35][timeMode];
   const plateGlow = [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode];
-  if (_cm) { _cm.tail.emissiveIntensity = tailGlow; _cm.plateLamp.emissiveIntensity = plateGlow; _cm.plate.emissiveIntensity = plateGlow * 0.5; }
-  if (_mobMats) { _mobMats.tl.emissiveIntensity = Math.max(0.18, tailGlow); _mobMats.plateLamp.emissiveIntensity = plateGlow; _mobMats.plate.emissiveIntensity = plateGlow * 0.5; }
+  if (_cm) { _cm.tail.emissiveIntensity = tailGlow; if (_cm.plateLamp) _cm.plateLamp.emissiveIntensity = plateGlow; }
+  if (_mobMats) { _mobMats.tl.emissiveIntensity = Math.max(0.18, tailGlow); if (_mobMats.plateLamp) _mobMats.plateLamp.emissiveIntensity = plateGlow; }
   const visual = TRACK_VISUALS[trackId] || TRACK_VISUALS[0];
   scene.background = new THREE.Color(m.bg);
   scene.fog = new THREE.Fog(new THREE.Color(m.fog).lerp(new THREE.Color(visual.fog), 0.28), m.fogNear, m.fogFar);
@@ -5599,7 +5799,7 @@ function getMobileCarMats() {
     white: std(0xeeeeee, 0.5, 0.1),
     cargo: std(0xdcdcdc, 0.6, 0.1),
     door: std(0xbfc4c8, 0.52, 0.12),
-    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), emissive: 0xffffff, emissiveMap: licensePlateTexture(), emissiveIntensity: [0, 0, 0, 0, 0.09, 0.36, 0.52][timeMode], roughness: 0.62, metalness: 0, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    plate: new THREE.MeshBasicMaterial({ color: 0xffffff, map: licensePlateTexture(), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     hl: new THREE.MeshStandardMaterial({ color: 0xfff5c0, emissive: 0xffe080, emissiveIntensity: 0.8, roughness: 0.3 }),
     tl: new THREE.MeshStandardMaterial({ color: 0xff2020, emissive: 0xaa0000, emissiveIntensity: [0.18, 0.18, 0.18, 0.18, 0.28, 0.9, 1.35][timeMode], roughness: 0.3 }),
@@ -5614,36 +5814,107 @@ function getMobileCarMats() {
 // geometry with their own paint, so 22 cars cost a few dozen draw calls instead of a couple of thousand.
 const _plateTextures = new Map();
 function licensePlateTexture(code) {
-  code = code || '7K3 91A';
+  code = (code || 'ABC 1234').toUpperCase();
   if (_plateTextures.has(code)) return _plateTextures.get(code);
-  // High-contrast plate at 1024x256: the number fills ~84% of the width and ~55% of the height so it stays readable at following distance.
-  // Small header/footer text was dropped or lightened because it just turned into grey noise in the mip chain.
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
+  // High-res plate tuned for in-game readability: huge dark serial, simple BC frame.
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
   const x = c.getContext('2d');
-  const bg = x.createLinearGradient(0, 0, 0, 256);
-  bg.addColorStop(0, '#ffffff'); bg.addColorStop(1, '#e6eef0');
-  x.fillStyle = bg; x.fillRect(0, 0, 1024, 256);
-  x.strokeStyle = '#10283a'; x.lineWidth = 14; x.strokeRect(10, 10, 1004, 236);
-  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
-  x.fillStyle = '#31566e'; x.font = 'bold 46px Arial'; x.fillText('BRITISH COLUMBIA', 512, 66);
-  x.fillStyle = '#050d14'; x.font = '900 190px Arial'; x.fillText(code, 512, 216, 900);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  // Bright white base
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 2048, 1024);
+  // Thin outer border
+  x.strokeStyle = '#1a2a3a'; x.lineWidth = 18; x.strokeRect(12, 12, 2024, 1000);
+  x.strokeStyle = '#8a9aaa'; x.lineWidth = 4; x.strokeRect(28, 28, 1992, 968);
+
+  // Top green mountain band (compact so serial owns the middle)
+  x.fillStyle = '#0a7a6a';
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(2048, 0); x.lineTo(2048, 200); x.lineTo(0, 200); x.closePath(); x.fill();
+  x.fillStyle = '#12a090';
+  x.beginPath();
+  x.moveTo(0, 200);
+  const peaks = [0,200, 120,110, 280,170, 420,90, 600,160, 780,80, 980,150, 1180,70, 1380,145, 1580,85, 1780,155, 1940,100, 2048,180];
+  for (let i = 0; i < peaks.length; i += 2) x.lineTo(peaks[i], peaks[i+1]);
+  x.lineTo(2048, 200); x.closePath(); x.fill();
+  // BEAUTIFUL
+  x.fillStyle = '#0a3a7a';
+  x.font = 'bold 72px Arial, Helvetica, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('BEAUTIFUL', 1024, 95);
+
+  // MAIN SERIAL — maximum contrast, fills the plate
+  x.fillStyle = '#0a1a4a';
+  x.font = '900 300px Arial Black, Impact, Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  // slight shadow for pop
+  x.fillStyle = 'rgba(0,0,0,0.18)';
+  x.fillText(code, 1030, 520);
+  x.fillStyle = '#0a1a4a';
+  x.fillText(code, 1024, 510);
+
+  // Bottom blue band
+  x.fillStyle = '#0a3a8a';
+  x.beginPath();
+  x.moveTo(0, 780);
+  for (let i = 0; i <= 20; i++) {
+    const wx = i * (2048 / 20);
+    x.lineTo(wx, 780 + Math.sin(i * 0.85) * 18);
+  }
+  x.lineTo(2048, 1024); x.lineTo(0, 1024); x.closePath(); x.fill();
+  // Dogwood
+  const fx = 140, fy = 910;
+  x.fillStyle = '#ffffff';
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 - Math.PI / 4;
+    x.beginPath();
+    x.ellipse(fx + Math.cos(a) * 28, fy + Math.sin(a) * 28, 32, 18, a, 0, Math.PI * 2);
+    x.fill();
+  }
+  x.fillStyle = '#f0c040'; x.beginPath(); x.arc(fx, fy, 14, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#0a3a8a'; x.beginPath(); x.arc(fx, fy, 6, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#ffffff';
+  x.font = 'bold 64px Arial, Helvetica, sans-serif';
+  x.textAlign = 'left'; x.textBaseline = 'middle';
+  x.fillText('BRITISH', 240, 910);
+  x.textAlign = 'right';
+  x.fillText('COLUMBIA', 1920, 910);
+
+  // Screws
+  for (const [sx, sy] of [[70, 55], [1978, 55], [70, 970], [1978, 970]]) {
+    x.fillStyle = '#c0c8d0'; x.beginPath(); x.arc(sx, sy, 16, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#4a5058'; x.beginPath(); x.arc(sx, sy, 6, 0, Math.PI * 2); x.fill();
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = (typeof renderer !== 'undefined' && renderer) ? Math.min(16, renderer.capabilities.getMaxAnisotropy()) : 8;
-  if (_plateTextures.size > 64) { const first=_plateTextures.keys().next().value; const old=_plateTextures.get(first); if(old) old.dispose(); _plateTextures.delete(first); }
-  _plateTextures.set(code,t); return t;
+  // Mipmaps on, but sharper filter so serial stays legible at following distance in cockpit
+  t.generateMipmaps = true;
+  t.minFilter = THREE.LinearMipmapNearestFilter;
+  t.magFilter = THREE.LinearFilter;
+  if (_plateTextures.size > 80) {
+    const first = _plateTextures.keys().next().value;
+    const old = _plateTextures.get(first);
+    if (old) old.dispose();
+    _plateTextures.delete(first);
+  }
+  _plateTextures.set(code, t);
+  return t;
 }
+
 function addCarPlates(b, front, rear) {
   const addOne = (spec, isRear) => {
     if (!spec) return;
     const { w, h, y, z } = spec;
-    const faceZ = z + (isRear ? -0.018 : 0.018);
-    b.add('dark', gBox(w + 0.045, h + 0.035, 0.018, 0, y, z), 3);
+    // Sit the plate well clear of bumper/body so it never z-fights or gets buried.
+    const faceZ = z + (isRear ? -0.04 : 0.04);
+    const mountZ = z + (isRear ? -0.02 : 0.02);
+    b.add('dark', gBox(w + 0.05, h + 0.04, 0.022, 0, y, mountZ), 3);
     const plate = new THREE.PlaneGeometry(w, h);
     if (isRear) plate.rotateY(Math.PI);
     plate.translate(0, y, faceZ);
     b.add('plate', plate, 3);
     if (isRear) {
-      b.add('plateLamp', gBox(Math.max(0.12, w * 0.22), 0.018, 0.012, 0, y + h * 0.64, z - 0.022), 3);
+      b.add('plateLamp', gBox(Math.max(0.14, w * 0.24), 0.02, 0.014, 0, y + h * 0.62, z - 0.04), 3);
     }
   };
   addOne(front, false); addOne(rear, true);
@@ -5661,14 +5932,14 @@ function carMats() {
       side: THREE.DoubleSide, depthWrite: false
     }),
     dark: S(0x0e1014, 0.42, 0.35, { envMapIntensity: 0.6 }),
-    chrome: S(0xd8e0e6, 0.08, 0.98, { envMapIntensity: 2.2 }),
-    rim: S(0xb8c0c8, 0.22, 0.88, { envMapIntensity: 1.5 }),
+    chrome: S(0xe8eef4, 0.06, 1.0, { envMapIntensity: 2.8 }),
+    rim: S(0xc8d0d8, 0.18, 0.92, { envMapIntensity: 1.9 }),
     rotor: S(0x808890, 0.3, 0.88, { side: THREE.DoubleSide, envMapIntensity: 1.2 }),
     tire: S(0x0a0a0c, 0.88, 0.02, { side: THREE.DoubleSide }),
     caliper: S(0xc42822, 0.35, 0.45, { envMapIntensity: 0.5 }),
     head: new THREE.MeshPhysicalMaterial({ color: 0xfff7e8, emissive: 0xffe2a8, emissiveIntensity: 0.72, roughness: 0.12, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.65 }),
     tail: new THREE.MeshPhysicalMaterial({ color: 0xff3025, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.13, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.05 }),
-    plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: licensePlateTexture(), emissive: 0xffffff, emissiveMap: licensePlateTexture(), emissiveIntensity: [0, 0, 0, 0, 0.09, 0.36, 0.52][timeMode], roughness: 0.62, metalness: 0, side: THREE.DoubleSide, envMapIntensity: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    plate: new THREE.MeshBasicMaterial({ color: 0xffffff, map: licensePlateTexture(), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     white: S(0xe6eaec, 0.5, 0.15),
     shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6 })
@@ -5677,15 +5948,15 @@ function carMats() {
 }
 const _paintMats = {};
 function carPaint(color) {
-  // Cache by color; small roughness/metalness jitter is applied per-instance via a cloned material when needed.
+  // Richer automotive clearcoat so bodies read more solid and reflective in cockpit/chase.
   return _paintMats[color] || (_paintMats[color] = isMobile
-    ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.24, metalness: 0.42, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 1.65, reflectivity: 0.78 })
+    ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.20, metalness: 0.48, clearcoat: 0.92, clearcoatRoughness: 0.10, envMapIntensity: 1.85, reflectivity: 0.85 })
     : new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.19, metalness: 0.52,
-        clearcoat: 1.0, clearcoatRoughness: 0.075,
-        envMapIntensity: 2.25, reflectivity: 0.96,
-        specularIntensity: 0.9,
-        sheen: 0.18, sheenRoughness: 0.18, sheenColor: new THREE.Color(0xffffff)
+        color, roughness: 0.14, metalness: 0.58,
+        clearcoat: 1.0, clearcoatRoughness: 0.05,
+        envMapIntensity: 2.55, reflectivity: 1.0,
+        specularIntensity: 1.05,
+        sheen: 0.22, sheenRoughness: 0.14, sheenColor: new THREE.Color(0xffffff)
       }));
 }
 function carPaintVariant(color) {
@@ -5906,8 +6177,7 @@ function buildPassengerCar(b, sp) {
     b.add('tail', gBox(0.34, 0.02, 0.02, s * 0.6, 0.755, rz - 0.035), 1);
     b.add('white', gBox(0.1, 0.04, 0.02, s * 0.3, 0.54, rz - 0.03), 1);
   });
-  b.add('white', gBox(0.5, 0.13, 0.02, 0, 0.44, fz + 0.06), 1);
-  b.add('white', gBox(0.5, 0.13, 0.02, 0, 0.52, rz - 0.035), 1);
+  // real license plates added via addCarPlates — no blank blockers
   b.add('dark', gBox(1.72, 0.17, 0.2, 0, 0.36, rz + 0.05), 3);
   b.add('dark', gBox(1.3, 0.1, 0.18, 0, 0.27, rz + 0.04), 1); // diffuser
   b.add('chrome', gBox(1.3, 0.02, 0.02, 0, 0.78, rz - 0.04), 1);
@@ -5954,8 +6224,7 @@ function buildBusCar(b) {
   b.add('dark', gBox(2.45, 0.28, 0.3, 0, 0.5, -4.72), 3);
   b.add('dark', gBox(1.3, 0.4, 0.05, 0, 0.95, 4.77), 1);
   for (let j = 0; j < 4; j++) b.add('chrome', gBox(1.2, 0.02, 0.02, 0, 0.82 + j * 0.09, 4.8), 1);
-  b.add('white', gBox(0.55, 0.14, 0.02, 0, 0.5, 4.88), 1);
-  b.add('white', gBox(0.55, 0.14, 0.02, 0, 0.5, -4.88), 1);
+  // plates via addCarPlates
   b.add('white', gBox(2.43, 0.1, 9.52, 0, 1.55, 0), 1);                                   // body side stripe
   sd.forEach(s => {
     b.add('head', gBox(0.4, 0.2, 0.05, s * 0.85, 0.95, 4.78), 3);
@@ -6070,7 +6339,7 @@ function buildGT3Car(b) {
     b.add('tail',gBox(.48,.075,.035,s*.62,.68,-2.105),3);
     b.add('tail',gBox(.35,.014,.018,s*.62,.635,-2.125),1);
   });
-  b.add('white',gBox(.46,.10,.025,0,.43,2.12),1);
+  // plate lives on the textured plane from addCarPlates
   b.add('dark',gBox(1.58,.045,.22,0,.245,2.10),3);
   // Rear diffuser and exhausts.
   b.add('dark',gBox(1.42,.13,.18,0,.30,-2.04),3);
@@ -6117,20 +6386,30 @@ const _carTpl = {}; // rebuilt each page load
 // traffic and selectable player cars. Geometry is baked into cached templates once.
 function addVehicleSignature(b, key) {
   const trim = 'dark', metal = 'chrome';
+  // Shared: thin window beltline chrome + door handles read from cockpit distance
+  if (key !== 'bus' && key !== 'truck') {
+    for (const s of [-1, 1]) {
+      b.add(metal, gBox(0.012, 0.016, 1.55, s * 0.93, 0.78, -0.05), 1);
+      b.add(metal, gBox(0.016, 0.028, 0.12, s * 0.935, 0.82, -0.35), 1);
+      b.add(metal, gBox(0.016, 0.028, 0.12, s * 0.935, 0.82, 0.55), 1);
+    }
+  }
   if (key === 'sports') {
-    // Deep, layered nose intake and slim outer canards.
     b.add(trim, gBox(1.02,.12,.055,0,.505,2.13), 3);
     for (const x of [-.72,.72]) {
       b.add(trim, gBox(.24,.12,.06,x,.49,2.105), 3);
       b.add('head', gBox(.25,.022,.025,x,.70,2.115), 1);
     }
-    // Rear deck vents and twin recessed exhaust surrounds.
     for (const x of [-.34,.34]) {
       b.add(trim, gBox(.24,.018,.22,x,.82,-1.62), 1);
       b.add(metal, gCylZ(.075,.075,.035,16,x,.39,-2.15), 3);
     }
+    // Side skirts + mirror stalks
+    for (const s of [-1,1]) {
+      b.add(trim, gBox(.06,.08,1.9,s*.94,.32,-.1), 3);
+      b.add(trim, gBox(.14,.08,.18,s*.98,.92,.42), 1);
+    }
   } else if (key === 'muscle') {
-    // Wide grille, twin hood power creases and classic paired lamp signatures.
     b.add(trim, gBox(1.18,.19,.055,0,.54,2.145), 3);
     for (const x of [-.78,.78]) {
       b.add('head', gBox(.27,.10,.045,x,.68,2.12), 3);
@@ -6141,31 +6420,38 @@ function addVehicleSignature(b, key) {
       b.add(trim, gBox(.035,.012,.30,x,1.015,1.40), 1);
     }
     b.add(trim, gBox(1.28,.075,.16,0,.31,-2.08), 3);
+    // Side chrome spear
+    for (const s of [-1,1]) b.add(metal, gBox(.02,.025,1.8,s*.94,.55,0), 1);
   } else if (key === 'hatch') {
-    // Compact hatchback rear glass surround, roof spoiler end plates and lower diffuser.
     b.add(trim, gBox(1.34,.045,.16,0,1.35,-1.78), 3);
     for (const x of [-.59,.59]) b.add(trim, gBox(.045,.16,.12,x,1.27,-1.78), 3);
     b.add(trim, gBox(1.12,.12,.16,0,.30,-2.08), 3);
     for (const x of [-.46,-.23,.23,.46]) b.add(trim, gBox(.025,.10,.20,x,.29,-2.10), 1);
+    // Front lip
+    b.add(trim, gBox(1.7,.04,.22,0,.26,2.12), 3);
   } else if (key === 'sedan') {
-    // Subtle executive grille surround, chrome window beltline and separated rear lamps.
     b.add(metal, gBox(.94,.025,.025,0,.70,2.105), 1);
     b.add(trim, gBox(.82,.16,.045,0,.53,2.10), 3);
     for (let i=0;i<5;i++) b.add(metal, gBox(.72,.012,.012,0,.47+i*.027,2.13), 1);
     b.add(trim, gBox(1.22,.075,.13,0,.32,-2.08), 3);
     for (const x of [-.72,.72]) b.add('tail', gBox(.30,.07,.035,x,.72,-2.105), 3);
+    // Chrome window surround accents
+    b.add(metal, gBox(1.2,.012,.012,0,1.05,0.15), 1);
   } else if (key === 'suv') {
-    // Protective lower cladding, roof rail feet and broad lower grille.
     b.add(trim, gBox(1.25,.19,.055,0,.49,2.10), 3);
     for (const x of [-.82,.82]) {
       b.add(trim, gBox(.07,.18,1.95,x,.36,0), 3);
       b.add(metal, gBox(.06,.045,.10,x,.99,-.95), 1);
+      b.add(metal, gBox(.06,.045,.10,x,.99,.85), 1);
     }
+    // Roof rails
+    for (const x of [-.55,.55]) b.add(metal, gBox(.04,.035,1.6,x,1.42,-.1), 1);
   } else if (key === 'van') {
-    // Practical van fascia and inset rear step, avoiding oversized decorative aero.
     b.add(trim, gBox(1.28,.20,.05,0,.53,2.08), 3);
     b.add(metal, gBox(.82,.018,.018,0,.45,2.115), 1);
     b.add(trim, gBox(1.55,.12,.16,0,.32,-2.08), 3);
+    // Side sliding-door rail hint
+    for (const s of [-1,1]) b.add(metal, gBox(.015,.02,1.2,s*.96,.95,-.2), 1);
   }
 }
 
@@ -6174,13 +6460,14 @@ function carTemplate(key) {
   const b = carBuilder();
   if (key === 'bus') {
     buildBusCar(b);
-    addCarPlates(b, { w: .66, h: .15, y: .70, z: 4.93 }, { w: .66, h: .15, y: .70, z: -4.93 });
+    // Slightly larger plates so the serial stays readable when you get close.
+    addCarPlates(b, { w: .62, h: .16, y: .68, z: 4.95 }, { w: .62, h: .16, y: .68, z: -4.95 });
   } else if (key === 'truck') {
     buildTruckCar(b);
-    addCarPlates(b, { w: .62, h: .14, y: .70, z: 4.13 }, { w: .68, h: .16, y: 1.30, z: -4.00 });
+    addCarPlates(b, { w: .58, h: .15, y: .68, z: 4.15 }, { w: .64, h: .16, y: 1.28, z: -4.02 });
   } else if (key === 'sports') {
     buildGT3Car(b);
-    addCarPlates(b, { w: .48, h: .105, y: .43, z: 2.18 }, { w: .52, h: .12, y: .46, z: -2.18 });
+    addCarPlates(b, { w: .48, h: .12, y: .42, z: 2.20 }, { w: .52, h: .13, y: .45, z: -2.20 });
   } else {
     const sp = CAR_SPECS[key]; buildPassengerCar(b, sp);
     if (key === 'muscle') {
@@ -6194,7 +6481,7 @@ function carTemplate(key) {
         b.add('chrome', gCylZ(.055,.055,.16,12,side*.91,.39,-.73), 1);
       }
     }
-    addCarPlates(b, { w: .52, h: .13, y: .49, z: sp.fz + .065 }, { w: .52, h: .13, y: .52, z: sp.rz - .065 });
+    addCarPlates(b, { w: .52, h: .13, y: .48, z: sp.fz + .08 }, { w: .52, h: .13, y: .50, z: sp.rz - .08 });
   }
   addVehicleSignature(b, key);
   return (_carTpl[key] = b.done());
@@ -6203,7 +6490,7 @@ function carInstance(color, big, plateCode) {
   const r = Math.random();
   const key = plateCode === 'RIV 2048' ? 'sports' : plateCode === 'RIV 7316' ? 'muscle' : big ? (r < 0.4 ? 'bus' : 'truck') : r < 0.28 ? 'sedan' : r < 0.48 ? 'hatch' : r < 0.68 ? 'suv' : r < 0.86 ? 'sports' : 'van';
   const tpl = carTemplate(key), mats = carMats(), paint = carPaintVariant(color);
-  const plateMat = mats.plate.clone(); plateMat.map = licensePlateTexture(plateCode); plateMat.emissiveMap = plateMat.map; plateMat.needsUpdate = true;
+  const plateMat = mats.plate.clone(); plateMat.map = licensePlateTexture(plateCode); plateMat.needsUpdate = true;
   const mk = list => { const grp = new THREE.Group(); for (const p of list) grp.add(new THREE.Mesh(p.geo, p.mat === 'paint' ? paint : p.mat === 'plate' ? plateMat : mats[p.mat])); return grp; };
   const g = new THREE.Group(), hiG = mk(tpl.hi), loG = mk(tpl.lo);
   loG.visible = false;
@@ -6277,7 +6564,7 @@ function tickTrafficGlow() {
 // swap between the detailed and simple version of a car by distance (called from the traffic update)
 function carLod(mesh, dist, big) {
   const ud = mesh.userData; if (!ud.hiG) return;
-  const near = dist < (big ? 140 : (isMobile ? 90 : 125));
+  const near = dist < (big ? 150 : (isMobile ? 100 : 135));
   if (ud.nearCar !== near) { ud.nearCar = near; ud.hiG.visible = near; ud.loG.visible = !near; }
 }
 
@@ -6344,7 +6631,7 @@ function makeCar(color, big, plateCode) {
     [-0.55, 0.55].forEach(x => lamp(x, 0.55, 2.08, 0.34, sm.hl));
     [-0.58, 0.58].forEach(x => lamp(x, 0.6, -2.08, 0.4, sm.tl));
     addMobilePlate(.52, .13, .52, -2.15, true); addMobilePlate(.52, .13, .49, 2.15, false);
-    const uniquePlateMat = sm.plate.clone(); uniquePlateMat.map = licensePlateTexture(plateCode); uniquePlateMat.emissiveMap = uniquePlateMat.map; uniquePlateMat.needsUpdate = true;
+    const uniquePlateMat = sm.plate.clone(); uniquePlateMat.map = licensePlateTexture(plateCode); uniquePlateMat.needsUpdate = true;
     g.traverse(o => { if (o.isMesh && o.material === sm.plate) o.material = uniquePlateMat; });
     shadow(2, 4.3, 0);
     return g;
@@ -6499,14 +6786,20 @@ function place(mesh, tt, lateral) {
 // Lightweight procedural player vehicle. No external models or textures.
 const PLAYER_CAR_TEMPLATES = ['sports','hatch','sedan','sports','muscle'];
 const PLAYER_CAR_PAINTS = [0x26394b,0xb34b22,0x1f5c50,0x343941,0x8e2524];
+// Unique BC-style plates for each selectable player car (front + rear use the same code).
+const PLAYER_CAR_PLATES = ['GT 8801', 'RLY 442', 'RST 1907', 'END 5500', 'MSC 773'];
 function buildSelectablePlayerCar() {
   const key = PLAYER_CAR_TEMPLATES[carId] || 'sports';
   const tpl = carTemplate(key), mats = carMats();
   const paint = carPaint(PLAYER_CAR_PAINTS[carId] || 0x26394b);
+  const plateCode = PLAYER_CAR_PLATES[carId] || 'PLY 0001';
+  const plateMat = mats.plate.clone();
+  plateMat.map = licensePlateTexture(plateCode);
+  plateMat.needsUpdate = true;
   const makeLod = parts => {
     const group = new THREE.Group();
     for (const part of parts) {
-      const material = part.mat === 'paint' ? paint : mats[part.mat];
+      const material = part.mat === 'paint' ? paint : part.mat === 'plate' ? plateMat : mats[part.mat];
       if (!material) continue;
       const mesh = new THREE.Mesh(part.geo, material);
       mesh.castShadow = visualQuality === 'high'; mesh.receiveShadow = true;
@@ -6604,22 +6897,22 @@ function ensurePlayerCarModel() {
   }
   if (!playerCarModel) { playerCarModel = buildSelectablePlayerCar(); scene.add(playerCarModel); }
   playerCarModel.userData.paint.color.setHex(PLAYER_CAR_PAINTS[carId] || 0x26394b);
-  playerCarModel.visible = cameraView >= 3;
+  playerCarModel.visible = cameraView >= 2;
 }
 function setCameraView(next) {
   cameraView = (next + CAMERA_VIEW_NAMES.length) % CAMERA_VIEW_NAMES.length;
   cameraLookSmoothed = null;
   const label = document.getElementById('view-btn'); if (label) label.textContent = 'VIEW: ' + CAMERA_VIEW_NAMES[cameraView];
   document.body.classList.toggle('non-cockpit', cameraView !== 0);
+  document.body.classList.remove('hood-view');
   const glass = document.getElementById('glass-reflection'); if (glass) glass.style.display = cameraView === 0 ? 'block' : 'none';
-  document.body.classList.toggle('hood-view', cameraView === 1);
-  const hood = document.getElementById('hood'); if (hood) hood.style.display = cameraView === 1 ? 'block' : 'none';
-  // Hood and bumper cameras sit ahead of the body; hide the exterior model there.
-  if (playerCarModel) playerCarModel.visible = cameraView >= 3;
+  const hood = document.getElementById('hood'); if (hood) hood.style.display = 'none';
+  // Exterior model only in chase / cinematic
+  if (playerCarModel) playerCarModel.visible = cameraView >= 2;
   flash(CAMERA_VIEW_NAMES[cameraView] + ' VIEW');
 }
 function cycleCameraView() {
-  const available = [0,1,2,3,4];
+  const available = [0,1,2,3];
   const current = available.indexOf(cameraView);
   setCameraView(available[(current + 1 + available.length) % available.length]);
 }
@@ -6979,9 +7272,7 @@ function updateDash() {
 
   // Hood roll & pitch coupling
   const hoodEl = document.getElementById('hood');
-  if (hoodEl) {
-    hoodEl.style.transform = `translate(${(-motion.lat * 8).toFixed(2)}px, ${(sy * 0.45).toFixed(2)}px) rotate(${(-motion.lat * 1.15).toFixed(3)}deg)`;
-  }
+  if (hoodEl) { hoodEl.style.display = 'none'; hoodEl.style.transform = ''; }
 
   // Rally / Endurance sequential RPM shift lights + Yoke / Console telemetry
   const leds = document.querySelectorAll('#shift-lights i');
@@ -7035,26 +7326,22 @@ function update(dt) {
   // Throttle: per-car torque curve (peak + width) × aero drag near redline
   if (gasIn > 0) {
     const nd = spd / Math.max(1, MAX_SPD);
-    // Broad low/mid-range torque plateau: the previous narrow bell left several
-    // cars feeling flat off the line. Keep each car's torquePeak/width personality,
-    // but use a wider low-speed shoulder and a gradual high-speed fall-off.
+    // Strong launch: high torque at standstill so the road starts streaming immediately,
+    // then each car's peak/width still shapes the mid-range. Top speed stays aero-limited.
     const x = (nd - TORQUE_PEAK) / Math.max(0.12, TORQUE_WIDTH);
-    const torqueShape = Math.exp(-x * x * 1.2);
-    // Give every car a convincing launch without flattening its individual torque peak.
-    // The former 0.58 floor combined with the low-end multiplier left only about
-    // half of rated acceleration available at zero speed, making full throttle
-    // feel oddly lazy off the line. A stronger floor restores response while the
-    // per-car peak/width still shapes the mid-range and aero drag still owns top speed.
-    const lowEndPlateau = 0.84 + 0.16 * Math.min(1, nd / 0.22);
-    const torqueCurve = Math.max(0.72, torqueShape) * lowEndPlateau * (1.18 + 0.14 * (1 - nd));
-    // Aerodynamic resistance becomes dominant near each vehicle's real speed ceiling.
-    const drag = 0.13 * Math.pow(nd, 1.2) + 0.72 * Math.pow(nd, 3.5);
-    spd += ACCEL * gasIn * torqueCurve * Math.max(0.07, 1 - drag) * dt;
+    const torqueShape = Math.exp(-x * x * 1.05);
+    // Near-full rated accel off the line; only a soft shoulder into the mid-range.
+    const lowEndPlateau = 0.92 + 0.08 * Math.min(1, nd / 0.18);
+    const launchBoost = 1.0 + 0.55 * Math.max(0, 1 - nd / 0.28); // extra shove 0→~60 km/h
+    const torqueCurve = Math.max(0.82, torqueShape) * lowEndPlateau * launchBoost * (1.12 + 0.12 * (1 - nd));
+    // Drag stays gentle early so 0–60 feels urgent; still clamps the top end.
+    const drag = 0.08 * Math.pow(nd, 1.15) + 0.78 * Math.pow(nd, 3.6);
+    spd += ACCEL * gasIn * torqueCurve * Math.max(0.06, 1 - drag) * dt;
   } else if (brakeIn > 0) {
-    // Stronger initial bite (+14%) while retaining per-car brake balance and
-    // a progressive pedal response; wet braking remains deliberately more cautious.
-    const bite = 1 + 0.22 * Math.min(1, spd / 32);
-    spd += BRAKE * 1.14 * brakeIn * bite * (rainOn ? 0.90 : 1) * dt;
+    // Strong initial bite for confidence when slamming the brakes; progressive with speed.
+    // Wet braking stays a bit more cautious.
+    const bite = 1 + 0.26 * Math.min(1, spd / 30);
+    spd += BRAKE * 1.18 * brakeIn * bite * (rainOn ? 0.88 : 1) * dt;
   } else {
     // Engine braking scales with speed so high-speed lift-off settles the nose
     spd += COAST * (0.72 + 0.40 * Math.min(1, spd / Math.max(1, MAX_SPD))) * dt;
@@ -7112,12 +7399,12 @@ function update(dt) {
   const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer, -1, 1);
   const steerReturning = Math.abs(steerTarget) < Math.abs(steerValue) || steerTarget * steerValue < 0;
   const speedFrac = Math.min(1, spd / Math.max(1, MAX_SPD));
-  const steerRate = steerReturning ? 27 : (23 - 5.5 * speedFrac);
+  // Slightly snappier than the stable baseline: faster to reach lock and to return to center.
+  const steerRate = steerReturning ? 30 : (25 - 4.5 * speedFrac);
   // Exponential response keeps steering feel consistent when frame time varies.
   steerValue += (steerTarget - steerValue) * (1 - Math.exp(-steerRate * dt));
-  // A flatter input curve gives finer mid-corner control and makes full steering
-  // authority easier to reach without making the first few percent twitchy.
-  const steerIn = Math.sign(steerValue) * Math.pow(Math.abs(steerValue), 1.06);
+  // Near-linear curve — a touch more immediate in the first half of the stick travel.
+  const steerIn = Math.sign(steerValue) * Math.pow(Math.abs(steerValue), 1.03);
   const kappa = getKappa(t);
 
   // ——— Advanced physics pack (arcade-sim hybrid) ———
@@ -7178,13 +7465,12 @@ function update(dt) {
   // Braking while cornering trims rear stability rather than simply reducing
   // all grip equally. The effect builds with speed and steering commitment.
   const tireGrip = wetGrip * surfaceMu * aero * (1 - loadLoss) * powerLoose * (0.75 + 0.25 * pace) * heatPenalty * hardMul * eventGrip * (1 - 0.20 * rearBreakaway);
-  const speedSteer = Math.min(1, spd / 5.0) * (1 - 0.055 * speedFrac);
+  // Slightly less high-speed steering falloff so the car stays more responsive in traffic at speed.
+  const speedSteer = Math.min(1, spd / 5.0) * (1 - 0.042 * speedFrac);
   const previousPvx = pvx;
   const counterSteer = steerIn * pvx < 0 ? 1 + Math.min(0.48, Math.abs(pvx) / Math.max(1, MAX_LAT_VEL) * 0.6) : 1;
-  // Steering authority refinement: more useful front-end response for quick traffic
-  // placement, while retaining each car's steering rating and tyre grip limits.
-  // Lateral damping eases slightly only while the driver is actively steering.
-  pvx += steerIn * STEER_ACCEL * 1.48 * speedSteer * tireGrip * trailBrake * counterSteer * dt;
+  // Modest authority bump (1.48 → 1.58) for quicker lane changes without changing car balance.
+  pvx += steerIn * STEER_ACCEL * 1.58 * speedSteer * tireGrip * trailBrake * counterSteer * dt;
   pvx += -spd * spd * kappa * CURVE_FORCE * (ROAD_ASSIST ? 0.72 : 1) * dt;
 
   // Cornering drag + sliding scrub (stronger past the slip peak)
@@ -7325,7 +7611,7 @@ function update(dt) {
     if (playerCarModel.userData.damageMarks) playerCarModel.userData.damageMarks.forEach(mark => {
       mark.material.opacity = damage * (mark.userData.damageKind === 'dark' ? .76 : .34);
     });
-    playerCarModel.visible = cameraView >= 3;
+    playerCarModel.visible = cameraView >= 2;
     if (playerCarModel.visible) spinCarWheels(playerCarModel, spd, dt);
   }
 
@@ -7478,43 +7764,67 @@ function update(dt) {
       }
     }
     if (nearDT > 0.10 || carAhead > 0.35) { c.done = false; c.hit = false; if (carAhead > 0.35) c.wasAhead = false; }
-    if (longitudinalGap < playerHalfLength + vehicleHalfLength + 0.35 && lat < lateralLimit) {
+    if (longitudinalGap < playerHalfLength + vehicleHalfLength + 0.45 && lat < lateralLimit + 0.15) {
       const pushDirection = px >= c.off ? 1 : -1;
-      const penetration = (playerHalfLength + vehicleHalfLength + 0.35) - longitudinalGap;
-      const closing = Math.max(0, spd - (c.cur || c.spd));
-      // Side-swipe vs rear-end: more lateral, less "stop dead"
-      const sideSwipe = lat > lateralLimit * 0.35;
-      const massRatio = c.big ? 1.35 : 1; // buses hit harder
+      const penetration = (playerHalfLength + vehicleHalfLength + 0.45) - longitudinalGap;
+      const theirSpd = (c.cur || c.spd || 0);
+      const closing = Math.max(0, spd - theirSpd);
+      // Mostly aligned = rear/front hit; only wide lateral offset counts as a swipe
+      const sideSwipe = lat > lateralLimit * 0.55;
+      const rearEnding = !sideSwipe && carAhead > 0 && carAhead < 0.12;
+      const massRatio = c.big ? 1.5 : 1;
+      const nearEdge = Math.abs(px) > ROAD_W * 0.42;
       if (!c.hit) {
         c.hit = true;
+
+        // FATAL 1: rear-end into slower traffic at real closing speed
+        // Trucks/buses: easier threshold. Any car: harder but still reachable.
+        if (rearEnding && ((c.big && closing > 7) || closing > 12)) {
+          if (playerCarModel) playerCarModel.userData.damageLevel = 1;
+          shake = 1;
+          fatalImpact(c.big ? 'REAR-ENDED A TRUCK!' : 'HIGH-SPEED COLLISION!');
+          return;
+        }
+
         if (sideSwipe) {
-          // Glancing blow: yaw kick, partial speed loss, stay in the fight
-          spd *= 0.82 - 0.035 * massRatio;
-          pvx = pushDirection * Math.max(4.5, 6 + closing * 0.09 + penetration) * massRatio;
-          px += pushDirection * Math.min(1.8, 0.55 + penetration * 0.25);
-          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.10);
-          timeLeft -= 1.5; score = Math.max(0, score - 25); shake = 0.35; combo = 0;
+          spd *= 0.82 - 0.04 * massRatio;
+          pvx = pushDirection * Math.max(5, 7 + closing * 0.12 + penetration) * massRatio;
+          px += pushDirection * Math.min(2.4, 0.7 + penetration * 0.35);
+          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.12);
+          timeLeft -= 1.5; score = Math.max(0, score - 25); shake = 0.4; combo = 0;
           flash('SIDE SWIPE');
         } else {
-          // Rear/front contact: stronger longitudinal hit
-          spd *= 0.66 - 0.035 * massRatio;
-          pvx = pushDirection * Math.max(3.5, 4.5 + penetration * 0.9) * massRatio;
-          px += pushDirection * Math.min(2.2, 0.7 + penetration * 0.3);
-          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.20);
-          timeLeft -= 3; score = Math.max(0, score - 50); shake = 0.55; combo = 0;
-          flash('CONTACT');
+          spd *= 0.62 - 0.04 * massRatio;
+          pvx = pushDirection * Math.max(4, 5 + penetration) * massRatio;
+          px += pushDirection * Math.min(2.4, 0.8 + penetration * 0.35);
+          if (playerCarModel) playerCarModel.userData.damageLevel = Math.min(1, (playerCarModel.userData.damageLevel || 0) + 0.22);
+          timeLeft -= 3; score = Math.max(0, score - 50); shake = 0.6; combo = 0;
+          flash(c.big ? 'HIT TRUCK' : 'CONTACT');
         }
         chime(120);
-        // Nudge the AI aside so you don't stick together
-        c.off -= pushDirection * 0.6;
-        c.cur = (c.cur || c.spd) * 0.85;
+        c.off -= pushDirection * 0.75;
+        c.cur = theirSpd * 0.85;
+
+        // FATAL 2: shove toward / over the shoulder (works even with road assist)
+        const pushedOff = Math.abs(px) > ROAD_W * 0.48;
+        const edgeRam = nearEdge && (Math.abs(pvx) > 5 || massRatio > 1.2 || closing > 5);
+        if (pushedOff || edgeRam && Math.abs(px) > ROAD_W * 0.45) {
+          if (playerCarModel) playerCarModel.userData.damageLevel = 1;
+          fatalImpact('RAMMED OFF THE ROAD!');
+          return;
+        }
       } else {
-        // Sustained overlap: keep separating
-        spd = Math.min(spd, Math.max(c.cur * 0.8, spd * 0.92));
-        pvx += pushDirection * 10 * dt;
-        px += pushDirection * 1.2 * dt;
+        spd = Math.min(spd, Math.max(theirSpd * 0.8, spd * 0.9));
+        pvx += pushDirection * 14 * dt * massRatio;
+        px += pushDirection * 1.6 * dt * massRatio;
+        if (Math.abs(px) > ROAD_W * 0.48 && spd > 8) {
+          if (playerCarModel) playerCarModel.userData.damageLevel = 1;
+          fatalImpact('RAMMED OFF THE ROAD!');
+          return;
+        }
       }
-      px = THREE.MathUtils.clamp(px, -ROAD_W * 0.86, ROAD_W * 0.86);
+      // Allow going further off-road on impact so the ram check can fire next frames
+      px = THREE.MathUtils.clamp(px, -ROAD_W * 1.05, ROAD_W * 1.05);
     }
   }
 
@@ -7562,18 +7872,14 @@ function update(dt) {
   }
   if (spd > 20) eyePos.y += Math.sin(performance.now() * 0.04) * 0.012 * (spd / MAX_SPD);
   let cameraTargetPos = eyePos, cameraLook = look, cameraUp = camUp;
-  if (cameraView === 1) { // hood / bonnet view for the new Muscle GT
-    cameraTargetPos = vehicleCenter.clone().addScaledVector(up, 1.45).addScaledVector(vehicleForward, 1.05);
-    cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward, 32).addScaledVector(up, -0.4);
-    cameraUp = up;
-  } else if (cameraView === 2) { // low bumper camera
+  if (cameraView === 1) { // low bumper camera
     cameraTargetPos = vehicleCenter.clone().addScaledVector(up, 0.72).addScaledVector(vehicleForward, 2.15);
     cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward, 34).addScaledVector(up, -0.25);
     cameraUp = up;
-  } else if (cameraView === 3 || cameraView === 4) { // chase / cinematic exterior views
-    const cinematicSide = cameraView === 4 ? Math.sin(performance.now() * 0.00022) * 2.2 : 0.8;
-    const back = cameraView === 4 ? 10.5 : 7.2;
-    const height = cameraView === 4 ? 4.1 : 3.0;
+  } else if (cameraView === 2 || cameraView === 3) { // chase / cinematic exterior views
+    const cinematicSide = cameraView === 3 ? Math.sin(performance.now() * 0.00022) * 2.2 : 0.8;
+    const back = cameraView === 3 ? 10.5 : 7.2;
+    const height = cameraView === 3 ? 4.1 : 3.0;
     cameraTargetPos = vehicleCenter.clone().addScaledVector(vehicleForward,-back).addScaledVector(vehicleSide,cinematicSide).addScaledVector(up,height);
     cameraLook = vehicleCenter.clone().addScaledVector(vehicleForward,5.5).addScaledVector(up,0.55);
     cameraUp = up;
@@ -7672,6 +7978,411 @@ function tickCoach(dt) {
   else if (coachStep === 2 && coachT > 3.2) { flash('OVERTAKE TRAFFIC · BUILD COMBOS'); coachStep = 3; coachT = 0; }
   else if (coachStep === 3 && coachT > 3.2) { flash('STAY ON THE ROAD'); coachStep = 4; }
 }
+
+/* =====================================================================
+   WINDSHIELD SHATTER — procedural laminated-glass impact.
+   A fresh impact point + crack network is generated on every crash:
+   crushed white core, radial cracks, spider-web rings, forked branches,
+   faceted shards that catch light differently, beveled / chromatic crack
+   edges, glass dust, and a burst of flying shards. Drawn once into two
+   offscreen layers, then revealed as an expanding fracture front.
+   Public hooks: WindshieldShatter.play() / .clear()
+   ===================================================================== */
+const WindshieldShatter = (() => {
+  const TAU = Math.PI * 2;
+  const S = { cv: null, cx: null, la: null, lb: null, raf: 0, active: false, seed: 1, fx: .5, fy: .5,
+              W: 0, H: 0, k: 1, ix: 0, iy: 0, maxR: 0, edge: [], path: null, parts: [], t0: 0, anim: true, rt: 0 };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const easeOut = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+  function rngOf(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- the glass area: everything above the dash edge ---------- */
+  function measureEdge(W, H) {
+    const pts = [];
+    const cockpit = !document.body.classList.contains('non-cockpit') || document.body.classList.contains('hood-view');
+    if (cockpit && typeof measureDashEdge === 'function' && typeof edgeYAt === 'function') {
+      try {
+        measureDashEdge();   // returns half-resolution units, hence the x2
+        const n = 48;
+        for (let i = 0; i <= n; i++) { const x = W * i / n; pts.push([x, clamp(2 * edgeYAt(x / 2, H / 2), H * .35, H)]); }
+      } catch (e) { pts.length = 0; }
+    }
+    if (!pts.length || pts.some(p => !isFinite(p[0]) || !isFinite(p[1]))) { pts.length = 0; pts.push([0, H], [W, H]); }
+    S.edge = pts;
+    const p = new Path2D();
+    p.moveTo(0, 0); p.lineTo(W, 0);
+    for (let i = pts.length - 1; i >= 0; i--) p.lineTo(pts[i][0], pts[i][1]);
+    p.closePath();
+    S.path = p;
+  }
+  function edgeAt(x) {
+    const e = S.edge;
+    if (x <= e[0][0]) return e[0][1];
+    for (let i = 1; i < e.length; i++) if (x <= e[i][0]) { const t = (x - e[i - 1][0]) / ((e[i][0] - e[i - 1][0]) || 1); return lerp(e[i - 1][1], e[i][1], t); }
+    return e[e.length - 1][1];
+  }
+
+  /* ---------- crack stroking: halo, dark fissure, chromatic fringe, bevelled bright face, hot core ---------- */
+  function crack(c, pts, w0, w1, a) {
+    const n = pts.length - 1; if (n < 1) return;
+    const wi = i => lerp(w0, w1, (i + .5) / n);
+    const seg = (i, ox, oy, lw, col) => {
+      c.strokeStyle = col; c.lineWidth = lw;
+      c.beginPath(); c.moveTo(pts[i][0] + ox, pts[i][1] + oy); c.lineTo(pts[i + 1][0] + ox, pts[i + 1][1] + oy); c.stroke();
+    };
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (let i = 0; i < n; i++) seg(i, 0, 0, wi(i) * 2.6 + 1.6, `rgba(0,0,0,${.2 * a})`);
+    for (let i = 0; i < n; i++) seg(i, .5, .6, wi(i) * 1.3 + .5, `rgba(10,16,28,${.55 * a})`);
+    for (let i = 0; i < n; i++) { const w = wi(i); seg(i, .6, 0, w * .5 + .2, `rgba(120,215,255,${.2 * a})`); }
+    for (let i = 0; i < n; i++) seg(i, 0, 0, wi(i) * 1.05 + .35, `rgba(255,255,255,${.97 * a})`);
+  }
+  function glint(c, x, y, s, a) {
+    const g = c.createRadialGradient(x, y, 0, x, y, s);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(.35, `rgba(220,238,255,${a * .35})`); g.addColorStop(1, 'rgba(220,238,255,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, s, 0, TAU); c.fill();
+    c.strokeStyle = `rgba(255,255,255,${a * .8})`; c.lineWidth = Math.max(.6, s * .08); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x - s * 1.5, y); c.lineTo(x + s * 1.5, y); c.moveTo(x, y - s * 1.5); c.lineTo(x, y + s * 1.5); c.stroke();
+  }
+
+  /* ---------- generate the whole fracture pattern into two layers ---------- */
+  function build() {
+    const { W, H, k } = S, R = rngOf(S.seed);
+    const mk = () => { const o = document.createElement('canvas'); o.width = S.cv.width; o.height = S.cv.height; const c = o.getContext('2d'); c.setTransform(k, 0, 0, k, 0, 0); return [o, c]; };
+    const [la, ca] = mk(), [lb, cb] = mk(); S.la = la; S.lb = lb;
+    const u = Math.max(.7, Math.min(W, H) / 700);
+    S.u = u;
+    S.ix = W * (.26 + .48 * S.fx);
+    S.iy = edgeAt(S.ix) * (.2 + .4 * S.fy);
+    const ix = S.ix, iy = S.iy;
+    S.maxR = Math.max(Math.hypot(ix, iy), Math.hypot(W - ix, iy), Math.hypot(ix, H - iy), Math.hypot(W - ix, H - iy)) * 1.02;
+    const w = 1.6 * u;
+
+    // ring radii (spider-web spacing grows outward)
+    const rings = []; let r = .03 * Math.min(W, H);
+    while (r < S.maxR * 1.08) { rings.push(r); r *= 1.3 + R() * .2; }
+    const K = rings.length;
+
+    // radial cracks
+    const nR = 15 + (R() * 8 | 0), base = R() * TAU, rays = [];
+    for (let j = 0; j < nR; j++) {
+      const ang = base + (j + (R() - .5) * .78) / nR * TAU;
+      const reach = R() < .27 ? 3 + (R() * (K - 4) | 0) : K;
+      const major = R() < .17;
+      const pts = [{ x: ix, y: iy, a: ang, r: 0 }];
+      let wob = 0;
+      for (let q = 0; q < reach; q++) {
+        wob = clamp(wob + (R() - .5) * .16, -.32, .32);
+        const rr = rings[q] * (1 + (R() - .5) * .18), aa = ang + wob + (q % 2 ? 1 : -1) * (.015 + R() * .05);
+        pts.push({ x: ix + Math.cos(aa) * rr, y: iy + Math.sin(aa) * rr, a: aa, r: rr });
+      }
+      rays.push({ ang, reach, major, pts });
+    }
+
+    /* ---- LAYER B first (cells, haze) so cracks sit on top of the facets ---- */
+    // faint overall haze / reflection so the whole pane reads as glass
+    const hz = cb.createLinearGradient(0, 0, 0, H);
+    hz.addColorStop(0, 'rgba(0,0,0,.16)'); hz.addColorStop(.22, 'rgba(0,0,0,0)'); hz.addColorStop(.8, 'rgba(0,0,0,.08)'); hz.addColorStop(1, 'rgba(0,0,0,.2)');
+    cb.fillStyle = hz; cb.fillRect(0, 0, W, H);
+    const rf = cb.createLinearGradient(W * .05, 0, W * .6, H * .7);
+    rf.addColorStop(0, 'rgba(255,255,255,0)'); rf.addColorStop(.45, 'rgba(210,230,255,.05)'); rf.addColorStop(.55, 'rgba(255,255,255,.075)'); rf.addColorStop(.7, 'rgba(210,230,255,0)');
+    cb.fillStyle = rf; cb.fillRect(0, 0, W, H);
+
+    // milky delaminated glow around the hit
+    const mg = cb.createRadialGradient(ix, iy, 0, ix, iy, rings[Math.min(4, K - 1)] * 1.25);
+    mg.addColorStop(0, 'rgba(245,250,255,.62)'); mg.addColorStop(.35, 'rgba(225,238,252,.3)'); mg.addColorStop(1, 'rgba(225,238,252,0)');
+    cb.fillStyle = mg; cb.beginPath(); cb.arc(ix, iy, rings[Math.min(4, K - 1)] * 1.25, 0, TAU); cb.fill();
+
+    // shard facets
+    for (let j = 0; j < nR; j++) {
+      const A = rays[j], B = rays[(j + 1) % nR];
+      for (let q = 0; q + 1 < Math.min(A.pts.length, B.pts.length); q++) {
+        const p0 = A.pts[q], p1 = B.pts[q], p2 = B.pts[q + 1], p3 = A.pts[q + 1];
+        if (Math.min(p0.x, p1.x, p2.x, p3.x) > W + 60 || Math.max(p0.x, p1.x, p2.x, p3.x) < -60) continue;
+        const roll = R();
+        cb.beginPath(); cb.moveTo(p0.x, p0.y); cb.lineTo(p1.x, p1.y); cb.lineTo(p2.x, p2.y); cb.lineTo(p3.x, p3.y); cb.closePath();
+        if (q < 3) { cb.fillStyle = `rgba(240,248,255,${.16 + R() * .16 - q * .03})`; cb.fill(); }
+        if (roll < .5) {
+          const g = cb.createLinearGradient(p0.x, p0.y, p2.x, p2.y), a1 = .02 + R() * .06;
+          g.addColorStop(0, `rgba(255,255,255,${a1})`); g.addColorStop(1, `rgba(150,195,255,${a1 * .2})`);
+          cb.fillStyle = g; cb.fill();
+        } else if (roll < .78) {
+          cb.fillStyle = `rgba(0,10,26,${.03 + R() * .07})`; cb.fill();
+        }
+      }
+    }
+
+    // ring cracks (the web)
+    for (let j = 0; j < nR; j++) {
+      const A = rays[j], B = rays[(j + 1) % nR];
+      const lim = Math.min(A.pts.length, B.pts.length) - 1;
+      for (let q = 1; q <= lim; q++) {
+        const p = q < 3 ? .95 : clamp(.62 - q * .035, .2, .62);
+        if (R() > p) continue;
+        const a = A.pts[q], b = B.pts[q];
+        let da = b.a - a.a; while (da < 0) da += TAU; while (da > TAU) da -= TAU;
+        if (da > 1.0) continue;
+        if (Math.min(a.x, b.x) > W + 80 || Math.max(a.x, b.x) < -80 || Math.min(a.y, b.y) > H + 80) continue;
+        const m = 1 + (R() * 2 | 0), pts = [[a.x, a.y]];
+        for (let i = 1; i <= m; i++) {
+          const t = i / (m + 1), rr = lerp(a.r, b.r, t) * (1 + (R() - .5) * .22), aa = a.a + da * t;
+          pts.push([ix + Math.cos(aa) * rr, iy + Math.sin(aa) * rr]);
+        }
+        pts.push([b.x, b.y]);
+        crack(cb, pts, w * clamp(1.2 - q * .045, .6, 1.2), w * clamp(1.05 - q * .045, .5, 1.05), clamp(1.1 - q * .025, .7, 1));
+      }
+    }
+
+    // crushed-glass crazing right at the hit
+    for (let i = 0; i < 90; i++) {
+      const a0 = R() * TAU, r0 = Math.pow(R(), 1.4) * rings[2] * 1.3, len = rings[1] * (.25 + R() * .85);
+      const ao = a0 + (R() < .5 ? 0 : Math.PI / 2) + (R() - .5) * .7;
+      const pts = [[ix + Math.cos(a0) * r0, iy + Math.sin(a0) * r0]];
+      for (let s = 1; s <= 2 + (R() * 2 | 0); s++) { const q = pts[s - 1]; pts.push([q[0] + Math.cos(ao + (R() - .5) * .9) * len / 3, q[1] + Math.sin(ao + (R() - .5) * .9) * len / 3]); }
+      crack(cb, pts, w * .5, w * .22, .75);
+    }
+
+    // glass dust and chips
+    for (let i = 0; i < 260; i++) {
+      const a0 = R() * TAU, rr = Math.abs(R() + R() + R() - 1.5) * rings[Math.min(5, K - 1)] * 1.5;
+      const x = ix + Math.cos(a0) * rr, y = iy + Math.sin(a0) * rr, s = (.5 + R() * R() * 2.2) * u;
+      cb.fillStyle = R() < .8 ? `rgba(255,255,255,${.3 + R() * .5})` : `rgba(10,16,24,${.3 + R() * .4})`;
+      cb.beginPath(); cb.moveTo(x, y); cb.lineTo(x + s * (.6 + R()), y + s * (R() - .3)); cb.lineTo(x + s * (R() - .3), y + s * (.6 + R())); cb.closePath(); cb.fill();
+    }
+
+    /* ---- LAYER A: radial fractures + forks (the first thing to race outward) ---- */
+    for (const ray of rays) {
+      const m = ray.major ? 1.6 : 1;
+      crack(ca, ray.pts.map(p => [p.x, p.y]), w * 1.9 * m, w * .5 * m, 1);
+      // forks
+      for (let q = 2; q < ray.pts.length - 1; q++) {
+        if (R() > (ray.major ? .7 : .5)) continue;
+        const p = ray.pts[q];
+        if (p.x < -40 || p.x > W + 40 || p.y > H + 40) continue;
+        const side = R() < .5 ? -1 : 1, ang = p.a + side * (.25 + R() * .5), len = rings[q] * (.4 + R() * 1.1);
+        const n = 4 + (R() * 3 | 0), pts = [[p.x, p.y]]; let aa = ang;
+        for (let s = 1; s <= n; s++) { aa += (R() - .5) * .45; const l = len / n * (.7 + R() * .6), pr = pts[s - 1]; pts.push([pr[0] + Math.cos(aa) * l, pr[1] + Math.sin(aa) * l]); }
+        crack(ca, pts, w * .85, w * .25, .95);
+        if (R() < .3) {   // fork of a fork
+          const mid = pts[2 + (R() * (n - 2) | 0)], a2 = aa + (R() < .5 ? -1 : 1) * (.4 + R() * .5), l2 = len * .45, p2 = [mid, [mid[0] + Math.cos(a2) * l2 * .5, mid[1] + Math.sin(a2) * l2 * .5]];
+          p2.push([p2[1][0] + Math.cos(a2 + (R() - .5)) * l2 * .5, p2[1][1] + Math.sin(a2 + (R() - .5)) * l2 * .5]);
+          crack(ca, p2, w * .45, w * .18, .85);
+        }
+      }
+    }
+    // long angular runs that cut across the whole windshield
+    const nRun = 6 + (R() * 3 | 0);
+    for (let i = 0; i < nRun; i++) {
+      let ang = R() * TAU, x = ix, y = iy; const pts = [[x, y]], total = S.maxR * (.8 + R() * .3); let d = 0, drift = (R() - .5) * .5;
+      while (d < total) {
+        const step = (50 + R() * 110) * u; ang += drift * .25 + (R() - .5) * 1.1 * (R() < .3 ? 1.6 : 1);
+        x += Math.cos(ang) * step; y += Math.sin(ang) * step; d += step; pts.push([x, y]);
+        if (R() < .22) {   // spur off a kink
+          const sa = ang + (R() < .5 ? -1 : 1) * (.6 + R() * .8), sl = (40 + R() * 120) * u, sp = [[x, y], [x + Math.cos(sa) * sl * .5, y + Math.sin(sa) * sl * .5]];
+          sp.push([sp[1][0] + Math.cos(sa + (R() - .5)) * sl * .5, sp[1][1] + Math.sin(sa + (R() - .5)) * sl * .5]);
+          crack(ca, sp, w * .8, w * .3, .95);
+        }
+      }
+      crack(ca, pts, w * 1.5, w * .6, 1);
+    }
+    // impact crater: splintered star, crushed white body, dark pit
+    const r0 = rings[0];
+    const spikes = 7 + (R() * 4 | 0);
+    for (let i = 0; i < spikes; i++) {
+      const a0 = R() * TAU, len = r0 * (1.3 + R() * 1.9), wd = .12 + R() * .16;
+      ca.fillStyle = `rgba(250,253,255,${.5 + R() * .3})`;
+      ca.beginPath(); ca.moveTo(ix + Math.cos(a0 - wd) * r0 * .5, iy + Math.sin(a0 - wd) * r0 * .5);
+      ca.lineTo(ix + Math.cos(a0 + (R() - .5) * .15) * len, iy + Math.sin(a0 + (R() - .5) * .15) * len);
+      ca.lineTo(ix + Math.cos(a0 + wd) * r0 * .5, iy + Math.sin(a0 + wd) * r0 * .5); ca.closePath(); ca.fill();
+    }
+    const cv = 22; ca.beginPath();
+    for (let i = 0; i < cv; i++) { const a0 = i / cv * TAU, rr = r0 * (.6 + R() * .55) * (i % 2 ? .8 : 1.1); const x = ix + Math.cos(a0) * rr, y = iy + Math.sin(a0) * rr; i ? ca.lineTo(x, y) : ca.moveTo(x, y); }
+    ca.closePath();
+    ca.fillStyle = 'rgba(248,252,255,.78)'; ca.fill();
+    ca.strokeStyle = 'rgba(8,12,18,.85)'; ca.lineWidth = w * .9; ca.stroke();
+    ca.beginPath();
+    for (let i = 0; i < 12; i++) { const a0 = i / 12 * TAU, rr = r0 * (.18 + R() * .26); const x = ix + Math.cos(a0) * rr, y = iy + Math.sin(a0) * rr; i ? ca.lineTo(x, y) : ca.moveTo(x, y); }
+    ca.closePath(); ca.fillStyle = 'rgba(12,18,26,.82)'; ca.fill();
+    ca.strokeStyle = 'rgba(255,255,255,.7)'; ca.lineWidth = w * .4; ca.stroke();
+
+    // light catching vertices
+    for (let i = 0; i < 26; i++) {
+      const ray = rays[R() * nR | 0], q = 1 + (R() * Math.max(1, ray.pts.length - 2) | 0), p = ray.pts[q];
+      if (p && p.x > 0 && p.x < W && p.y < H) glint(cb, p.x, p.y, (2 + R() * 5) * u, .5 + R() * .45);
+    }
+    glint(ca, ix, iy, r0 * .9, .75);
+  }
+
+  /* ---------- flying shards ---------- */
+  function spawn(R) {
+    const n = S.W < 700 ? 55 : 95, u = S.u; S.parts = [];
+    for (let i = 0; i < n; i++) {
+      const a = R() * TAU, sp = (90 + R() * R() * 1100) * u;
+      S.parts.push({ x: S.ix + (R() - .5) * 14 * u, y: S.iy + (R() - .5) * 14 * u, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 140 * u, vz: .4 + R() * 2.2,
+        size: (2 + R() * R() * 13) * u, rot: R() * TAU, vr: (R() - .5) * 14, life: .45 + R() * 1.15, dark: R() < .22,
+        tri: [[1, 0], [-.55 - R() * .3, .75 + R() * .3], [-.45 - R() * .3, -.7 - R() * .3]] });
+    }
+  }
+  function drawParts(c, t) {
+    const g = 1500 * S.u;
+    for (const p of S.parts) {
+      if (t >= p.life) continue;
+      const x = p.x + p.vx * t, y = p.y + p.vy * t + .5 * g * t * t, s = p.size * (1 + p.vz * t * 1.8), a = clamp((p.life - t) / .28, 0, 1), rot = p.rot + p.vr * t;
+      c.save(); c.translate(x, y); c.rotate(rot);
+      c.beginPath(); c.moveTo(p.tri[0][0] * s, p.tri[0][1] * s); c.lineTo(p.tri[1][0] * s, p.tri[1][1] * s); c.lineTo(p.tri[2][0] * s, p.tri[2][1] * s); c.closePath();
+      c.fillStyle = p.dark ? `rgba(20,30,42,${.55 * a})` : `rgba(226,241,255,${.5 * a})`; c.fill();
+      c.strokeStyle = `rgba(255,255,255,${.95 * a})`; c.lineWidth = Math.max(.8, s * .09); c.stroke();
+      c.restore();
+    }
+  }
+
+  /* ---------- compose a frame ---------- */
+  function draw(t, final) {
+    const { cx: c, cv, W, H, k, ix, iy, maxR } = S;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height); c.setTransform(k, 0, 0, k, 0, 0);
+    const rA = final ? maxR : maxR * easeOut(t / .42), rB = final ? maxR : maxR * easeOut((t - .05) / .62);
+    c.save(); c.clip(S.path);
+    const layer = (img, rr) => {
+      if (rr <= 0 || !img) return;
+      if (rr >= maxR * .999) { c.drawImage(img, 0, 0, W, H); return; }
+      c.save(); c.beginPath(); c.arc(ix, iy, rr, 0, TAU); c.clip(); c.drawImage(img, 0, 0, W, H); c.restore();
+    };
+    layer(S.lb, rB); layer(S.la, rA);
+    if (!final) {
+      // glass-wave: bright front riding the crack tips
+      if (t < .7) {
+        const f = 1 - t / .7, rr = rA * .985;
+        c.strokeStyle = `rgba(235,246,255,${.4 * f})`; c.lineWidth = 2.2 * S.u * f + .5;
+        c.beginPath(); c.arc(ix, iy, Math.max(1, rr), 0, TAU); c.stroke();
+      }
+      // impact flash
+      if (t < .24) {
+        const f = Math.pow(1 - t / .24, 2), fr = .5 * Math.min(W, H);
+        const g = c.createRadialGradient(ix, iy, 0, ix, iy, fr);
+        g.addColorStop(0, `rgba(255,255,255,${.95 * f})`); g.addColorStop(.25, `rgba(255,248,235,${.55 * f})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = g; c.fillRect(0, 0, W, H);
+        c.fillStyle = `rgba(255,255,255,${.2 * f})`; c.fillRect(0, 0, W, H);
+      }
+    }
+    c.restore();
+    if (!final) drawParts(c, t);
+  }
+
+  function size() {
+    const W = Math.max(2, innerWidth), H = Math.max(2, innerHeight);
+    const k = Math.min(devicePixelRatio || 1, 2, Math.sqrt(3.2e6 / (W * H)));
+    S.W = W; S.H = H; S.k = Math.max(.5, k);
+    S.cv.width = Math.round(W * S.k); S.cv.height = Math.round(H * S.k);
+    S.cx = S.cv.getContext('2d');
+  }
+  function stop() { if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0; }
+  function finish() { stop(); draw(0, true); S.la = S.lb = null; }
+
+  function layout(anim) {
+    size(); measureEdge(S.W, S.H); build();
+    if (!anim) { draw(0, true); S.la = S.lb = null; return; }
+    spawn(rngOf(S.seed ^ 0x9E3779B9));
+    S.t0 = performance.now();
+    const step = now => { const t = (now - S.t0) / 1000; if (t >= 1.7) { finish(); return; } draw(t, false); S.raf = requestAnimationFrame(step); };
+    S.raf = requestAnimationFrame(step);
+  }
+
+  // last-resort drawing if the full generator ever fails: plain white star of cracks, no layers
+  function emergency() {
+    const cv = S.cv; if (!cv) return;
+    const W = innerWidth, H = innerHeight, c = cv.getContext('2d');
+    cv.width = W; cv.height = H; c.clearRect(0, 0, W, H);
+    const ix = W * (.3 + Math.random() * .4), iy = H * (.18 + Math.random() * .25);
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < 22; i++) {
+      let a = i / 22 * TAU + Math.random() * .2, x = ix, y = iy;
+      c.beginPath(); c.moveTo(x, y);
+      for (let d = 0; d < Math.hypot(W, H); d += 40 + Math.random() * 90) { a += (Math.random() - .5) * .7; x += Math.cos(a) * 60; y += Math.sin(a) * 60; c.lineTo(x, y); }
+      c.strokeStyle = pass ? 'rgba(255,255,255,.95)' : 'rgba(0,0,0,.5)'; c.lineWidth = pass ? 1.8 : 4; c.stroke();
+    }
+  }
+  function fallback() {
+    stop();
+    try {
+      size(); S.edge = [[0, S.H], [S.W, S.H]]; S.path = new Path2D(); S.path.rect(0, 0, S.W, S.H);
+      build(); draw(0, true); S.la = S.lb = null;
+    } catch (e2) { console.error('[WindshieldShatter] fallback failed, drawing emergency cracks', e2); try { emergency(); } catch (e3) {} }
+  }
+  // after the animation has had time to reveal itself, make sure something is actually on the canvas
+  function verify() {
+    if (!S.active || !S.cv) return;
+    try {
+      const t = document.createElement('canvas'); t.width = 64; t.height = 36;
+      const x = t.getContext('2d'); x.drawImage(S.cv, 0, 0, 64, 36);
+      const d = x.getImageData(0, 0, 64, 36).data; let n = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 6) n++;
+      if (n < 6) { console.warn('[WindshieldShatter] canvas was blank, redrawing with fallback'); fallback(); }
+    } catch (e) { /* tainted or unsupported: nothing more to do */ }
+  }
+
+  return {
+    play() {
+      if (S.active) return;
+      S.cv = document.getElementById('wc-cv'); if (!S.cv) return;
+      S.active = true; S.seed = (Math.random() * 1e9) | 0; S.fx = Math.random(); S.fy = Math.random();
+      S.anim = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+      try { layout(S.anim); } catch (e) { console.error('[WindshieldShatter] failed, using fallback', e); fallback(); }
+      setTimeout(verify, 800);
+    },
+    clear() {
+      stop(); S.active = false; S.la = S.lb = null; S.parts = [];
+      if (S.cv && S.cx) { S.cx.setTransform(1, 0, 0, 1, 0, 0); S.cx.clearRect(0, 0, S.cv.width, S.cv.height); }
+    },
+    relayout() { if (!S.active) return; stop(); try { layout(false); } catch (e) {} }
+  };
+})();
+addEventListener('resize', () => { clearTimeout(WindshieldShatter._rt); WindshieldShatter._rt = setTimeout(() => WindshieldShatter.relayout(), 160); });
+
+// console helper: type shatterTest() to preview the cracked glass without crashing
+window.shatterTest = () => { hideWindshieldCrack(); showWindshieldCrack(); };
+
+function showWindshieldCrack() {
+  const el = document.querySelector('div#windshield-crack');
+  if (!el) return;
+  el.classList.add('on');
+  el.style.display = 'block';
+  el.style.visibility = 'visible';
+  el.style.opacity = '1';
+  document.body.classList.add('crashed');
+  try { WindshieldShatter.play(); } catch (e) {}   // no-op if this crash already shattered the glass
+}
+function hideWindshieldCrack() {
+  const el = document.querySelector('div#windshield-crack');
+  if (!el) return;
+  el.classList.remove('on');
+  el.style.opacity = '0';
+  el.style.display = 'none';
+  try { WindshieldShatter.clear(); } catch (e) {}
+  document.body.classList.remove('crashed');
+}
+function fatalImpact(reason) {
+  if (dead && document.getElementById('crash')?.style.display === 'flex') return;
+  dead = true;
+  run = false;
+  paused = false;
+  showWindshieldCrack();
+  shake = 1.2;
+  spd = Math.min(spd, 8);
+  pvx *= 0.2;
+  crashSnd();
+  // Show cracked glass, then the crash panel
+  setTimeout(() => {
+    try { doCrash(reason || 'CRASHED!'); } catch (e) {
+      const panel = document.getElementById('crash');
+      if (panel) {
+        const h2 = panel.querySelector('h2');
+        if (h2) h2.textContent = reason || 'CRASHED!';
+        panel.style.display = 'flex';
+      }
+    }
+  }, 350);
+}
+
 function doCrash(why) {
   dead = true; run = false; paused = false; shake = 1; combo = 0; pvx = 0;
   crashSnd();
@@ -7692,12 +8403,22 @@ function doCrash(why) {
   if (tipEl) {
     let tip = 'Brake earlier, then feed throttle out of the bend.';
     if (/TIME/i.test(reason)) tip = 'Overtakes and clean laps add time. Chain combos when the clock is low.';
+    else if (/RAMMED|OFF THE ROAD/i.test(reason)) tip = 'Traffic can shove you off the asphalt. Leave room on the outside when cars are alongside.';
+    else if (/REAR-END|TRUCK|COLLISION/i.test(reason)) tip = 'Closing speed kills. Lift earlier behind trucks and buses — they do not yield.';
     else if (/OFF|ROAD/i.test(reason)) tip = 'Ease off before the edge. Rumble means you are on the paint — steer back to center.';
     else if (/CRASH/i.test(reason)) tip = 'Leave space on passes. Close is good — contact costs speed and time.';
     tipEl.textContent = tip;
+    // Keep cracked glass visible under the crash panel for a moment
+    showWindshieldCrack();
   }
   document.getElementById('crash').style.display = 'flex';
-  hideHud();
+  // Keep the 3D cockpit view + cracked glass; only tuck chrome controls
+  ['hud-top', 'minimap', 'mirror', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'view-btn', 'touch-controls', 'mission'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'none';
+  });
+  const dash = document.getElementById('dash');
+  if (dash) { dash.style.display = 'block'; dash.style.visibility = 'visible'; }
+  showWindshieldCrack();
 }
 
 let _smoothDt = 1 / 60;
@@ -7844,7 +8565,7 @@ function showUI(on) {
   document.getElementById('hud-top').style.display = on ? 'flex' : 'none';
   document.getElementById('minimap').style.display = d;
   document.getElementById('mirror').style.display = d;
-  document.getElementById('hood').style.display = cameraView === 1 ? 'block' : 'none';
+  document.getElementById('hood').style.display = 'none';
   document.getElementById('mode-btn').style.display = d;
   document.getElementById('pause-btn').style.display = d;
   document.getElementById('car-btn').style.display = d;
@@ -7867,6 +8588,7 @@ function togglePause() {
 }
 
 function start() {
+  hideWindshieldCrack();
   try {
     initAudio();
   } catch (error) {
