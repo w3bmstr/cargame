@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-dualsteer-gfx2">
+<html lang="en" data-build="cd3-mobile-dash-v3">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
@@ -209,8 +209,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;
   background:rgba(0,0,0,.55);border:1px solid #555;border-radius:6px;color:#ccc;
 }
-/* Mobile controls: pedals + nitro live ON the dash face (not floating over the road).
-   Steering is pure phone-tilt — no on-screen arrows. Desktop never shows these. */
+/* ==========================================================================
+   MOBILE DASH + WHEEL + PEDALS (touch / coarse pointer)
+   Desktop keeps the full sculpted cockpit; phones get a purpose-built layout:
+   - large draggable steering wheel, centered
+   - instrument cluster parked above the rim
+   - brake + nitro left bay, gas right bay, all on the dash face
+   ========================================================================== */
 #touch-controls{
   display:none;
   position:absolute;
@@ -262,136 +267,231 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   border-color:rgba(100,220,255,.5);
 }
 
-/* Mobile dash: pedals + nitro in the dash bays; taller panel; centered wheel */
 @media (hover: none), (pointer: coarse) {
+  /* ----- Dash shell: taller, cleaner, room for a real wheel ----- */
   #dash{
-    height:37% !important;
-    --wd:min(42vh,60vw) !important;
-    --cx:50% !important;
-    --cyk:.42 !important;
-    --gd:calc(var(--wd)*.20) !important;
-    --md:calc(var(--wd)*.10) !important;
+    height: min(42vh, 280px) !important;
+    --wd: min(46vh, 58vw) !important;   /* wheel diameter */
+    --cx: 50% !important;
+    --cyk: 0.46 !important;             /* wheel vertical anchor */
+    --gd: calc(var(--wd) * 0.18) !important;
+    --md: calc(var(--wd) * 0.09) !important;
+    --rim: calc(var(--wd) * 0.09) !important;
+    background:
+      linear-gradient(180deg, #2a3138 0%, #14181c 28%, #0a0c0e 100%) !important;
+    border-top: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      0 -10px 28px rgba(0,0,0,.55) !important;
+    border-radius: 18px 18px 0 0 !important;
+    overflow: visible !important;
   }
-  /* Wheel is a live control surface on phones */
-  #dash #wheel{
-    pointer-events:auto !important;
-    touch-action:none !important;
-    cursor:grab;
-    -webkit-user-select:none;user-select:none;
+  #dash-inner{
+    max-width: 100% !important;
+    overflow: visible !important;
+    pointer-events: none;
   }
-  #dash-inner{pointer-events:none}
-  #dash #wheel,.touch-control,#tilt-status{pointer-events:auto !important}
+  #dash-shell{
+    height: 100% !important;
+    opacity: 0.92;
+    filter: drop-shadow(0 -6px 16px rgba(0,0,0,.55));
+  }
+  #dash-fx{ opacity: 0.75; }
+  #dash-boost{ opacity: 0.9; }
 
-  #dash #wheel:active{cursor:grabbing}
-  #dash #wheel.wheel-dragging{
-    filter:brightness(1.08) drop-shadow(0 0 12px rgba(126,220,255,.35));
+  /* Hide chrome that fights the mobile layout */
+  #vent,
+  #steering-column,
+  .dash-card,
+  #console,
+  #headlight-sweep,
+  .lamp{
+    display: none !important;
   }
-  #wheel-svg{pointer-events:none}
+  #wheel-shadow{ opacity: 0.4; }
 
-  #dash-inner{max-width:100% !important}
-  #vent{display:none !important}
-  #console{
-    display:flex !important;
-    right:2% !important;left:auto !important;
-    bottom:auto !important;top:6% !important;
-    width:min(28vw,140px) !important;
-    padding:4px 6px !important;
-    gap:4px !important;
-    transform:scale(.9);
-    transform-origin:top right;
-    opacity:.88;
-    z-index:5;
-  }
-  #console .mini-row{gap:2px}
-  #console #boost-label,
-  #console #boost-bar{display:none !important}
-  #console-telemetry{font-size:8px;padding:2px 4px}
-  .dash-card{display:none !important}
-  #steering-column{display:none !important}
-  #wheel-shadow{opacity:.35}
-  #dash #wheel{
-    left:50% !important;
-    width:var(--wd) !important;height:var(--wd) !important;
-    bottom:calc(var(--wd)*(var(--cyk) - .5)) !important;
-  }
+  /* ----- Instrument cluster: compact, above the rim ----- */
   #cluster{
-    left:50% !important;
-    bottom:calc(var(--wd)*(var(--cyk) + .10)) !important;
-    gap:calc(var(--wd)*.01) !important;
-    padding:calc(var(--wd)*.015) calc(var(--wd)*.02) !important;
+    left: 50% !important;
+    bottom: calc(var(--wd) * (var(--cyk) + 0.08)) !important;
+    transform: translateX(-50%);
+    gap: calc(var(--wd) * 0.012) !important;
+    padding: calc(var(--wd) * 0.012) calc(var(--wd) * 0.018) !important;
+    border-radius: calc(var(--wd) * 0.2) calc(var(--wd) * 0.2) calc(var(--wd) * 0.04) calc(var(--wd) * 0.04);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,.06), transparent 60%),
+      linear-gradient(180deg, #0c0e11, #050607) !important;
+    border: 1px solid #2c3238 !important;
+    box-shadow:
+      inset 0 calc(var(--wd) * 0.02) calc(var(--wd) * 0.04) #000,
+      0 4px 14px rgba(0,0,0,.65) !important;
+    z-index: 5 !important;
   }
-  #cluster-mid{width:calc(var(--wd)*.14)}
-  #cluster-mid #speed-readout{font-size:calc(var(--wd)*.048)}
+  #cluster::before,
+  #cluster::after{ display: none !important; }
+  #cluster .gauge{
+    width: var(--gd) !important;
+    height: var(--gd) !important;
+  }
+  #cluster-mid{
+    width: calc(var(--wd) * 0.16) !important;
+    gap: 2px !important;
+  }
+  #cluster-mid #speed-readout{
+    font-size: calc(var(--wd) * 0.055) !important;
+    padding: 2px 0 !important;
+    min-width: 0 !important;
+    background: rgba(0,0,0,.55) !important;
+    border-radius: 6px;
+  }
+  #cluster-mid #dash-status{
+    font-size: max(7px, calc(var(--wd) * 0.018)) !important;
+  }
+  #cluster-mid #dash-caption{ display: none !important; }
+  #shift-lights{
+    top: calc(var(--wd) * -0.02) !important;
+    transform: translateX(-50%) scale(0.9);
+  }
+
+  /* ----- Steering wheel: large, centered, touch-draggable ----- */
+  #dash #wheel{
+    left: 50% !important;
+    width: var(--wd) !important;
+    height: var(--wd) !important;
+    bottom: calc(var(--wd) * (var(--cyk) - 0.5)) !important;
+    z-index: 8 !important;
+    pointer-events: auto !important;
+    touch-action: none !important;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+    /* Base pose only — JS drives rotateZ for steering (do not use !important here) */
+    transform: translateX(-50%) perspective(calc(var(--wd) * 1.55)) rotateX(32deg) rotateZ(0deg);
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.75));
+  }
+  #dash #wheel:active,
+  #dash #wheel.wheel-dragging{ cursor: grabbing; }
+  #dash #wheel.wheel-dragging{
+    filter: brightness(1.1) drop-shadow(0 0 14px rgba(126,220,255,.4)) drop-shadow(0 8px 18px rgba(0,0,0,.75));
+  }
+  #wheel-svg{
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  #wheel-shadow{
+    left: 50% !important;
+    width: var(--wd) !important;
+    height: var(--wd) !important;
+    bottom: calc(var(--wd) * (var(--cyk) - 0.5)) !important;
+    transform: translate(calc(var(--wd) * -0.5), calc(var(--wd) * 0.03)) perspective(calc(var(--wd) * 1.55)) rotateX(32deg) !important;
+    z-index: 6 !important;
+  }
+  #yoke-hud{
+    width: 28% !important;
+    padding: 3px 2px !important;
+  }
+
+  /* ----- Pedal bays on the dash face ----- */
   #touch-controls{
-    position:absolute !important;
-    inset:0 !important;
-    z-index:14 !important;
-    pointer-events:none;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 15 !important;
+    pointer-events: none;
   }
   .touch-control{
-    font-size:clamp(16px,3.6vw,22px);
-    backdrop-filter:none !important;
-    -webkit-backdrop-filter:none !important;
+    font-size: clamp(15px, 3.2vw, 22px);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    pointer-events: auto !important;
   }
-  .touch-control small{font-size:clamp(7px,1.4vw,10px);letter-spacing:.1em}
+  .touch-control small{
+    font-size: clamp(7px, 1.3vw, 10px);
+    letter-spacing: 0.1em;
+  }
+  /* Gas — right thumb */
   .touch-control.gas{
-    right:1.8% !important;left:auto !important;
-    bottom:7% !important;top:auto !important;
-    width:clamp(68px,17vw,110px) !important;
-    height:clamp(84px,48%,120px) !important;
-    border-radius:14px 18px 18px 14px !important;
-    border-width:2px;
+    right: max(6px, env(safe-area-inset-right, 0px) + 4px) !important;
+    left: auto !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
+    top: auto !important;
+    width: clamp(64px, 15vw, 100px) !important;
+    height: clamp(78px, 46%, 118px) !important;
+    border-radius: 14px 18px 16px 12px !important;
+    border-width: 2px;
     box-shadow:
-      inset 0 2px 0 rgba(255,255,255,.12),
-      inset 0 -10px 16px rgba(0,0,0,.45),
-      0 6px 16px rgba(0,0,0,.5);
+      inset 0 2px 0 rgba(255,255,255,.14),
+      inset 0 -12px 18px rgba(0,0,0,.5),
+      0 6px 16px rgba(0,0,0,.55);
   }
+  /* Brake — left thumb */
   .touch-control.brake{
-    left:1.8% !important;right:auto !important;
-    bottom:7% !important;top:auto !important;
-    width:clamp(60px,15vw,96px) !important;
-    height:clamp(68px,38%,100px) !important;
-    border-radius:18px 14px 14px 18px !important;
-    border-width:2px;
+    left: max(6px, env(safe-area-inset-left, 0px) + 4px) !important;
+    right: auto !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
+    top: auto !important;
+    width: clamp(56px, 13vw, 88px) !important;
+    height: clamp(64px, 36%, 96px) !important;
+    border-radius: 18px 12px 12px 16px !important;
+    border-width: 2px;
     box-shadow:
-      inset 0 2px 0 rgba(255,255,255,.12),
-      inset 0 -10px 16px rgba(0,0,0,.45),
-      0 6px 16px rgba(0,0,0,.5);
+      inset 0 2px 0 rgba(255,255,255,.14),
+      inset 0 -12px 18px rgba(0,0,0,.5),
+      0 6px 16px rgba(0,0,0,.55);
   }
+  /* Nitro — above brake */
   .touch-control.boost{
-    left:1.8% !important;right:auto !important;
-    bottom:calc(7% + clamp(68px,38%,100px) + 8px) !important;
-    top:auto !important;
-    width:clamp(48px,12vw,72px) !important;
-    height:clamp(48px,12vw,72px) !important;
-    aspect-ratio:auto !important;
-    border-radius:50% !important;
-    font-size:clamp(15px,3.4vw,22px) !important;
+    left: max(6px, env(safe-area-inset-left, 0px) + 4px) !important;
+    right: auto !important;
+    bottom: calc(max(8px, env(safe-area-inset-bottom, 0px) + 6px) + clamp(64px, 36%, 96px) + 8px) !important;
+    top: auto !important;
+    width: clamp(46px, 11vw, 68px) !important;
+    height: clamp(46px, 11vw, 68px) !important;
+    aspect-ratio: auto !important;
+    border-radius: 50% !important;
+    font-size: clamp(14px, 3vw, 20px) !important;
     box-shadow:
-      inset 0 2px 0 rgba(255,255,255,.15),
-      0 0 14px rgba(40,160,255,.25),
-      0 4px 12px rgba(0,0,0,.5);
+      inset 0 2px 0 rgba(255,255,255,.16),
+      0 0 16px rgba(40,160,255,.3),
+      0 4px 12px rgba(0,0,0,.55);
   }
+
+  /* Tilt pill sits just above the dash */
   #tilt-status{
-    bottom:calc(37% + env(safe-area-inset-bottom,0px) + 6px) !important;
+    bottom: calc(min(42vh, 280px) + env(safe-area-inset-bottom, 0px) + 8px) !important;
+    z-index: 42 !important;
+    pointer-events: auto !important;
   }
-  @media (max-height:420px){
-    #dash{height:40% !important;--wd:min(32vh,48vw) !important}
-    #tilt-status{bottom:calc(40% + env(safe-area-inset-bottom,0px) + 4px) !important}
-    .touch-control.gas{height:clamp(64px,50%,100px) !important}
-    .touch-control.brake{height:clamp(56px,38%,88px) !important}
+
+  /* Short landscape phones */
+  @media (max-height: 420px) {
+    #dash{
+      height: min(48vh, 240px) !important;
+      --wd: min(40vh, 50vw) !important;
+      --cyk: 0.40 !important;
+    }
+    #tilt-status{
+      bottom: calc(min(48vh, 240px) + env(safe-area-inset-bottom, 0px) + 4px) !important;
+    }
+    .touch-control.gas{ height: clamp(60px, 42%, 92px) !important; }
+    .touch-control.brake{ height: clamp(52px, 32%, 78px) !important; }
     .touch-control.boost{
-      bottom:calc(8% + clamp(56px,38%,88px) + 6px) !important;
-      width:clamp(44px,12vw,64px) !important;
-      height:clamp(44px,12vw,64px) !important;
+      bottom: calc(max(6px, env(safe-area-inset-bottom, 0px) + 4px) + clamp(52px, 32%, 78px) + 6px) !important;
+      width: clamp(40px, 10vw, 56px) !important;
+      height: clamp(40px, 10vw, 56px) !important;
     }
   }
-  @media (max-width:700px){
-    #console{display:none !important}
+
+  /* Very narrow landscape */
+  @media (max-width: 640px) {
+    #dash{ --wd: min(44vh, 62vw) !important; }
+    .touch-control.gas{ width: clamp(58px, 16vw, 90px) !important; }
+    .touch-control.brake{ width: clamp(52px, 14vw, 80px) !important; }
   }
 }
 
-/* Tilt status pill (all devices; only shown on mobile via JS) */
+/* Tilt status pill */
 #tilt-status{
   position:fixed;left:50%;
   bottom:calc(27% + env(safe-area-inset-bottom,0px) + 10px);
@@ -1532,7 +1632,7 @@ body.crashed #glass-reflection {
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
   <div class="keys">Desktop: Steer <b>A/D</b> or arrows · Gas <b>W</b> · Brake <b>S / Space</b> · Boost <b>Shift</b><br>
   Mobile: <b>tilt</b> and/or <b>drag the wheel</b> · gas / brake / nitro on the dash<br>
-  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · build dualsteer-gfx2</span></div>
+  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · build dash-v3</span></div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
