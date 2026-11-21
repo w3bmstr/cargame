@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v9bbbb">
+<html lang="en" data-build="cd3-mobile-layout-v10bbbb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -523,9 +523,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   }
   /* Nitro — above brake */
   .touch-control.boost{
-    left: max(6px, env(safe-area-inset-left, 0px) + 4px) !important;
-    right: auto !important;
-    bottom: calc(max(8px, env(safe-area-inset-bottom, 0px) + 6px) + clamp(64px, 36%, 96px) + 8px) !important;
+    left: auto !important;
+    right: calc(max(6px, env(safe-area-inset-right, 0px) + 4px) + clamp(64px, 15vw, 100px) + 8px) !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
     top: auto !important;
     width: clamp(46px, 11vw, 68px) !important;
     height: clamp(46px, 11vw, 68px) !important;
@@ -568,7 +568,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
     .touch-control.gas{ height: clamp(60px, 42%, 92px) !important; }
     .touch-control.brake{ height: clamp(52px, 32%, 78px) !important; }
     .touch-control.boost{
-      bottom: calc(max(6px, env(safe-area-inset-bottom, 0px) + 4px) + clamp(52px, 32%, 78px) + 6px) !important;
+      left: auto !important;
+      right: calc(max(6px, env(safe-area-inset-right, 0px) + 4px) + clamp(58px, 16vw, 90px) + 6px) !important;
+      bottom: max(6px, env(safe-area-inset-bottom, 0px) + 4px) !important;
       width: clamp(40px, 10vw, 56px) !important;
       height: clamp(40px, 10vw, 56px) !important;
     }
@@ -1744,15 +1746,58 @@ body.crashed #glass-reflection {
   }
   #hud-top { padding-top: max(6px, env(safe-area-inset-top, 0px) + 4px) !important; }
 
-  /* Pedals — keep your preferred corners */
+  /* Pedals: brake left; gas + nitro stacked on the right */
   body.mobile-game-active .touch-control.gas {
     right: max(8px, env(safe-area-inset-right, 0px) + 6px) !important;
     left: auto !important;
   }
-  body.mobile-game-active .touch-control.brake,
-  body.mobile-game-active .touch-control.boost {
+  body.mobile-game-active .touch-control.brake {
     left: max(8px, env(safe-area-inset-left, 0px) + 6px) !important;
     right: auto !important;
+  }
+  /* Nitro sits beside gas (to its left), same row — not above */
+  body.mobile-game-active .touch-control.boost,
+  .touch-control.boost {
+    left: auto !important;
+    right: calc(max(8px, env(safe-area-inset-right, 0px) + 6px) + clamp(64px, 15vw, 100px) + 8px) !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
+    top: auto !important;
+    width: clamp(46px, 11vw, 68px) !important;
+    height: clamp(46px, 11vw, 68px) !important;
+  }
+
+  /* Horn = brake pad in the center of the wheel */
+  #wheel-horn {
+    display: flex !important;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    width: 28%;
+    max-width: 72px;
+    aspect-ratio: 1;
+    height: auto;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 120, 100, 0.45);
+    background: radial-gradient(circle at 50% 35%, #3a2220, #120a0a 70%);
+    color: #ffb0a0;
+    font-size: clamp(8px, 1.8vw, 11px);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    box-shadow: inset 0 1px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.55);
+  }
+  #wheel-horn.active {
+    filter: brightness(1.35);
+    border-color: #ff8a70;
+    box-shadow: 0 0 12px rgba(255,80,60,.45), inset 0 1px rgba(255,255,255,.16);
   }
 
   @media (max-height: 420px) {
@@ -1762,6 +1807,10 @@ body.crashed #glass-reflection {
 }
 
 #wheel-tilt { display: none !important; }
+#wheel-horn { display: none; }
+@media (hover: none), (pointer: coarse) {
+  #wheel-horn { display: flex !important; }
+}
 </style>
 </head>
 <body>
@@ -1871,6 +1920,7 @@ body.crashed #glass-reflection {
         <span id="wheel-tilt-text">TILT</span>
         <span id="wheel-tilt-track"><i id="wheel-tilt-dot"></i></span>
       </div>
+      <button type="button" id="wheel-horn" aria-label="Brake (horn)" title="Hold to brake">HORN</button>
     </div>
 
     <div id="console">
@@ -2574,7 +2624,7 @@ let touchOn = false, touchSteer = 0, btnRamp = 0;
 let tiltSteer = 0, tiltRaw = 0, tiltZero = null, tiltReady = false, tiltPermission = 'unknown', tiltFiltered = 0, tiltCalSamples = [], tiltCalibrating = false;
 let tiltLastEvent = 0;
 // Mobile dual steering: tilt AND/OR drag the on-screen wheel.
-let wheelSteer = 0, wheelTouching = false, wheelPointerId = null, wheelGrabAng = 0, wheelGrabSteer = 0;
+let wheelSteer = 0, wheelTouching = false, wheelPointerId = null, wheelGrabAng = 0, wheelGrabSteer = 0, wheelGas = false, wheelBrake = false;
 // ?debug shows a small readout: fps, speed, time left, and how many game-seconds pass per real second (should be ~1.00).
 const DEBUG = /[?&]debug\b/.test(location.search);
 let dbgGame = 0, dbgReal = 0, dbgFrames = 0, dbgAcc = 0, dbgEl = null;
@@ -7928,7 +7978,7 @@ function update(dt) {
     if (countdown > 0) { tickAudio(); return; }
   }
 
-  const gasIn = kU ? 1 : padGas, brakeIn = kD ? 1 : padBrake;
+  const gasIn = (kU || wheelGas) ? 1 : padGas, brakeIn = (kD || wheelBrake) ? 1 : padBrake;
   const wasBoost = boosting;
   boosting = (kB || padBoost) && boost > 3 && spd > 5;
   // Nitro: strong shove, moderate drain; regenerates faster when coasting than when on throttle
@@ -8601,7 +8651,7 @@ function updateFreeDriveHud() {
 function tickCoach(dt) {
   if (story || coachStep >= 4 || !run || dead || paused || countdown > 0) return;
   coachT += dt;
-  if (coachStep === 0 && coachT > 0.4) { flash(isMobile ? 'DRAG THE WHEEL TO STEER' : 'STEER · A/D OR ARROWS'); coachStep = 1; coachT = 0; }
+  if (coachStep === 0 && coachT > 0.4) { flash(isMobile ? 'HOLD WHEEL · HORN TO BRAKE' : 'STEER · A/D OR ARROWS'); coachStep = 1; coachT = 0; }
   else if (coachStep === 1 && coachT > 3.2) { flash('BOOST · HOLD SHIFT'); coachStep = 2; coachT = 0; }
   else if (coachStep === 2 && coachT > 3.2) { flash('OVERTAKE TRAFFIC · BUILD COMBOS'); coachStep = 3; coachT = 0; }
   else if (coachStep === 3 && coachT > 3.2) { flash('STAY ON THE ROAD'); coachStep = 4; }
@@ -9215,7 +9265,7 @@ function togglePause() {
   document.getElementById('pause').style.display = paused ? 'flex' : 'none';
   document.getElementById('pause-btn').textContent = paused ? 'RESUME' : 'PAUSE';
   if (paused) {
-    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0; tiltSteer = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null;
+    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0; tiltSteer = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
     document.querySelectorAll('.touch-control').forEach(button => button.classList.remove('active'));
   } else {
     // Resume: restore landscape fullscreen on mobile so play stays immersive
@@ -9253,7 +9303,7 @@ function start() {
   resetGlass();
   countdown = 3; cdShown = -1; topSpd = 0;
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
-  kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; tiltSteer = tiltFiltered = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null;
+  kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; tiltSteer = tiltFiltered = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
   document.getElementById('pause').style.display = 'none';
   document.getElementById('pause-btn').textContent = 'PAUSE';
   spawnTraffic();
@@ -9653,8 +9703,9 @@ function init() {
   // ---- Touch / drag the on-screen wheel to steer (mobile + desktop) ----
   (function setupWheelSteer() {
     const el = document.getElementById('wheel');
+    const horn = document.getElementById('wheel-horn');
     if (!el) return;
-    let grabX = 0, grabY = 0, grabSteer = 0, grabAng = 0;
+    let grabX = 0, grabSteer = 0, grabAng = 0;
     const FULL_PX = () => Math.max(48, el.getBoundingClientRect().width * 0.38);
     const angAt = (ev) => {
       const r = el.getBoundingClientRect();
@@ -9664,14 +9715,15 @@ function init() {
     const onDown = (ev) => {
       if (paused || dead || !run) return;
       if (ev.target && ev.target.closest && ev.target.closest('.touch-control')) return;
-      // Only primary finger / left button
+      // Center horn is brake — handled separately
+      if (ev.target && (ev.target === horn || (ev.target.closest && ev.target.closest('#wheel-horn')))) return;
       if (ev.pointerType === 'mouse' && ev.button !== 0) return;
       ev.preventDefault();
       ev.stopPropagation();
       wheelTouching = true;
+      wheelGas = true; // holding the wheel = gas
       wheelPointerId = ev.pointerId;
       grabX = ev.clientX;
-      grabY = ev.clientY;
       grabSteer = wheelSteer;
       grabAng = angAt(ev);
       el.classList.add('wheel-dragging');
@@ -9680,22 +9732,19 @@ function init() {
     const onMove = (ev) => {
       if (!wheelTouching || ev.pointerId !== wheelPointerId) return;
       ev.preventDefault();
-      // Horizontal drag is the primary, most reliable mobile control
       const dx = (ev.clientX - grabX) / FULL_PX();
-      // Optional: a little rotational assist for rim twists
       let dAng = angAt(ev) - grabAng;
       while (dAng > Math.PI) dAng -= Math.PI * 2;
       while (dAng < -Math.PI) dAng += Math.PI * 2;
-      const fromAng = -dAng / (70 * Math.PI / 180);
-      // Blend: drag dominates
-      const blended = grabSteer + dx * 1.05 + fromAng * 0.25;
-      // Clockwise / drag-right => turn right => negative game steer is already in dx if left is positive?
-      // Game: positive steerValue = left. Drag right (positive dx) should turn right = negative.
+      const fromAng = dAng / (70 * Math.PI / 180);
+      // Drag right / clockwise => right turn => negative game steer
       wheelSteer = Math.max(-1, Math.min(1, grabSteer - dx * 1.15 - fromAng * 0.2));
+      wheelGas = true;
     };
     const onUp = (ev) => {
       if (wheelPointerId !== null && ev.pointerId !== wheelPointerId) return;
       wheelTouching = false;
+      wheelGas = false; // let go of wheel = let go of gas (pedal gas still works)
       wheelPointerId = null;
       el.classList.remove('wheel-dragging');
     };
@@ -9704,6 +9753,26 @@ function init() {
     el.addEventListener('pointerup', onUp);
     el.addEventListener('pointercancel', onUp);
     el.addEventListener('lostpointercapture', onUp);
+
+    // Horn / center of wheel = brake (dual with pedal)
+    if (horn) {
+      const hornDown = (ev) => {
+        if (paused || dead || !run) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        wheelBrake = true;
+        horn.classList.add('active');
+        try { horn.setPointerCapture(ev.pointerId); } catch (_) {}
+      };
+      const hornUp = (ev) => {
+        wheelBrake = false;
+        horn.classList.remove('active');
+      };
+      horn.addEventListener('pointerdown', hornDown, { passive: false });
+      horn.addEventListener('pointerup', hornUp);
+      horn.addEventListener('pointercancel', hornUp);
+      horn.addEventListener('lostpointercapture', hornUp);
+    }
   })();
 
   document.getElementById('mode-btn').onclick = () => {
