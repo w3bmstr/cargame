@@ -209,18 +209,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;
   background:rgba(0,0,0,.55);border:1px solid #555;border-radius:6px;color:#ccc;
 }
-/* Mobile controls: a single low-profile control pod seated on the dashboard, not over the road. */
-#touch-controls{position:fixed;right:16%;bottom:calc(18% + env(safe-area-inset-bottom));top:auto;display:none;align-items:center;justify-content:center;gap:5px;z-index:40;pointer-events:auto;touch-action:none;padding:6px;border:1px solid rgba(180,215,225,.22);border-radius:15px;background:linear-gradient(180deg,rgba(23,32,39,.82),rgba(5,10,15,.88));box-shadow:0 5px 18px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.touch-control{width:clamp(42px,6vw,52px);height:clamp(36px,6.2vh,44px);min-width:42px;min-height:36px;border:1px solid rgba(210,235,255,.25);border-radius:9px;background:linear-gradient(180deg,rgba(42,54,64,.92),rgba(10,16,22,.96));color:#f3f7fa;font-size:15px;font-weight:900;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.12);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;padding:2px}
-.touch-control small{font-size:6px;letter-spacing:.09em;line-height:1;opacity:.82}
-.touch-control:active,.touch-control.active{filter:brightness(1.35);transform:translateY(1px);border-color:#a8eaff;box-shadow:0 0 0 1px rgba(130,220,255,.2),0 0 12px rgba(50,180,255,.18)}
-.touch-control.gas{background:linear-gradient(180deg,rgba(24,105,72,.94),rgba(5,37,26,.98));border-color:rgba(120,255,190,.34)}
-.touch-control.steer{color:#d9e8f4;background:linear-gradient(180deg,rgba(45,67,83,.96),rgba(12,24,34,.98));border-color:rgba(150,205,235,.34)}
-.touch-control.boost{color:#9beaff;background:linear-gradient(180deg,rgba(0,78,130,.94),rgba(2,22,45,.98));border-color:rgba(100,220,255,.38)}
-.touch-control.brake{background:linear-gradient(180deg,rgba(104,49,48,.9),rgba(38,13,15,.97));border-color:rgba(255,150,140,.3)}
-#tilt-status{position:fixed;left:50%;bottom:calc(27% + env(safe-area-inset-bottom) + 8px);transform:translateX(-50%);z-index:41;padding:4px 9px;border:1px solid rgba(120,210,255,.22);border-radius:99px;background:rgba(0,8,16,.78);color:#bdeeff;font-size:8px;font-weight:800;letter-spacing:.1em;pointer-events:auto;touch-action:manipulation;white-space:nowrap}
-@media (max-height:500px){#touch-controls{bottom:calc(17% + env(safe-area-inset-bottom));right:16%;gap:4px;padding:5px}.touch-control{width:44px;height:38px;min-width:42px;min-height:36px}#tilt-status{bottom:calc(31% + 3px)}}
-@media (max-width:520px) and (orientation:landscape){#touch-controls{right:16%;bottom:calc(17% + env(safe-area-inset-bottom));}.touch-control{width:44px;height:38px}}
+/* Mobile controls: thumb-zone pedals in the bottom corners. Steering is by tilt; the arrows only show if tilt is unavailable. */
+#touch-controls{--edge-l:calc(env(safe-area-inset-left,0px) + 18px);--edge-r:calc(env(safe-area-inset-right,0px) + 18px);--edge-b:calc(env(safe-area-inset-bottom,0px) + 14px);--gasW:clamp(124px,21vw,190px);--gasH:clamp(108px,34vh,150px);--brkW:clamp(104px,17vw,156px);--brkH:clamp(88px,28vh,124px);--nitro:clamp(70px,21vh,94px);position:fixed;inset:0;display:none;z-index:40;pointer-events:none;touch-action:none}
+.touch-control{position:absolute;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:0;color:#f3f7fa;font-weight:900;font-size:30px;line-height:1;border:1px solid rgba(210,235,255,.3);box-shadow:0 6px 18px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.16);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:.88;transition:transform .06s ease,filter .06s ease,opacity .06s ease}
+.touch-control small{font-size:11px;letter-spacing:.14em;line-height:1;opacity:.9}
+.touch-control:active,.touch-control.active{opacity:1;filter:brightness(1.4);transform:scale(.95);border-color:#a8eaff;box-shadow:0 0 0 2px rgba(130,220,255,.28),0 0 22px rgba(50,180,255,.3),inset 0 1px rgba(255,255,255,.16)}
+.touch-control.gas{right:var(--edge-r);bottom:var(--edge-b);width:var(--gasW);height:var(--gasH);border-radius:24px;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 3px,transparent 3px 11px),linear-gradient(180deg,rgba(28,125,86,.95),rgba(5,42,29,.98));border-color:rgba(120,255,190,.4)}
+.touch-control.brake{left:var(--edge-l);bottom:var(--edge-b);width:var(--brkW);height:var(--brkH);border-radius:22px;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 3px,transparent 3px 11px),linear-gradient(180deg,rgba(128,52,50,.95),rgba(42,13,15,.98));border-color:rgba(255,150,140,.4)}
+.touch-control.boost{left:calc(var(--edge-l) + (var(--brkW) - var(--nitro))/2);bottom:calc(var(--edge-b) + var(--brkH) + 14px);width:var(--nitro);height:var(--nitro);border-radius:50%;font-size:28px;color:#9beaff;background:radial-gradient(circle at 50% 30%,rgba(10,110,180,.96),rgba(2,22,45,.98));border-color:rgba(100,220,255,.5)}
+.touch-control.steer{display:none;width:clamp(84px,14vw,120px);height:clamp(84px,28vh,110px);border-radius:20px;bottom:var(--edge-b);color:#d9e8f4;background:linear-gradient(180deg,rgba(45,67,83,.96),rgba(12,24,34,.98));border-color:rgba(150,205,235,.4)}
+#touch-left{left:var(--edge-l)}
+#touch-right{left:calc(var(--edge-l) + clamp(84px,14vw,120px) + 12px)}
+/* Tilt fallback: steering arrows bottom-left, brake slides next to the gas, nitro sits above the gas. */
+body.tilt-fallback .touch-control.steer{display:flex}
+body.tilt-fallback .touch-control.brake{left:auto;right:calc(var(--edge-r) + var(--gasW) + 12px);height:var(--gasH)}
+body.tilt-fallback .touch-control.boost{left:auto;right:calc(var(--edge-r) + (var(--gasW) - var(--nitro))/2);bottom:calc(var(--edge-b) + var(--gasH) + 14px)}
+#tilt-status{position:fixed;left:50%;bottom:calc(27% + env(safe-area-inset-bottom) + 8px);transform:translateX(-50%);z-index:41;padding:5px 11px;border:1px solid rgba(120,210,255,.22);border-radius:99px;background:rgba(0,8,16,.78);color:#bdeeff;font-size:9px;font-weight:800;letter-spacing:.1em;pointer-events:auto;touch-action:manipulation;white-space:nowrap}
+#tilt-track{display:inline-block;vertical-align:middle;position:relative;width:64px;height:6px;margin-left:9px;border-radius:3px;background:rgba(255,255,255,.18)}
+#tilt-dot{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#7edcff;box-shadow:0 0 6px rgba(126,220,255,.7)}
+@media (max-height:500px){#tilt-status{bottom:calc(31% + 3px)}}
+body.tilt-fallback #tilt-status{bottom:calc(env(safe-area-inset-bottom,0px) + 14px + clamp(108px,34vh,150px) + 12px)}
 #orientation-overlay{display:none;position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at center,#142b3a,#02060b 72%);color:#fff;align-items:center;justify-content:center;text-align:center;padding:28px}
 #orientation-overlay .rotate-icon{font-size:54px;line-height:1.2;margin-bottom:16px;display:block}
 #orientation-overlay b{display:block;font-size:clamp(22px,5vw,34px);letter-spacing:.08em}
@@ -1273,7 +1281,7 @@ body.crashed #glass-reflection {
     <div id="dash-fx"></div>
     <div id="headlight-sweep"></div>
     <div id="dash-boost"></div>
-    <div id="touch-controls" aria-label="Dashboard driving controls">
+    <div id="touch-controls" aria-label="Driving controls">
       <button type="button" class="touch-control steer" id="touch-left" data-control="left" aria-label="Hold to steer left">◀<small>LEFT</small></button>
       <button type="button" class="touch-control steer" id="touch-right" data-control="right" aria-label="Hold to steer right">▶<small>RIGHT</small></button>
       <button type="button" class="touch-control brake" id="touch-brake" data-control="brake" aria-label="Hold to brake">▼<small>BRAKE</small></button>
@@ -1341,7 +1349,7 @@ body.crashed #glass-reflection {
   <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
   <div class="keys">Steer <b>A/D</b> or arrows &nbsp;·&nbsp; Gas <b>W</b> &nbsp;·&nbsp; Brake <b>S / Space</b> &nbsp;·&nbsp; Boost <b>Shift</b><br>
-  Mobile: tilt to steer · dashboard buttons for gas, brake and nitro<br>
+  Mobile: tilt like a steering wheel · gas bottom-right · brake and nitro bottom-left<br>
   <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported</span></div>
 </div>
 <div id="crash">
@@ -1375,7 +1383,7 @@ body.crashed #glass-reflection {
   <div id="audio-settings-note">HRTF improves direction over headphones. Use Stereo (off) for speakers.</div>
   <button class="main" id="resume-btn">RESUME</button>
 </div>
-<div id="tilt-status" style="display:none" role="status">TILT STEERING · HOLD LEVEL TO CALIBRATE</div>
+<div id="tilt-status" style="display:none" role="status"><span id="tilt-text">TILT STEERING · HOLD LEVEL TO CALIBRATE</span><span id="tilt-track"><i id="tilt-dot"></i></span></div>
 <div id="orientation-overlay" aria-live="polite"><div><span class="rotate-icon">↻ ▭</span><b>ROTATE TO LANDSCAPE</b><p>CAR DRIVE 3D is designed for horizontal play. Turn your phone sideways to continue.</p></div></div>
 </body>
 <!-- Three.js core inlined below; traffic vehicles are procedural. -->
@@ -8662,46 +8670,64 @@ async function requestMobileOrientation() {
     // Orientation locking is browser/OS controlled; the rotate overlay remains the fallback.
   }
 }
-function getScreenRoll(e) {
-  const angle = (((screen.orientation && Number.isFinite(screen.orientation.angle) ? screen.orientation.angle : (Number.isFinite(window.orientation) ? window.orientation : 0)) % 360) + 360) % 360;
-  // DeviceOrientation angles are expressed in the phone's natural portrait frame.
-  // Convert that frame into the current screen frame so landscape-left/right behave consistently.
-  if (angle === 90) return -e.beta;
-  if (angle === 270) return e.beta;
-  return Number.isFinite(e.gamma) ? e.gamma : e.beta;
+function setTiltBadge(text) {
+  const t = document.getElementById('tilt-text');
+  if (t) t.textContent = text;
 }
+function setTiltFallback(on) {
+  document.body.classList.toggle('tilt-fallback', !!on);
+}
+// Steering-wheel roll (degrees, clockwise = positive) about the screen's own normal.
+// Built from the gravity direction instead of reading beta/gamma directly: in landscape, gamma sits at +/-90 degrees,
+// which is a singularity of the Euler angles and made the old readout jump and jitter. This stays smooth in every
+// screen orientation and ignores how far back the phone is tilted.
+function getScreenRollDeg(e) {
+  const rb = e.beta, rg = e.gamma;
+  if (!Number.isFinite(rb) || !Number.isFinite(rg)) return NaN;
+  const b = rb * Math.PI / 180, g = rg * Math.PI / 180;
+  // World "up" in device axes (x = right, y = up the screen in natural portrait, z = out of the screen).
+  const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b);
+  const a = (((screen.orientation && Number.isFinite(screen.orientation.angle) ? screen.orientation.angle : (Number.isFinite(window.orientation) ? window.orientation : 0)) % 360) + 360) % 360;
+  let sr, su; // up-vector along the screen's right / up axes
+  if (a === 90) { sr = -uy; su = ux; }
+  else if (a === 270) { sr = uy; su = -ux; }
+  else if (a === 180) { sr = -ux; su = -uy; }
+  else { sr = ux; su = uy; }
+  if (Math.hypot(sr, su) < 0.3) return NaN; // phone nearly flat: roll is undefined
+  return Math.atan2(-sr, su) * 180 / Math.PI;
+}
+const TILT_DEAD = 2.0, TILT_FULL = 24;   // degrees: ignore hand tremor under DEAD, full lock at FULL
+const TILT_SIGN = /[?&]tiltflip\b/.test(location.search) ? -1 : 1;   // add ?tiltflip to the URL if your phone steers backwards
+let tiltDotEl = null;
 function updateTiltFromEvent(e) {
   if (!isMobile || !run || paused || dead || !mobileLandscape()) return;
-  const v = getScreenRoll(e);
+  const v = getScreenRollDeg(e);
   if (!Number.isFinite(v)) return;
-  tiltLastEvent = performance.now();
+  const now = performance.now();
+  const dtS = tiltLastEvent ? Math.min(0.1, (now - tiltLastEvent) / 1000) : 0.016;
+  tiltLastEvent = now;
   if (tiltCalibrating) {
     tiltCalSamples.push(v);
-    if (tiltCalSamples.length >= 30) {
-      const sorted = tiltCalSamples.slice().sort((a,b)=>a-b);
-      // Trim extremes so a brief sensor spike cannot bias the centre.
-      const core = sorted.slice(3, sorted.length - 3);
-      tiltZero = core.reduce((a,b)=>a+b,0) / core.length;
+    if (tiltCalSamples.length >= 15) {
+      const sorted = tiltCalSamples.slice().sort((x, y) => x - y);
+      tiltZero = sorted[sorted.length >> 1]; // median: one sensor spike cannot bias the centre
       tiltCalibrating = false;
       tiltReady = true;
       tiltRaw = tiltFiltered = tiltSteer = 0;
-      const badge = document.getElementById('tilt-status');
-      if (badge) badge.textContent = 'TILT ACTIVE · TAP TO RECALIBRATE';
+      setTiltFallback(false);
+      setTiltBadge('TILT ACTIVE · TAP TO RECENTER');
     }
     return;
   }
   if (!tiltReady || tiltZero === null) return;
-  tiltRaw = v - tiltZero;
-  // Low-pass sensor noise, then a broad neutral zone prevents tiny hand tremors
-  // from becoming continuous steering input.
-  const alpha = 1 - Math.exp(-0.016 / 0.065);
+  tiltRaw = ((v - tiltZero + 540) % 360) - 180;
+  const alpha = 1 - Math.exp(-dtS / 0.04);
   tiltFiltered += (tiltRaw - tiltFiltered) * alpha;
-  const dead = 2.0;
-  const range = 17;
-  const magnitude = Math.max(0, Math.abs(tiltFiltered) - dead) / (range - dead);
-  const normalized = Math.min(1, magnitude);
-  const shaped = Math.sign(tiltFiltered) * Math.pow(normalized, 1.35);
-  tiltSteer = THREE.MathUtils.clamp(shaped, -0.92, 0.92);
+  const mag = Math.min(1, Math.max(0, Math.abs(tiltFiltered) - TILT_DEAD) / (TILT_FULL - TILT_DEAD));
+  // Game convention: positive steer = left, so a clockwise (right) roll is negative.
+  tiltSteer = -TILT_SIGN * Math.sign(tiltFiltered) * Math.pow(mag, 1.15);
+  if (!tiltDotEl) tiltDotEl = document.getElementById('tilt-dot');
+  if (tiltDotEl) tiltDotEl.style.transform = 'translateX(' + (-tiltSteer * 26).toFixed(1) + 'px)';
 }
 async function enableTiltSteering() {
   if (!isMobile) return;
@@ -8718,8 +8744,8 @@ async function enableTiltSteering() {
     calibrateTilt();
   } catch (e) {
     tiltPermission = 'denied';
-    const badge = document.getElementById('tilt-status');
-    if (badge) badge.textContent = 'TILT UNAVAILABLE · TOUCH LEFT / RIGHT TO STEER';
+    setTiltFallback(true);
+    setTiltBadge('TILT UNAVAILABLE · USE THE STEERING ARROWS');
   }
 }
 function calibrateTilt() {
@@ -8728,12 +8754,14 @@ function calibrateTilt() {
   tiltReady = false;
   tiltCalSamples = [];
   tiltCalibrating = true;
-  const badge = document.getElementById('tilt-status');
-  if (badge) badge.textContent = 'TILT CALIBRATING · TOUCH LEFT / RIGHT IF NEEDED';
-  // Allow slower mobile browsers to deliver their first sensor samples. Touch steering remains live.
+  setTiltBadge('HOLD STEADY · CENTERING TILT');
+  // If no sensor data ever arrives (desktop browser, http page, motion blocked), bring up the steering arrows.
   setTimeout(() => {
-    if (tiltCalibrating && badge) badge.textContent = 'TILT NOT DETECTED · TOUCH STEERING READY';
-  }, 5000);
+    if (tiltCalibrating) {
+      setTiltFallback(true);
+      setTiltBadge('TILT NOT DETECTED · USE THE STEERING ARROWS');
+    }
+  }, 3000);
 }
 
 function init() {
