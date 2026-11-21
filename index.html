@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-dash-v3">
+<html lang="en" data-build="cd3-mobile-dash-v4-center">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
@@ -293,8 +293,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   }
   #dash-shell{
     height: 100% !important;
-    opacity: 0.92;
+    width: 100vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    opacity: 0.85;
     filter: drop-shadow(0 -6px 16px rgba(0,0,0,.55));
+  }
+  /* The sculpted SVG arch peaks at ~42% (desktop GT offset). On mobile, hide it
+     so the gradient shelf reads as a centered panel under a centered wheel. */
+  #dash-shell path{
+    opacity: 0 !important;
   }
   #dash-fx{ opacity: 0.75; }
   #dash-boost{ opacity: 0.9; }
@@ -1493,6 +1501,85 @@ body.crashed #glass-reflection {
 }
 </style>
 
+
+<style id="mobile-dash-center-lock">
+/* =====================================================================
+   MOBILE DASH CENTER LOCK (must load last)
+   Desktop keeps the intentional GT offset (--cx ~42%).
+   Phones force a true center stack: shell · cluster · wheel · pedals.
+   Higher specificity + later cascade beats leftover left:38%/42% rules.
+   ===================================================================== */
+@media (hover: none), (pointer: coarse) {
+  body.mobile-game-active #dash,
+  body #dash {
+    --cx: 50% !important;
+  }
+
+  /* Kill the desktop-asymmetric binnacle silhouette; use a clean centered shelf */
+  body.mobile-game-active #dash-shell,
+  #dash #dash-shell {
+    width: 100vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    opacity: 0.88;
+  }
+  /* Soft symmetric top edge instead of the 42%-offset arch reading as "off center" */
+  body.mobile-game-active #dash-shell path:nth-of-type(1),
+  body.mobile-game-active #dash-shell path:nth-of-type(2) {
+    /* keep fill; the gradient still reads as a full-width shelf */
+  }
+
+  /* Wheel + shadow + cluster: dead-center column */
+  body.mobile-game-active #dash #wheel,
+  #dash #wheel {
+    left: 50% !important;
+    right: auto !important;
+    margin-left: 0 !important;
+    transform-origin: 50% 50% !important;
+  }
+  body.mobile-game-active #wheel-shadow,
+  #dash #wheel-shadow {
+    left: 50% !important;
+  }
+  body.mobile-game-active #cluster,
+  #dash #cluster {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+
+  /* dash-inner must not clip or offset the center column */
+  body.mobile-game-active #dash-inner,
+  #dash #dash-inner {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Pedals: mirror each other off the center wheel */
+  body.mobile-game-active .touch-control.gas {
+    right: max(8px, env(safe-area-inset-right, 0px) + 6px) !important;
+    left: auto !important;
+  }
+  body.mobile-game-active .touch-control.brake,
+  body.mobile-game-active .touch-control.boost {
+    left: max(8px, env(safe-area-inset-left, 0px) + 6px) !important;
+    right: auto !important;
+  }
+}
+
+/* Narrow phones previously forced left:38% — hard override */
+@media (hover: none), (pointer: coarse) {
+  @media (max-width: 520px) {
+    #dash { --cx: 50% !important; }
+    #dash #wheel { left: 50% !important; }
+    #dash #cluster { left: 50% !important; transform: translateX(-50%) !important; }
+    #dash #wheel-shadow { left: 50% !important; }
+  }
+}
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -1632,7 +1719,7 @@ body.crashed #glass-reflection {
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
   <div class="keys">Desktop: Steer <b>A/D</b> or arrows · Gas <b>W</b> · Brake <b>S / Space</b> · Boost <b>Shift</b><br>
   Mobile: <b>tilt</b> and/or <b>drag the wheel</b> · gas / brake / nitro on the dash<br>
-  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · build dash-v3</span></div>
+  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · build dash-v4-center</span></div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -7554,7 +7641,9 @@ function updateDash() {
   const el = document.getElementById('wheel');
   el.style.transformOrigin = '50% 50%';
   el.style.setProperty('--ang', (wheelAngle + jit).toFixed(2) + 'deg');
-  el.style.transform = `translateX(-50%) translateY(${bob.toFixed(2)}px) perspective(calc(var(--wd) * 1.72)) rotateX(36deg) rotateZ(${(wheelAngle + jit).toFixed(2)}deg)`;
+  const wheelPitch = isMobile ? 30 : 36;
+  const wheelPersp = isMobile ? 1.55 : 1.72;
+  el.style.transform = `translateX(-50%) translateY(${bob.toFixed(2)}px) perspective(calc(var(--wd) * ${wheelPersp})) rotateX(${wheelPitch}deg) rotateZ(${(wheelAngle + jit).toFixed(2)}deg)`;
   document.getElementById('boost-fill').style.width = boost + '%';
 
   // Live world-reactive cockpit lighting (headlight sweeps from traffic + brake-light bounce)
