@@ -209,13 +209,21 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;
   background:rgba(0,0,0,.55);border:1px solid #555;border-radius:6px;color:#ccc;
 }
-#touch-controls{position:absolute;left:0;right:0;bottom:calc(30% + env(safe-area-inset-bottom));display:none;justify-content:space-between;align-items:end;padding:0 max(18px,env(safe-area-inset-left)) 0 max(18px,env(safe-area-inset-right));z-index:7;pointer-events:none}
-.touch-cluster{display:flex;gap:10px;pointer-events:auto}
-.touch-control{width:clamp(58px,16vw,78px);height:clamp(54px,12vw,68px);border:1px solid rgba(255,255,255,.42);border-radius:16px;background:linear-gradient(180deg,rgba(28,52,66,.82),rgba(2,8,14,.78));color:#fff;font-size:clamp(22px,6vw,32px);font-weight:800;touch-action:none;-webkit-tap-highlight-color:transparent;box-shadow:0 6px 18px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.18)}
-.touch-control:active,.touch-control.active{background:rgba(255,80,20,.75);transform:scale(.96)}
-#touch-boost{color:#6cf}
-@media (pointer:coarse){#touch-controls{display:none!important}}
-@media (hover:hover) and (pointer:fine){#touch-controls{display:none!important}}
+#touch-controls{position:fixed;left:0;right:0;bottom:calc(29% + env(safe-area-inset-bottom));display:none;justify-content:space-between;align-items:flex-end;padding:0 max(16px,env(safe-area-inset-left)) 0 max(16px,env(safe-area-inset-right));z-index:20;pointer-events:none}
+.touch-cluster{display:flex;align-items:flex-end;gap:clamp(7px,1.5vw,14px);pointer-events:auto}
+.touch-control{width:clamp(58px,9vw,88px);height:clamp(54px,10vh,76px);min-width:58px;min-height:54px;border:1px solid rgba(210,235,255,.52);border-radius:18px;background:linear-gradient(180deg,rgba(30,58,76,.92),rgba(3,10,18,.88));color:#fff;font-size:clamp(20px,4vh,30px);font-weight:900;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;box-shadow:0 7px 20px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.2);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px}
+.touch-control small{font-size:9px;letter-spacing:.12em;line-height:1;opacity:.8}
+.touch-control:active,.touch-control.active{background:linear-gradient(180deg,rgba(0,160,220,.96),rgba(0,65,105,.96));border-color:#9ceaff;transform:scale(.96)}
+#touch-gas{width:clamp(72px,11vw,104px);height:clamp(66px,12vh,86px);background:linear-gradient(180deg,rgba(25,145,92,.96),rgba(4,50,35,.96));border-color:rgba(120,255,190,.65)}
+#touch-boost{width:clamp(64px,9vw,88px);height:clamp(62px,11vh,82px);color:#8eeaff;background:linear-gradient(180deg,rgba(0,105,190,.96),rgba(2,25,65,.96));border-color:rgba(100,220,255,.7)}
+#touch-brake{opacity:.82}
+#tilt-status{position:fixed;left:50%;bottom:calc(29% + env(safe-area-inset-bottom) + 82px);transform:translateX(-50%);z-index:20;padding:5px 10px;border:1px solid rgba(120,210,255,.25);border-radius:99px;background:rgba(0,8,16,.72);color:#bdeeff;font-size:9px;font-weight:800;letter-spacing:.14em;pointer-events:auto;touch-action:manipulation;white-space:nowrap}
+#orientation-overlay{display:none;position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at center,#142b3a,#02060b 72%);color:#fff;align-items:center;justify-content:center;text-align:center;padding:28px}
+#orientation-overlay .rotate-icon{font-size:54px;line-height:1.2;margin-bottom:16px;display:block}
+#orientation-overlay b{display:block;font-size:clamp(22px,5vw,34px);letter-spacing:.08em}
+#orientation-overlay p{margin:10px auto 0;max-width:340px;color:#c3d5e0;font-size:14px}
+@media (orientation:portrait) and (max-width:900px){body.mobile-game-active #orientation-overlay{display:flex}}
+@media (max-height:500px){#touch-controls{bottom:calc(29% + env(safe-area-inset-bottom));}.touch-control{min-height:48px;height:clamp(48px,12vh,64px)}#tilt-status{bottom:calc(29% + env(safe-area-inset-bottom) + 68px)}}
 #start,#crash,#win,#levels{
   position:absolute;inset:0;
   background:
@@ -1358,17 +1366,19 @@ body.crashed #glass-reflection {
   <div id="audio-settings-note">HRTF improves direction over headphones. Use Stereo (off) for speakers.</div>
   <button class="main" id="resume-btn">RESUME</button>
 </div>
-<div id="touch-controls" aria-label="Touch controls">
+<div id="touch-controls" aria-label="Mobile driving controls">
   <div class="touch-cluster">
-    <button class="touch-control" data-control="left" aria-label="Steer left">&larr;</button>
-    <button class="touch-control" data-control="right" aria-label="Steer right">&rarr;</button>
+    <button class="touch-control" data-control="left" aria-label="Steer left">◀<small>LEFT</small></button>
+    <button class="touch-control" data-control="right" aria-label="Steer right">▶<small>RIGHT</small></button>
   </div>
   <div class="touch-cluster">
-    <button class="touch-control" data-control="gas" aria-label="Accelerate">&uarr;</button>
-    <button class="touch-control" data-control="brake" aria-label="Brake">&darr;</button>
-    <button class="touch-control" id="touch-boost" data-control="boost" aria-label="Boost">&#9889;</button>
+    <button class="touch-control" id="touch-brake" data-control="brake" aria-label="Brake">▼<small>BRAKE</small></button>
+    <button class="touch-control" id="touch-gas" data-control="gas" aria-label="Accelerate">▲<small>GAS</small></button>
+    <button class="touch-control" id="touch-boost" data-control="boost" aria-label="Nitro boost">⚡<small>NITRO</small></button>
   </div>
 </div>
+<div id="tilt-status" style="display:none">TILT STEERING · CENTER YOUR PHONE</div>
+<div id="orientation-overlay" aria-live="polite"><div><span class="rotate-icon">↻ ▭</span><b>ROTATE TO LANDSCAPE</b><p>CAR DRIVE 3D is designed for horizontal play. Turn your phone sideways to continue.</p></div></div>
 </body>
 <!-- Three.js core inlined below; traffic vehicles are procedural. -->
 <script>
@@ -1963,6 +1973,8 @@ const SIM_HARD = /[?&(](hard|sim=hard)\b/.test(location.search);
 const ROAD_ASSIST = !SIM_HARD;
 const ASSIST = isMobile && ROAD_ASSIST;
 let touchOn = false, touchSteer = 0, btnRamp = 0;
+let tiltSteer = 0, tiltRaw = 0, tiltZero = null, tiltReady = false, tiltPermission = 'unknown';
+let tiltLastEvent = 0;
 // ?debug shows a small readout: fps, speed, time left, and how many game-seconds pass per real second (should be ~1.00).
 const DEBUG = /[?&]debug\b/.test(location.search);
 let dbgGame = 0, dbgReal = 0, dbgFrames = 0, dbgAcc = 0, dbgEl = null;
@@ -2052,7 +2064,8 @@ function goFS() {
   if (!document.fullscreenElement && t.requestFullscreen) t.requestFullscreen().catch(() => {});
 }
 function hideHud() {
-  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'view-btn', 'touch-controls', 'mission'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
+  ['dash', 'hud-top', 'minimap', 'mirror', 'hood', 'mode-btn', 'pause-btn', 'car-btn', 'track-btn', 'view-btn', 'touch-controls', 'tilt-status', 'mission'].forEach(id => { const e = $(id); if (e) e.style.display = 'none'; });
+  document.body.classList.remove('mobile-game-active');
   $('pause').style.display = 'none';
 }
 function legLocked() { if (story) { flash('LOCKED IN CHAPTER'); return true; } return false; }
@@ -7396,7 +7409,7 @@ function update(dt) {
 
   let keySteer = (kL ? 1 : 0) + (kR ? -1 : 0);
   if (ASSIST) { btnRamp += (keySteer - btnRamp) * (1 - Math.exp(-(keySteer === 0 ? 16 : 8.0) * dt)); keySteer = btnRamp; }
-  const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer, -1, 1);
+  const steerTarget = THREE.MathUtils.clamp(keySteer + (touchOn ? touchSteer : 0) + padSteer + (isMobile ? tiltSteer : 0), -1, 1);
   const steerReturning = Math.abs(steerTarget) < Math.abs(steerValue) || steerTarget * steerValue < 0;
   const speedFrac = Math.min(1, spd / Math.max(1, MAX_SPD));
   // Slightly snappier than the stable baseline: faster to reach lock and to return to center.
@@ -8572,7 +8585,11 @@ function showUI(on) {
   document.getElementById('track-btn').style.display = d;
   ['view-btn'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=d; });
   const touch = document.getElementById('touch-controls');
-  touch.style.display = 'none';
+  touch.style.display = (on && isMobile) ? 'flex' : 'none';
+  const tiltBadge = document.getElementById('tilt-status');
+  if (tiltBadge) tiltBadge.style.display = (on && isMobile) ? 'block' : 'none';
+  if (on && isMobile) document.body.classList.add('mobile-game-active');
+  else document.body.classList.remove('mobile-game-active');
   if (speedGlow) speedGlow.style.opacity = '0';
 }
 
@@ -8582,7 +8599,7 @@ function togglePause() {
   document.getElementById('pause').style.display = paused ? 'flex' : 'none';
   document.getElementById('pause-btn').textContent = paused ? 'RESUME' : 'PAUSE';
   if (paused) {
-    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0;
+    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0; tiltSteer = 0;
     document.querySelectorAll('.touch-control').forEach(button => button.classList.remove('active'));
   }
 }
@@ -8601,6 +8618,8 @@ function start() {
   document.getElementById('win').style.display = 'none';
   won = false;
   showUI(true);
+  refreshMobileOrientation();
+  if (isMobile && tiltPermission === 'granted') calibrateTilt();
   document.getElementById('mission').style.display = story ? 'block' : 'block';
   spd = 0; px = 0; pvx = 0; steerValue = 0; t = 0; dist = 0; score = 0; overs = 0; nearMisses = 0; lap = 1;
   if (playerCarModel) playerCarModel.userData.damageLevel = 0;
@@ -8611,10 +8630,91 @@ function start() {
   resetGlass();
   countdown = 3; cdShown = -1; topSpd = 0;
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
-  kL = kR = kU = kD = kB = false;
+  kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; tiltSteer = 0;
   document.getElementById('pause').style.display = 'none';
   document.getElementById('pause-btn').textContent = 'PAUSE';
   spawnTraffic();
+}
+
+
+// ===== Mobile orientation + calibrated motion steering =====
+function mobileLandscape() {
+  return !isMobile || window.innerWidth >= window.innerHeight;
+}
+function refreshMobileOrientation() {
+  if (!isMobile) return;
+  const active = document.body.classList.contains('mobile-game-active');
+  const overlay = document.getElementById('orientation-overlay');
+  if (overlay) overlay.style.display = active && !mobileLandscape() ? 'flex' : 'none';
+  if (!mobileLandscape()) {
+    kL = kR = false;
+    touchSteer = 0;
+    tiltSteer = 0;
+  }
+}
+async function requestMobileOrientation() {
+  if (!isMobile) return;
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+    }
+  } catch (e) {
+    // Orientation locking is browser/OS controlled; the rotate overlay remains the fallback.
+  }
+}
+function updateTiltFromEvent(e) {
+  if (!isMobile || !run || paused || dead || !mobileLandscape()) return;
+  // In landscape, beta is the roll axis on the common phone coordinate convention.
+  // Use gamma as a fallback for devices/browsers that report the alternate convention.
+  const angle = ((screen.orientation && screen.orientation.angle) || window.orientation || 0);
+  let v = (Math.abs(angle) === 90 || Math.abs(angle) === 270) ? e.beta : e.gamma;
+  if (!Number.isFinite(v)) v = Number.isFinite(e.gamma) ? e.gamma : e.beta;
+  if (!Number.isFinite(v)) return;
+  tiltLastEvent = performance.now();
+  if (tiltZero === null) {
+    tiltZero = v;
+    tiltReady = true;
+  }
+  tiltRaw = v - tiltZero;
+  // 2.5° dead zone, progressive response, full lock by ~22°.
+  const magnitude = Math.max(0, Math.abs(tiltRaw) - 2.5) / 19.5;
+  const normalized = Math.sign(tiltRaw) * Math.min(1, magnitude);
+  // Gentle response curve gives precision near centre and full steering at larger lean.
+  const shaped = Math.sign(normalized) * Math.pow(Math.abs(normalized), 1.22);
+  // Direction differs on some landscape coordinate conventions; validate with arrows as fallback.
+  tiltSteer = THREE.MathUtils.clamp(-shaped, -1, 1);
+  const badge = document.getElementById('tilt-status');
+  if (badge) badge.textContent = tiltReady ? 'TILT STEERING ACTIVE · LEAN TO TURN' : 'TILT STEERING';
+}
+async function enableTiltSteering() {
+  if (!isMobile) return;
+  try {
+    const DOE = window.DeviceOrientationEvent;
+    if (!DOE) throw new Error('Device orientation unavailable');
+    if (typeof DOE.requestPermission === 'function') {
+      const permission = await DOE.requestPermission();
+      if (permission !== 'granted') throw new Error('Motion permission denied');
+    }
+    window.removeEventListener('deviceorientation', updateTiltFromEvent);
+    window.addEventListener('deviceorientation', updateTiltFromEvent, true);
+    tiltPermission = 'granted';
+    const badge = document.getElementById('tilt-status');
+    if (badge) badge.textContent = 'TILT READY · HOLD PHONE LEVEL';
+  } catch (e) {
+    tiltPermission = 'denied';
+    const badge = document.getElementById('tilt-status');
+    if (badge) badge.textContent = 'TILT UNAVAILABLE · USE STEERING BUTTONS';
+  }
+}
+function calibrateTilt() {
+  tiltZero = null;
+  tiltSteer = 0;
+  tiltReady = false;
+  const badge = document.getElementById('tilt-status');
+  if (badge) badge.textContent = 'CENTER PHONE · CALIBRATING';
+  setTimeout(() => {
+    if (tiltZero === null && badge) badge.textContent = 'TILT SENSOR NOT DETECTED';
+  }, 1200);
 }
 
 function init() {
@@ -8824,9 +8924,13 @@ function init() {
   document.getElementById('view-btn').onclick = cycleCameraView;
   const startGame = (event) => {
     event?.preventDefault();
+    if (isMobile) {
+      enableTiltSteering();
+      requestMobileOrientation();
+    }
     const fullscreenTarget = document.documentElement;
     if (!document.fullscreenElement && fullscreenTarget.requestFullscreen) {
-      fullscreenTarget.requestFullscreen().catch(error => {
+      fullscreenTarget.requestFullscreen().then(() => requestMobileOrientation()).catch(error => {
         console.warn('CAR DRIVE 3D fullscreen unavailable; continuing in windowed mode.', error);
       });
     }
@@ -8845,6 +8949,7 @@ function init() {
   document.getElementById('crash-menu').onclick = () => toMenu();
   document.getElementById('pause-btn').onclick = togglePause;
   document.getElementById('resume-btn').onclick = togglePause;
+  document.getElementById('tilt-status').addEventListener('click', calibrateTilt);
   document.getElementById('mode-btn').onclick = () => {
     if (legLocked()) return;
     timeMode = (timeMode + 1) % 7;
@@ -8862,10 +8967,10 @@ function init() {
     season = (season + 1) % 4;
     applySeason();
   };
+  const activeTouchPointers = new Map();
   document.querySelectorAll('.touch-control').forEach(button => {
     const control = button.dataset.control;
     const setControl = (down) => {
-      if (paused || dead) return;
       button.classList.toggle('active', down);
       if (control === 'left') kL = down;
       if (control === 'right') kR = down;
@@ -8873,18 +8978,35 @@ function init() {
       if (control === 'brake') kD = down;
       if (control === 'boost') kB = down;
     };
+    const release = e => {
+      if (e) e.preventDefault();
+      activeTouchPointers.delete(e && e.pointerId);
+      setControl(false);
+    };
     button.addEventListener('pointerdown', e => {
+      if (paused || dead || !run) return;
       e.preventDefault();
-      button.setPointerCapture(e.pointerId);
+      activeTouchPointers.set(e.pointerId, control);
+      try { button.setPointerCapture(e.pointerId); } catch (_) {}
       setControl(true);
     });
-    button.addEventListener('pointerup', e => {
-      e.preventDefault();
-      setControl(false);
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
+    button.addEventListener('lostpointercapture', () => {
+      if (![...activeTouchPointers.values()].includes(control)) setControl(false);
     });
-    button.addEventListener('pointercancel', () => setControl(false));
-    button.addEventListener('lostpointercapture', () => setControl(false));
+    button.addEventListener('contextmenu', e => e.preventDefault());
   });
+  const releaseAllMobileInputs = () => {
+    activeTouchPointers.clear();
+    kL = kR = kU = kD = kB = false;
+    touchOn = false; touchSteer = 0;
+    document.querySelectorAll('.touch-control').forEach(b => b.classList.remove('active'));
+  };
+  window.addEventListener('blur', releaseAllMobileInputs);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAllMobileInputs(); });
+  window.addEventListener('orientationchange', () => setTimeout(refreshMobileOrientation, 120));
+  window.addEventListener('resize', refreshMobileOrientation);
   try {
     bestScore = parseInt(localStorage.getItem('cd3_best') || '0', 10) || 0;
     const bl = parseFloat(localStorage.getItem('cd3_bestlap') || '0');
