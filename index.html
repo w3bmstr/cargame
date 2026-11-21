@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v7">
+<html lang="en" data-build="cd3-mobile-layout-v7bb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -285,7 +285,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 @media (hover: none), (pointer: coarse) {
   /* ----- Opaque dash bulkhead (blocks the road completely) ----- */
   #dash{
-    height: min(44vh, 320px) !important;
+    height: min(23vh, 150px) !important;
     --wd: min(54vh, 68vw) !important;
     --cx: 50% !important;
     --cyk: 0.38 !important;
@@ -1601,14 +1601,14 @@ body.crashed #glass-reflection {
    ===================================================================== */
 @media (hover: none), (pointer: coarse) {
   :root {
-    --m-dash-h: min(46vh, 300px);
+    --m-dash-h: min(23vh, 150px);
   }
 
   /* ---- Opaque dash slab ---- */
   #dash {
     --cx: 50% !important;
     --wd: min(58vh, 72vw) !important;
-    --cyk: 0.32 !important;
+    --cyk: 0.18 !important;
     --gd: calc(var(--wd) * 0.26) !important;
     --rim: calc(var(--wd) * 0.09) !important;
     height: var(--m-dash-h) !important;
@@ -1828,7 +1828,7 @@ body.crashed #glass-reflection {
   }
 
   @media (max-height: 420px) {
-    :root { --m-dash-h: min(50vh, 240px); }
+    :root { --m-dash-h: min(25vh, 120px); }
     #dash { --wd: min(52vh, 70vw) !important; --gd: calc(var(--wd) * 0.24) !important; }
     #tilt-status { bottom: calc(var(--m-dash-h) - 18px) !important; }
   }
