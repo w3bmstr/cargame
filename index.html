@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-global-v1">
+<html lang="en" data-build="cd3-mobile-ui-v6">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -285,11 +285,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 @media (hover: none), (pointer: coarse) {
   /* ----- Opaque dash bulkhead (blocks the road completely) ----- */
   #dash{
-    height: min(42vh, 300px) !important;
-    --wd: min(46vh, 58vw) !important;
+    height: min(44vh, 320px) !important;
+    --wd: min(54vh, 68vw) !important;
     --cx: 50% !important;
-    --cyk: 0.46 !important;
-    --gd: calc(var(--wd) * 0.18) !important;
+    --cyk: 0.38 !important;
+    --gd: calc(var(--wd) * 0.22) !important;
     --md: calc(var(--wd) * 0.09) !important;
     --rim: calc(var(--wd) * 0.09) !important;
     /* Fully opaque slab — no alpha on the base */
@@ -384,12 +384,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   /* ----- Instrument cluster: compact, above the rim ----- */
   #cluster{
     left: 50% !important;
-    bottom: calc(var(--wd) * (var(--cyk) + 0.08)) !important;
+    /* Park the gauges on the upper dash lip, clearly above the rim (not behind the wheel) */
+    bottom: calc(var(--wd) * (var(--cyk) + 0.22)) !important;
     transform: translateX(-50%);
-    gap: calc(var(--wd) * 0.012) !important;
-    padding: calc(var(--wd) * 0.014) calc(var(--wd) * 0.02) !important;
-    border-radius: calc(var(--wd) * 0.18) calc(var(--wd) * 0.18) calc(var(--wd) * 0.04) calc(var(--wd) * 0.04);
-    /* Opaque instrument hood */
+    gap: calc(var(--wd) * 0.014) !important;
+    padding: calc(var(--wd) * 0.016) calc(var(--wd) * 0.022) !important;
+    border-radius: calc(var(--wd) * 0.16) calc(var(--wd) * 0.16) calc(var(--wd) * 0.04) calc(var(--wd) * 0.04);
     background:
       radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,.08), transparent 55%),
       linear-gradient(180deg, #1a1e24 0%, #0a0c0f 55%, #050607 100%) !important;
@@ -398,7 +398,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
       inset 0 calc(var(--wd) * 0.02) calc(var(--wd) * 0.04) #000,
       inset 0 1px 0 rgba(255,255,255,.1),
       0 6px 18px rgba(0,0,0,.75) !important;
-    z-index: 5 !important;
+    z-index: 12 !important; /* above the wheel so dials stay readable */
+    pointer-events: none !important;
   }
   #cluster::before,
   #cluster::after{ display: none !important; }
@@ -411,11 +412,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
     gap: 2px !important;
   }
   #cluster-mid #speed-readout{
-    font-size: calc(var(--wd) * 0.055) !important;
-    padding: 2px 0 !important;
+    font-size: calc(var(--wd) * 0.07) !important;
+    padding: 4px 2px !important;
     min-width: 0 !important;
-    background: rgba(0,0,0,.55) !important;
+    background: rgba(0,0,0,.7) !important;
     border-radius: 6px;
+    border: 1px solid rgba(160,200,220,.25);
+  }
+  #cluster .gauge{
+    width: var(--gd) !important;
+    height: var(--gd) !important;
+    min-width: 48px;
+    min-height: 48px;
   }
   #cluster-mid #dash-status{
     font-size: max(7px, calc(var(--wd) * 0.018)) !important;
@@ -532,20 +540,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 
   /* Tilt pill sits just above the dash */
   #tilt-status{
-    bottom: calc(min(42vh, 280px) + env(safe-area-inset-bottom, 0px) + 8px) !important;
+    /* Pin to the top edge of the dash panel */
+    top: auto !important;
+    bottom: calc(min(44vh, 320px) + env(safe-area-inset-bottom, 0px) - 2px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
     z-index: 42 !important;
     pointer-events: auto !important;
+    font-size: 9px !important;
+    padding: 5px 12px !important;
   }
 
   /* Short landscape phones */
   @media (max-height: 420px) {
     #dash{
       height: min(48vh, 240px) !important;
-      --wd: min(40vh, 50vw) !important;
-      --cyk: 0.40 !important;
+      --wd: min(48vh, 62vw) !important;
+      --cyk: 0.34 !important;
     }
     #tilt-status{
-      bottom: calc(min(48vh, 240px) + env(safe-area-inset-bottom, 0px) + 4px) !important;
+      bottom: calc(min(48vh, 240px) + env(safe-area-inset-bottom, 0px) - 2px) !important;
+    }
+    #cluster{
+      bottom: calc(var(--wd) * (var(--cyk) + 0.20)) !important;
+      z-index: 12 !important;
     }
     .touch-control.gas{ height: clamp(60px, 42%, 92px) !important; }
     .touch-control.brake{ height: clamp(52px, 32%, 78px) !important; }
@@ -558,7 +576,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 
   /* Very narrow landscape */
   @media (max-width: 640px) {
-    #dash{ --wd: min(44vh, 62vw) !important; }
+    #dash{ --wd: min(52vh, 72vw) !important; }
     .touch-control.gas{ width: clamp(58px, 16vw, 90px) !important; }
     .touch-control.brake{ width: clamp(52px, 14vw, 80px) !important; }
   }
@@ -646,10 +664,10 @@ button.lv:hover:not(:disabled),button.lv.sel{border-color:#ffb36a;background:rgb
 button.lv:disabled{opacity:.45;cursor:not-allowed}
 button.pfocus{outline:3px solid #ffd36e!important;outline-offset:3px;box-shadow:0 0 22px rgba(255,211,110,.75)!important}
 button.lv.done{border-color:#4f8f6a}
-#mission{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:8;display:none;padding:8px 18px 10px;background:rgba(0,0,0,.66);border:1px solid rgba(125,190,230,.4);border-radius:16px;color:#e8f5ff;font-size:12px;letter-spacing:.06em;text-align:center;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#mission{position:absolute;top:max(8px,env(safe-area-inset-top,0px) + 6px);left:50%;transform:translateX(-50%);z-index:8;display:none;padding:6px 14px 8px;background:rgba(0,0,0,.72);border:1px solid rgba(125,190,230,.4);border-radius:12px;color:#e8f5ff;font-size:11px;letter-spacing:.06em;text-align:center;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.4)}
 #mission-bar{height:5px;margin-top:6px;background:#1d2a36;border-radius:3px;overflow:hidden}
 #mission-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff9a4a,#ffd36e);box-shadow:0 0 10px rgba(255,180,80,.45);transition:width .2s linear}
-#brief{position:absolute;top:20%;left:50%;transform:translateX(-50%);z-index:7;text-align:center;pointer-events:none;opacity:0;transition:opacity .6s;color:#fff;text-shadow:0 2px 14px #000;width:min(560px,92vw)}
+#brief{position:absolute;top:max(8px,env(safe-area-inset-top,0px) + 6px);left:50%;transform:translateX(-50%);z-index:7;text-align:center;pointer-events:none;opacity:0;transition:opacity .6s;color:#fff;text-shadow:0 2px 14px #000;width:min(560px,92vw)}
 #brief small{display:block;font-size:11px;letter-spacing:.34em;color:#ffbd83;font-weight:800}
 #brief b{display:block;font-size:clamp(26px,6vw,46px);letter-spacing:.08em;margin:4px 0}
 #brief span{display:block;font-size:14px;opacity:.9}
@@ -1573,6 +1591,37 @@ body.crashed #glass-reflection {
    Desktop GT offset untouched. Phones get a solid centered bulkhead.
    ===================================================================== */
 @media (hover: none), (pointer: coarse) {
+  /* Mission + chapter brief: compact strip at the very top (not mid-screen) */
+  #brief{
+    top: max(4px, env(safe-area-inset-top, 0px) + 4px) !important;
+    left: 8px !important;
+    right: auto !important;
+    transform: none !important;
+    width: min(52vw, 280px) !important;
+    text-align: left !important;
+    z-index: 20 !important;
+  }
+  #brief b{ font-size: clamp(14px, 3.2vw, 20px) !important; margin: 2px 0 !important; }
+  #brief small{ font-size: 9px !important; letter-spacing: .2em !important; }
+  #brief span, #brief em, #brief .radio-line{ font-size: 11px !important; margin-top: 2px !important; }
+  #mission{
+    top: max(4px, env(safe-area-inset-top, 0px) + 4px) !important;
+    left: auto !important;
+    right: 8px !important;
+    transform: none !important;
+    max-width: min(46vw, 240px);
+    white-space: normal !important;
+    text-align: right !important;
+    z-index: 20 !important;
+    font-size: 10px !important;
+    padding: 5px 10px 6px !important;
+  }
+  /* HUD top row sits under safe area */
+  #hud-top{
+    top: 0 !important;
+    padding-top: max(6px, env(safe-area-inset-top, 0px) + 4px) !important;
+  }
+
   #dash,
   body.mobile-game-active #dash {
     --cx: 50% !important;
@@ -1622,6 +1671,7 @@ body.crashed #glass-reflection {
     right: auto !important;
     transform: translateX(-50%) !important;
     background: linear-gradient(180deg, #1a1e24, #050607) !important;
+    z-index: 12 !important;
   }
   #dash #dash-inner {
     max-width: 100% !important;
@@ -1797,7 +1847,7 @@ body.crashed #glass-reflection {
   <button class="sub" id="units-btn" style="margin-top:10px;padding:8px 18px;font-size:12px">UNITS: KM/H</button>
   <div class="keys">Desktop: Steer <b>A/D</b> or arrows · Gas <b>W</b> · Brake <b>S / Space</b> · Boost <b>Shift</b><br>
   Mobile: <b>tilt</b> and/or <b>drag the wheel</b> · gas / brake / nitro on the dash<br>
-  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · <b>U</b> units · build global-v1</span></div>
+  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · <b>U</b> units · build mobile-ui-v6</span></div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -9107,6 +9157,13 @@ function togglePause() {
   if (paused) {
     kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0; tiltSteer = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null;
     document.querySelectorAll('.touch-control').forEach(button => button.classList.remove('active'));
+  } else {
+    // Resume: restore landscape fullscreen on mobile so play stays immersive
+    try { goFS(); } catch (e) {}
+    if (isMobile) {
+      try { requestMobileOrientation(); } catch (e) {}
+      refreshMobileOrientation();
+    }
   }
 }
 
