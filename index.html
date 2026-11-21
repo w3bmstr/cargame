@@ -260,7 +260,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 }
 .touch-control.gas{
   right:3%;bottom:10%;width:22%;height:58%;
-  border-radius:16px;
+  border-radius:14px;
   background:
     repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 2px,transparent 2px 8px),
     linear-gradient(180deg,rgba(28,125,86,.96),rgba(5,42,29,.98));
@@ -268,7 +268,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 }
 .touch-control.brake{
   left:3%;bottom:10%;width:18%;height:42%;
-  border-radius:14px;
+  border-radius:16px;
   background:
     repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 2px,transparent 2px 8px),
     linear-gradient(180deg,rgba(128,52,50,.96),rgba(42,13,15,.98));
@@ -499,7 +499,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
     top: auto !important;
     width: clamp(43px, 10vw, 67px) !important;
     height: clamp(86px, 50%, 128px) !important;
-    border-radius: 14px 18px 16px 12px !important;
+    border-radius: 14px !important;
     border-width: 2px;
     box-shadow:
       inset 0 2px 0 rgba(255,255,255,.14),
@@ -514,7 +514,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
     top: auto !important;
     width: clamp(84px, 19.5vw, 132px) !important;
     height: clamp(64px, 36%, 96px) !important;
-    border-radius: 18px 12px 12px 16px !important;
+    border-radius: 16px !important;
     border-width: 2px;
     box-shadow:
       inset 0 2px 0 rgba(255,255,255,.14),
@@ -2652,14 +2652,14 @@ const LEGS = [
   // CH1 THAW — spring: the return begins
   { chapter: 0, title: 'FIRST LIGHT', track: 1, car: 1, times: [0, 1], rain: [1, 1], mission: { type: 'laps', n: 2 }, time: 70, note: 'A message from home arrives before sunrise. Leave while the valley is still waking.', radio: 'MARA: I wasn’t sure you would come. The old road is still here, though. It always is.' },
   { chapter: 0, title: 'WET ROADS HOME', track: 0, car: 1, times: [1, 2], rain: [1, 1], mission: { type: 'overtakes', n: 12 }, time: 75, note: 'Morning traffic thickens as an old friend comes back over the radio. Some things have changed.', radio: 'ELI: Take it easy out there. You have been away a long time. There is no prize for getting here first.' },
-  { chapter: 0, title: 'BREAK IN THE CLOUDS', track: 8, car: 1, times: [2, 3], rain: [1, 0], mission: { type: 'distance', n: 4000 }, time: 70, note: 'The rain lifts halfway through the drive. The familiar hills bring back a memory you thought you had buried.', radio: 'MARA: Do you remember the summer we got caught in that storm? You laughed all the way home.' },
+  { chapter: 0, title: 'BREAK IN THE CLOUDS', track: 8, car: 1, times: [2, 3], rain: [1, 0], mission: { type: 'distance', n: 4000 }, time: 75, note: 'The rain lifts halfway through the drive. The familiar hills bring back a memory you thought you had buried.', radio: 'MARA: Do you remember the summer we got caught in that storm? You laughed all the way home.' },
   { chapter: 0, title: 'THE OLD BRIDGE', track: 2, car: 1, times: [3, 4], rain: [1, 1], mission: { type: 'distance', n: 4200 }, time: 85, note: 'SIGNATURE EVENT — A swollen river runs beneath the old bridge. Cross the mountain road in driving rain and discover why this place matters.', eventAt: 0.52, eventTitle: 'THE RIVER IS UP', eventText: 'The bridge is still standing. For a moment, the years between then and now seem to disappear.' },
   { chapter: 0, title: 'AFTER THE RAIN', track: 1, car: 1, times: [4, 2], rain: [0, 0], mission: { type: 'distance', n: 3800 }, time: 75, note: 'The storm breaks over quiet farmland. You make a promise to see the journey through.', radio: 'ELI: That sounds like you again. One mile at a time. Just keep coming.' },
 
   // CH2 HIGH SUN — summer: the world opens up
   { chapter: 1, title: 'COASTAL RUN', track: 4, car: 2, times: [3], rain: [0], mission: { type: 'overtakes', n: 15 }, time: 75, note: 'Bright noon, open coast and heavy traffic. The long way gives you time to talk about what was left behind.', radio: 'ELI: You always did prefer the road with a view. Maybe that part never changed.' },
   { chapter: 1, title: 'HEAT HAZE', track: 3, car: 2, times: [3, 4], rain: [0, 0], mission: { type: 'laps', n: 3 }, time: 75, note: 'Desert canyon at the height of summer. A difficult question hangs in the air long after the radio goes quiet.', radio: 'MARA: You can tell me the truth when you are ready. I would rather hear it from you.' },
-  { chapter: 1, title: 'GOLDEN HOUR', track: 7, car: 2, times: [4, 5], rain: [0, 0], mission: { type: 'distance', n: 4500 }, time: 75, note: 'A fresh rockslide has partly blocked Snake Pass. Find the open line through the debris field as the evening light fades.', eventAt: 0.52, eventTitle: 'THE LANDSLIDE', eventText: 'A section of the mountainside has come down. Rocks block part of the road — pick your way through the remaining gap.', radio: 'ELI: There is a place up ahead where you can see the whole valley. You used to stop there.' },
+  { chapter: 1, title: 'GOLDEN HOUR', track: 7, car: 2, times: [4, 5], rain: [0, 0], mission: { type: 'distance', n: 4500 }, time: 80, note: 'A fresh rockslide has partly blocked Snake Pass. Find the open line through the debris field as the evening light fades.', eventAt: 0.52, eventTitle: 'THE LANDSLIDE', eventText: 'A section of the mountainside has come down. Rocks block part of the road — pick your way through the remaining gap.', radio: 'ELI: There is a place up ahead where you can see the whole valley. You used to stop there.' },
   { chapter: 1, title: 'THE LONG WAY ROUND', track: 4, car: 2, times: [3, 4, 5], rain: [0, 0, 0], mission: { type: 'distance', n: 5200 }, time: 90, note: 'SIGNATURE EVENT — A sweeping summer mountain route with long views, warm light and a final climb to the coastal lookout.', eventAt: 0.58, eventTitle: 'THE COASTAL LOOKOUT', eventText: 'The whole coastline opens below you. For once, there is nowhere else you need to be.' },
   { chapter: 1, title: 'THE SUMMER GATHERING', track: 4, car: 2, times: [5, 4], rain: [0, 0], mission: { type: 'distance', n: 3600 }, time: 75, note: 'A familiar gathering brings people from your past back together. One conversation changes what home means.', radio: 'MARA: I kept the light on. I just stopped knowing whether you could see it.' },
 
@@ -2675,7 +2675,7 @@ const LEGS = [
   { chapter: 3, title: 'NEON SNOW', track: 6, car: 3, times: [6], rain: [0], mission: { type: 'overtakes', n: 20 }, time: 80, note: 'City lights glow through falling snow. A final stop brings a message from the people waiting at home.', radio: 'MARA: I can see the weather from here. The porch light is on. It always will be.' },
   { chapter: 3, title: 'WHITEOUT', track: 2, car: 3, times: [6], rain: [0], mission: { type: 'distance', n: 4600 }, time: 90, note: 'SIGNATURE EVENT — A mountain pass vanishes in a winter whiteout. Follow the road reflectors, use your lights and bring the car through safely.', eventAt: 0.5, eventTitle: 'WHITEOUT', eventText: 'The world is reduced to headlights, snow and the next reflector. Keep moving carefully. Home is closer now.' },
   { chapter: 3, title: 'THE FINAL MILES', track: 0, car: 3, times: [6, 0], seasons: [3, 0], rain: [0, 0], mission: { type: 'distance', n: 4200 }, time: 80, note: 'The storm breaks. Snow gives way to the first pale light of spring, and the final conversation brings the year together.', radio: 'ELI: I will meet you at the gate. No speeches. Just glad you are coming back.' },
-  { chapter: 3, title: 'HOME BY DAWN', track: 0, car: 3, times: [6, 0, 1], seasons: [3, 3, 0], rain: [0, 0, 1], mission: { type: 'distance', n: 6500 }, time: 90, note: 'The final drive. Winter night becomes spring dawn, the snow melts into rain, and the road brings you home.', eventAt: 0.82, eventTitle: 'HOME', eventText: 'The porch light is still on. The year has brought you back to the beginning — but you are not the same person who left.' }
+  { chapter: 3, title: 'HOME BY DAWN', track: 0, car: 3, times: [6, 0, 1], seasons: [3, 3, 0], rain: [0, 0, 1], mission: { type: 'distance', n: 6500 }, time: 95, note: 'The final drive. Winter night becomes spring dawn, the snow melts into rain, and the road brings you home.', eventAt: 0.82, eventTitle: 'HOME', eventText: 'The porch light is still on. The year has brought you back to the beginning — but you are not the same person who left.' }
 ];
 let padOv = null, padFocus = 0, padSd = 0;
 let story = null, won = false, legBucket = 0, yearDone = [], yearBest = [], lvSel = 0, briefT = 0;
@@ -7654,9 +7654,14 @@ function drawMap() {
   ctx.fillStyle = '#f30'; ctx.beginPath(); ctx.arc(pp.x * sc + ox, pp.z * sc + oz, 3.5, 0, 6.3); ctx.fill();
 }
 
+let _mirKey = '', _mirN = 0;
 function updateMirrorScreenRect() {
   const el = document.getElementById('mirror');
-  if (!el || el.style.display === 'none') { mirrorScreen.w = 0; return; }
+  if (!el || el.style.display === 'none') { mirrorScreen.w = 0; _mirKey = ''; return; }
+  // getBoundingClientRect forces a layout; the mirror box is static, so re-measure only when the size/layout class changes (or every ~45 calls).
+  const _k = innerWidth + 'x' + innerHeight + '@' + (renderer && renderer.getPixelRatio ? renderer.getPixelRatio() : 1) + document.body.className;
+  if (_k === _mirKey && (++_mirN % 45) !== 0) return;
+  _mirKey = _k;
   const r = el.getBoundingClientRect();
   const dpr = renderer ? (renderer.getPixelRatio ? renderer.getPixelRatio() : 1) : 1;
   mirrorScreen.x = (r.left * dpr) | 0;
@@ -7882,15 +7887,15 @@ const motion = { lat: 0, acc: 0, bg: 0 };
 function updateDash() {
   const speedShown = speedDisplay(spd);
   const gear = spd < 1 ? 'N' : spd < 15 ? '1' : spd < 25 ? '2' : spd < 37 ? '3' : spd < 50 ? '4' : spd < 65 ? '5' : '6';
-  const speedReadout = document.getElementById('speed-readout');
-  const speedUnit = document.getElementById('speed-unit');
+  const speedReadout = _gid('speed-readout');
+  const speedUnit = _gid('speed-unit');
   speedReadout.firstChild.nodeValue = speedShown;
   speedUnit.textContent = speedUnitLabel() + ' · ' + gear;
-  const spdLabel = document.getElementById('spd-label');
+  const spdLabel = _gid('spd-label');
   if (spdLabel) spdLabel.textContent = useMph ? 'MPH' : 'KM/H';
-  document.getElementById('dash-lap-value').textContent = lap;
-  document.getElementById('dash-score-value').textContent = Math.floor(score);
-  const status = document.getElementById('dash-status');
+  _gid('dash-lap-value').textContent = lap;
+  _gid('dash-score-value').textContent = Math.floor(score);
+  const status = _gid('dash-status');
   status.textContent = boosting ? 'BOOST ACTIVE' : Math.abs(px) >= ROAD_W * 0.5 ? 'OFF TRACK' : slide > 0.5 ? 'CORNER LOAD' : gear === 'N' ? 'READY TO DRIVE' : 'CRUISING';
   status.style.color = boosting ? '#5ddcff' : Math.abs(px) >= ROAD_W * 0.5 ? '#ff9b72' : slide > 0.5 ? '#ffd36e' : '#728b8a';
   const now0 = performance.now(), ndt = Math.min(0.05, Math.max(0.001, (now0 - (updateDash._n || now0)) / 1000)); updateDash._n = now0;
@@ -7903,7 +7908,7 @@ function updateDash() {
   const shk = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 95);
   const jx = Math.sin(now0 * 0.093) * shk * 0.8, jy = Math.sin(now0 * 0.061 + 1.3) * shk * 0.9;
   const sx = -motion.lat * 14 + jx, sy = Math.max(-10, Math.min(10, motion.acc * 0.09)) + jy;
-  const dsh = document.getElementById('dash');
+  const dsh = _gid('dash');
   dsh.style.transformOrigin = '50% 100%';
   dsh.style.transform = `translate(${sx.toFixed(2)}px,${sy.toFixed(2)}px) rotate(${(-motion.lat * 1.8).toFixed(3)}deg) scale(1.02)`;
   if (!isMobile || Math.abs((dsh._bg || 0) - motion.bg) > 0.02) { dsh._bg = motion.bg; dsh.style.setProperty('--bg', motion.bg.toFixed(2)); }
@@ -7933,13 +7938,13 @@ function updateDash() {
   // road feel: the wheel shakes a little off-road / on boost / at speed
   const rough = (Math.abs(px) >= ROAD_W * 0.5 ? 1 : 0) + (boosting ? 0.5 : 0) + Math.min(0.3, spd / 95);
   const jit = Math.sin(tms * 0.071) * rough * 1.1, bob = Math.sin(tms * 0.043) * rough * 0.9;
-  const el = document.getElementById('wheel');
+  const el = _gid('wheel');
   el.style.transformOrigin = '50% 50%';
   el.style.setProperty('--ang', (wheelAngle + jit).toFixed(2) + 'deg');
   const wheelPitch = isMobile ? 30 : 36;
   const wheelPersp = isMobile ? 1.55 : 1.72;
   el.style.transform = `translateX(-50%) translateY(${bob.toFixed(2)}px) perspective(calc(var(--wd) * ${wheelPersp})) rotateX(${wheelPitch}deg) rotateZ(${(wheelAngle + jit).toFixed(2)}deg)`;
-  document.getElementById('boost-fill').style.width = boost + '%';
+  _gid('boost-fill').style.width = boost + '%';
 
   // Live world-reactive cockpit lighting (headlight sweeps from traffic + brake-light bounce)
   let hlSweep = 0, sweepX = 0, brakeGlow = 0;
@@ -7962,21 +7967,22 @@ function updateDash() {
   setVar('--sky-rim', skyHex);
 
   // Hood roll & pitch coupling
-  const hoodEl = document.getElementById('hood');
+  const hoodEl = _gid('hood');
   if (hoodEl) { hoodEl.style.display = 'none'; hoodEl.style.transform = ''; }
 
   // Rally / Endurance sequential RPM shift lights + Yoke / Console telemetry
-  const leds = document.querySelectorAll('#shift-lights i');
+  const leds = updateDash._leds || (updateDash._leds = document.querySelectorAll('#shift-lights i'));
   if (leds.length) {
     const litCount = Math.round(Math.max(0, (rpm - 0.42) / 0.56) * leds.length);
     leds.forEach((led, idx) => {
-      led.className = idx < litCount ? (idx < 4 ? 'on-g' : idx < 6 ? 'on-y' : 'on-r') : '';
+      const cls = idx < litCount ? (idx < 4 ? 'on-g' : idx < 6 ? 'on-y' : 'on-r') : '';
+      if (led.className !== cls) led.className = cls;
     });
   }
-  const tg = document.getElementById('tel-gear'), tb = document.getElementById('tel-bst');
+  const tg = _gid('tel-gear'), tb = _gid('tel-bst');
   if (tg) tg.textContent = gear;
   if (tb) tb.textContent = Math.round(boost) + '%';
-  const yg = document.getElementById('yoke-gear'), ys = document.getElementById('yoke-spd');
+  const yg = _gid('yoke-gear'), ys = _gid('yoke-spd');
   if (yg) yg.textContent = gear;
   if (ys) ys.textContent = speedShown + ' ' + speedUnitLabel().toUpperCase();
   if (speedGlow) {
@@ -8606,10 +8612,10 @@ function update(dt) {
   camera.updateProjectionMatrix();
 
   if (renderStep) { // HUD, dash, audio and minimap: once per drawn frame, not once per physics step
-  document.getElementById('dist').textContent = Math.floor(dist);
-  const tle = document.getElementById('tl');
+  _gid('dist').textContent = Math.floor(dist);
+  const tle = _gid('tl');
   tle.textContent = story ? Math.ceil(timeLeft) : '\u221E'; tle.style.color = story && timeLeft < 10 ? '#f55' : '';
-  document.getElementById('lines').style.opacity = Math.max(0, Math.min(1, Math.pow(Math.max(0, spd - 4) / 32, 0.75)));
+  _gid('lines').style.opacity = Math.max(0, Math.min(1, Math.pow(Math.max(0, spd - 4) / 32, 0.75)));
   // Extra asphalt grain scroll so the road surface streams under the car at high speed
   if (roadMesh && roadMesh.material && roadMesh.material.map) {
     const scroll = spd * dt * 0.12;
@@ -8618,14 +8624,14 @@ function update(dt) {
     if (roadMesh.material.roughnessMap) roadMesh.material.roughnessMap.offset.x = roadMesh.material.map.offset.x;
     if (roadMesh.material.normalMap) roadMesh.material.normalMap.offset.x = roadMesh.material.map.offset.x;
   }
-  document.getElementById('score').textContent = Math.floor(score);
-  document.getElementById('over').textContent = overs;
-  document.getElementById('lap').textContent = lap;
-  const lt = document.getElementById('laptime');
+  _gid('score').textContent = Math.floor(score);
+  _gid('over').textContent = overs;
+  _gid('lap').textContent = lap;
+  const lt = _gid('laptime');
   if (lt) lt.textContent = formatTime(lapTime);
-  const bs = document.getElementById('best');
+  const bs = _gid('best');
   if (bs) bs.textContent = Math.floor(Math.max(bestScore, score));
-  const tip = document.getElementById('tip');
+  const tip = _gid('tip');
   if (Math.abs(px) >= ROAD_W * 0.5) { tip.textContent = offT > 0.3 ? 'GET BACK ON THE ROAD!' : 'OFF TRACK'; tip.style.opacity = '1'; }
   else if (slide > 0.5) { tip.textContent = 'EASE OFF'; tip.style.opacity = '1'; }
   else if (drafting) { tip.textContent = 'SLIPSTREAM'; tip.style.opacity = '0.7'; }
@@ -9112,6 +9118,8 @@ function doCrash(why) {
   if (!noGlass) showWindshieldCrack();
 }
 
+const _gidc = {};
+function _gid(id) { return _gidc[id] || (_gidc[id] = document.getElementById(id)); }   // cached lookup for per-frame HUD code
 let glLost = false;
 function showGlMessage(text, fatal) {
   let el = document.getElementById('gl-msg');
@@ -9887,7 +9895,10 @@ function init() {
 }
 try { init(); } catch (err) {
   console.error('CAR DRIVE 3D failed to start', err);
-  showGlMessage('This game needs WebGL, and it could not start on this browser or device. Try another browser, turn on hardware acceleration, or update your device.', true);
+  const _m = String((err && err.message) || err || '');
+  showGlMessage(/webgl|context/i.test(_m)
+    ? 'This game needs WebGL, and it could not start on this browser or device. Try another browser, turn on hardware acceleration, or update your device.'
+    : 'The game hit an error while starting (' + _m.slice(0, 120) + '). Try reloading the page.', true);
 }
 </script>
 </html>
