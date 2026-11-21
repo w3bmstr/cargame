@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v8cbb">
+<html lang="en" data-build="cd3-mobile-layout-v9bbbb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -1587,8 +1587,10 @@ body.crashed #glass-reflection {
 
 <style id="mobile-dash-center-lock">
 /* =====================================================================
-   MOBILE COCKPIT v8 — tilt lives IN the wheel hub
-   Gas / brake / nitro positions preserved.
+   MOBILE COCKPIT v9
+   - No round gauges (clutter)
+   - No tilt pill / hub chrome
+   - Big wheel is the touch-steer control; pedals unchanged
    ===================================================================== */
 @media (hover: none), (pointer: coarse) {
   :root {
@@ -1632,162 +1634,90 @@ body.crashed #glass-reflection {
     display: none !important;
   }
 
+  /* Kill gauge clutter + all tilt chrome */
+  #cluster #speedo,
+  #cluster #tacho,
+  #shift-lights,
+  #cluster-mid #dash-caption,
+  #cluster-mid #center-stack,
+  #tilt-status,
+  #wheel-tilt,
+  #yoke-hud {
+    display: none !important;
+  }
+
+  /* Digital speed: top of the dash band, ABOVE the wheel — never over the hub */
+  #dash #cluster {
+    left: 50% !important;
+    right: auto !important;
+    top: 2px !important;
+    bottom: auto !important;
+    width: auto !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 14 !important;
+    pointer-events: none !important;
+  }
+  #cluster::before, #cluster::after { display: none !important; }
+  #cluster #cluster-mid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1px !important;
+  }
+  #cluster-mid #speed-readout {
+    font-size: clamp(13px, 3.4vw, 20px) !important;
+    padding: 2px 10px !important;
+    background: rgba(0,0,0,.82) !important;
+    border: 1px solid rgba(160,200,220,.28) !important;
+    border-radius: 6px !important;
+    line-height: 1.15 !important;
+  }
+  #cluster-mid #dash-status {
+    font-size: 7px !important;
+    opacity: .8;
+    max-width: 28vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Wheel = primary touch-steer surface */
   #dash #wheel {
     left: 50% !important;
     right: auto !important;
     width: var(--wd) !important;
     height: var(--wd) !important;
     bottom: calc(var(--wd) * (var(--cyk) - 0.5)) !important;
-    z-index: 8 !important;
+    z-index: 12 !important;
     margin-left: 0 !important;
     transform-origin: 50% 50% !important;
     pointer-events: auto !important;
     touch-action: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    cursor: grab;
   }
+  #dash #wheel:active,
+  #dash #wheel.wheel-dragging { cursor: grabbing; }
+  #dash #wheel.wheel-dragging {
+    filter: brightness(1.12) drop-shadow(0 0 14px rgba(126,220,255,.35));
+  }
+  #wheel-svg { pointer-events: none !important; width: 100%; height: 100%; }
   #dash #wheel-shadow {
     left: 50% !important;
     width: var(--wd) !important;
     height: var(--wd) !important;
     bottom: calc(var(--wd) * (var(--cyk) - 0.5)) !important;
     z-index: 6 !important;
-  }
-
-  /* Floating tilt pill OFF — hub on the wheel instead */
-  #tilt-status { display: none !important; }
-
-  #wheel-tilt {
-    display: flex !important;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 6;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    width: 34%;
-    max-width: 90px;
-    padding: 6px 4px 5px;
-    border-radius: 12px;
-    background: rgba(0, 6, 12, 0.88);
-    border: 1px solid rgba(120, 210, 255, 0.4);
-    box-shadow: 0 2px 10px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.1);
-    pointer-events: auto;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: pointer;
-  }
-  #wheel-tilt-text {
-    font-size: clamp(7px, 1.6vw, 9px);
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    color: #bdeeff;
-    text-align: center;
-    line-height: 1.15;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  #wheel-tilt-track {
-    position: relative;
-    display: block;
-    width: 78%;
-    height: 6px;
-    border-radius: 4px;
-    background: rgba(255,255,255,.16);
-  }
-  #wheel-tilt-dot {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 10px;
-    height: 10px;
-    margin: -5px 0 0 -5px;
-    border-radius: 50%;
-    background: #7edcff;
-    box-shadow: 0 0 8px rgba(126,220,255,.85);
-    transition: background .12s;
-  }
-  #wheel-tilt.needs-perm { border-color: rgba(255,180,80,.55); }
-  #wheel-tilt.needs-perm #wheel-tilt-text { color: #ffe0b0; }
-  #wheel-tilt.calibrating { border-color: rgba(126,220,255,.55); }
-  #wheel-tilt.calibrating #wheel-tilt-text { color: #d9f7ff; }
-  #wheel-tilt.active { border-color: rgba(80,220,160,.45); }
-  #wheel-tilt.active #wheel-tilt-text { color: #c8ffe8; }
-  #wheel-tilt.active #wheel-tilt-dot {
-    background: #5dffb0;
-    box-shadow: 0 0 10px rgba(80,255,180,.9);
-  }
-  #yoke-hud { display: none !important; }
-
-  #dash #cluster {
-    left: 50% !important;
-    right: auto !important;
-    top: 6% !important;
-    bottom: auto !important;
-    width: auto !important;
-    max-width: 92% !important;
-    transform: translateX(-50%) !important;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: clamp(6px, 2vw, 14px) !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    z-index: 10 !important;
     pointer-events: none !important;
   }
-  #cluster::before, #cluster::after, #shift-lights, #cluster-mid #dash-caption {
-    display: none !important;
-  }
-  #cluster #speedo, #cluster #tacho {
-    position: relative !important;
-    width: var(--gd) !important;
-    height: var(--gd) !important;
-    min-width: 44px;
-    min-height: 44px;
-    flex: 0 0 auto;
-    margin: 0 !important;
-    background: radial-gradient(circle at 50% 45%, #1a1e22 0 58%, #0a0c0e 62%) !important;
-    border: 3px solid #3a424c !important;
-    border-radius: 50% !important;
-    box-shadow: inset 0 0 12px #000, 0 4px 12px rgba(0,0,0,.6) !important;
-  }
-  #cluster #speedo { order: 1; }
-  #cluster #tacho { order: 3; }
-  #cluster #cluster-mid {
-    order: 2;
-    position: relative !important;
-    left: auto !important;
-    top: auto !important;
-    transform: none !important;
-    width: auto !important;
-    max-width: 22vw;
-    flex: 0 0 auto;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 2px !important;
-    margin: 0 2px !important;
-  }
-  #cluster-mid #speed-readout {
-    font-size: clamp(15px, 4.2vw, 26px) !important;
-    padding: 3px 8px !important;
-    background: rgba(0,0,0,.75) !important;
-    border: 1px solid rgba(160,200,220,.3) !important;
-    border-radius: 8px !important;
-  }
-  #cluster-mid #dash-status { font-size: 8px !important; opacity: .85; }
-  #cluster-mid #center-stack { display: none !important; }
-  #cluster .gauge-numbers { font-size: max(6px, calc(var(--gd) * 0.09)) !important; }
-  #cluster .gauge .label { font-size: max(6px, calc(var(--gd) * 0.08)) !important; }
 
   #mission {
     top: max(30px, env(safe-area-inset-top, 0px) + 26px) !important;
@@ -1812,10 +1742,9 @@ body.crashed #glass-reflection {
     text-align: left !important;
     z-index: 9 !important;
   }
-  #brief b { font-size: clamp(12px, 2.8vw, 16px) !important; }
-  #brief small { font-size: 8px !important; }
   #hud-top { padding-top: max(6px, env(safe-area-inset-top, 0px) + 4px) !important; }
 
+  /* Pedals — keep your preferred corners */
   body.mobile-game-active .touch-control.gas {
     right: max(8px, env(safe-area-inset-right, 0px) + 6px) !important;
     left: auto !important;
@@ -1828,12 +1757,11 @@ body.crashed #glass-reflection {
 
   @media (max-height: 420px) {
     :root { --m-dash-h: min(25vh, 120px); }
-    #dash { --wd: min(52vh, 70vw) !important; --gd: calc(var(--wd) * 0.22) !important; }
+    #dash { --wd: min(52vh, 70vw) !important; }
   }
 }
 
-/* Desktop: hub hidden */
-#wheel-tilt { display: none; }
+#wheel-tilt { display: none !important; }
 </style>
 </head>
 <body>
@@ -1978,7 +1906,7 @@ body.crashed #glass-reflection {
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
   <button class="sub" id="units-btn" style="margin-top:10px;padding:8px 18px;font-size:12px">UNITS: KM/H</button>
   <div class="keys">Desktop: Steer <b>A/D</b> or arrows · Gas <b>W</b> · Brake <b>S / Space</b> · Boost <b>Shift</b><br>
-  Mobile: <b>tilt</b> and/or <b>drag the wheel</b> · gas / brake / nitro on the dash<br>
+  Mobile: <b>drag the wheel</b> to steer · gas / brake / nitro on the dash<br>
   <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · <b>U</b> units · build mobile-layout-v7</span></div>
 </div>
 <div id="crash">
@@ -8089,14 +8017,14 @@ function update(dt) {
   let keySteer = (kL ? 1 : 0) + (kR ? -1 : 0);
   if (ASSIST && !isMobile) { btnRamp += (keySteer - btnRamp) * (1 - Math.exp(-(keySteer === 0 ? 16 : 8.0) * dt)); keySteer = btnRamp; }
   const tiltLive = isMobile && tiltReady && (performance.now() - tiltLastEvent < 900);
-  const tiltInput = tiltLive ? tiltSteer : 0;
-  // Wheel input decays when the finger lifts so it does not stick at full lock.
+  // Finger on the wheel always wins. Tilt is only a background assist when not touching.
   if (!wheelTouching) {
-    wheelSteer += (0 - wheelSteer) * (1 - Math.exp(-10 * dt));
-    if (Math.abs(wheelSteer) < 0.01) wheelSteer = 0;
+    wheelSteer += (0 - wheelSteer) * (1 - Math.exp(-9 * dt));
+    if (Math.abs(wheelSteer) < 0.015) wheelSteer = 0;
   }
-  if (isMobile) keySteer = 0; // on phones, only tilt + wheel + gamepad
-  const steerTarget = THREE.MathUtils.clamp(keySteer + padSteer + tiltInput + wheelSteer, -1, 1);
+  if (isMobile) keySteer = 0;
+  const tiltInput = (isMobile && tiltLive && !wheelTouching) ? tiltSteer * 0.85 : 0;
+  const steerTarget = THREE.MathUtils.clamp(keySteer + padSteer + (wheelTouching ? wheelSteer : (wheelSteer || tiltInput)), -1, 1);
   const steerReturning = Math.abs(steerTarget) < Math.abs(steerValue) || steerTarget * steerValue < 0;
   const speedFrac = Math.min(1, spd / Math.max(1, MAX_SPD));
   // Slightly snappier than the stable baseline: faster to reach lock and to return to center.
@@ -8673,7 +8601,7 @@ function updateFreeDriveHud() {
 function tickCoach(dt) {
   if (story || coachStep >= 4 || !run || dead || paused || countdown > 0) return;
   coachT += dt;
-  if (coachStep === 0 && coachT > 0.4) { flash(isMobile ? 'TILT OR DRAG THE WHEEL' : 'STEER · A/D OR ARROWS'); coachStep = 1; coachT = 0; }
+  if (coachStep === 0 && coachT > 0.4) { flash(isMobile ? 'DRAG THE WHEEL TO STEER' : 'STEER · A/D OR ARROWS'); coachStep = 1; coachT = 0; }
   else if (coachStep === 1 && coachT > 3.2) { flash('BOOST · HOLD SHIFT'); coachStep = 2; coachT = 0; }
   else if (coachStep === 2 && coachT > 3.2) { flash('OVERTAKE TRAFFIC · BUILD COMBOS'); coachStep = 3; coachT = 0; }
   else if (coachStep === 3 && coachT > 3.2) { flash('STAY ON THE ROAD'); coachStep = 4; }
@@ -9726,38 +9654,47 @@ function init() {
   (function setupWheelSteer() {
     const el = document.getElementById('wheel');
     if (!el) return;
+    let grabX = 0, grabY = 0, grabSteer = 0, grabAng = 0;
+    const FULL_PX = () => Math.max(48, el.getBoundingClientRect().width * 0.38);
     const angAt = (ev) => {
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width * 0.5, cy = r.top + r.height * 0.5;
-      const x = ev.clientX - cx, y = ev.clientY - cy;
-      return Math.atan2(x, -y); // 0 = top, positive = clockwise
+      return Math.atan2(ev.clientX - cx, -(ev.clientY - cy));
     };
-    // ~95° of rim rotation maps to full lock
-    const FULL = 80 * Math.PI / 180;
     const onDown = (ev) => {
       if (paused || dead || !run) return;
-      // Ignore if this pointer is already on a pedal
       if (ev.target && ev.target.closest && ev.target.closest('.touch-control')) return;
+      // Only primary finger / left button
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
       ev.preventDefault();
+      ev.stopPropagation();
       wheelTouching = true;
       wheelPointerId = ev.pointerId;
-      wheelGrabAng = angAt(ev);
-      wheelGrabSteer = wheelSteer;
+      grabX = ev.clientX;
+      grabY = ev.clientY;
+      grabSteer = wheelSteer;
+      grabAng = angAt(ev);
       el.classList.add('wheel-dragging');
       try { el.setPointerCapture(ev.pointerId); } catch (_) {}
     };
     const onMove = (ev) => {
       if (!wheelTouching || ev.pointerId !== wheelPointerId) return;
       ev.preventDefault();
-      let d = angAt(ev) - wheelGrabAng;
-      // unwrap to [-pi, pi]
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      // clockwise (positive d) => right turn => negative game steer
-      wheelSteer = Math.max(-1, Math.min(1, wheelGrabSteer - d / FULL));
+      // Horizontal drag is the primary, most reliable mobile control
+      const dx = (ev.clientX - grabX) / FULL_PX();
+      // Optional: a little rotational assist for rim twists
+      let dAng = angAt(ev) - grabAng;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      const fromAng = -dAng / (70 * Math.PI / 180);
+      // Blend: drag dominates
+      const blended = grabSteer + dx * 1.05 + fromAng * 0.25;
+      // Clockwise / drag-right => turn right => negative game steer is already in dx if left is positive?
+      // Game: positive steerValue = left. Drag right (positive dx) should turn right = negative.
+      wheelSteer = Math.max(-1, Math.min(1, grabSteer - dx * 1.15 - fromAng * 0.2));
     };
     const onUp = (ev) => {
-      if (ev.pointerId !== wheelPointerId && wheelPointerId !== null) return;
+      if (wheelPointerId !== null && ev.pointerId !== wheelPointerId) return;
       wheelTouching = false;
       wheelPointerId = null;
       el.classList.remove('wheel-dragging');
