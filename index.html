@@ -2784,7 +2784,7 @@ function completeLeg() {
   $('win-stamp').textContent = final ? '\uD83C\uDFC6' : chapterEnd ? ch.stamp : '\u2714\uFE0F';
   $('win-h').textContent = final ? 'HOME AT LAST' : chapterEnd ? 'CHAPTER COMPLETE' : 'LEG COMPLETE';
   $('win-p').textContent = final ? 'The porch light is on. Spring rain settles over the road as the driver finally comes home. The year is complete — and a new one can begin.' : chapterEnd ? ch.name + ' (' + SEASON_NAMES[ch.season] + ') complete. ' + ch.outro + ' ' + ch.reveal : (L.title + ' complete. ' + (L.radio || 'The road continues.'));
-  $('win-stats').textContent = 'Score ' + Math.floor(score) + ' \u00B7 Overtakes ' + overs + (combo > 1 ? ' \u00B7 Best chain x' + combo : '') + ' \u00B7 Top ' + Math.round(topSpd * 3.6) + ' km/h \u00B7 ' + Math.ceil(timeLeft) + 's left';
+  $('win-stats').textContent = 'Score ' + Math.floor(score) + ' \u00B7 Overtakes ' + overs + (combo > 1 ? ' \u00B7 Best chain x' + combo : '') + ' \u00B7 Top ' + speedDisplay(topSpd) + ' ' + speedUnitLabel() + ' \u00B7 ' + Math.ceil(timeLeft) + 's left';
   const nx = $('next-btn');
   nx.style.display = final ? 'none' : '';
   nx.textContent = chapterEnd ? 'NEXT CHAPTER' : 'NEXT LEG';
@@ -3313,8 +3313,8 @@ const TRACK_VISUALS = [
 const TRAFFIC_LANES = Object.freeze([-3.75, 3.75]);
 function loadBest() {
   try {
-    bestScore = parseInt(localStorage.getItem('cd3_b' + trackId + carId) || '0', 10) || 0;
-    bestLap = parseFloat(localStorage.getItem('cd3_l' + trackId + carId) || '0') || 0;
+    bestScore = parseInt(localStorage.getItem((story ? 'cd3_sb' : 'cd3_b') + trackId + carId) || '0', 10) || 0;
+    bestLap = parseFloat(localStorage.getItem((story ? 'cd3_sl' : 'cd3_l') + trackId + carId) || '0') || 0;
   } catch (e) { bestScore = 0; bestLap = 0; }
 }
 
@@ -6486,8 +6486,9 @@ function licensePlateTexture(code) {
   code = (code || 'ABC 1234').toUpperCase();
   if (_plateTextures.has(code)) return _plateTextures.get(code);
   // High-res plate tuned for in-game readability: huge dark serial, simple BC frame.
-  const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;   // quarter of the old memory; drawing below is scaled to match
   const x = c.getContext('2d');
+  x.scale(0.5, 0.5);
   // Bright white base
   x.fillStyle = '#ffffff';
   x.fillRect(0, 0, 2048, 1024);
@@ -6560,7 +6561,7 @@ function licensePlateTexture(code) {
   t.generateMipmaps = true;
   t.minFilter = THREE.LinearMipmapNearestFilter;
   t.magFilter = THREE.LinearFilter;
-  if (_plateTextures.size > 80) {
+  if (_plateTextures.size > 40) {
     const first = _plateTextures.keys().next().value;
     const old = _plateTextures.get(first);
     if (old) old.dispose();
@@ -7445,7 +7446,23 @@ function getKappa(tt) {
   const i = ((((tt % 1) + 1) % 1) * LUT_N) | 0;
   return lutK[i];
 }
+const _plP = new THREE.Vector3(), _plT = new THREE.Vector3(), _plS = new THREE.Vector3(), _plU = new THREE.Vector3(), _plW = new THREE.Vector3(0, 1, 0), _plL = new THREE.Vector3();
 function place(mesh, tt, lateral) {
+  if (lutP && lutT) {   // allocation-free fast path (runs for every traffic car every frame)
+    const f = (((tt % 1) + 1) % 1) * LUT_N;
+    const i0 = f | 0, i1 = (i0 + 1) & (LUT_N - 1), a = f - i0;
+    _plP.copy(lutP[i0]).lerp(lutP[i1], a);
+    _plT.copy(lutT[i0]).lerp(lutT[i1], a).normalize();
+    _plS.copy(_plW).cross(_plT);
+    if (_plS.lengthSq() < 1e-6) _plS.set(1, 0, 0);
+    _plS.normalize();
+    _plU.copy(_plT).cross(_plS).normalize();
+    mesh.position.copy(_plP).addScaledVector(_plS, lateral).addScaledVector(_plU, 0.24);
+    mesh.up.copy(_plU);
+    _plL.copy(mesh.position).add(_plT);
+    mesh.lookAt(_plL);
+    return;
+  }
   const p = getP(tt), tang = getT(tt);
   const { side, up } = sideUp(tang);
   mesh.position.copy(p).addScaledVector(side, lateral).addScaledVector(up, 0.24);
@@ -7983,9 +8000,11 @@ function update(dt) {
     if (countdown > 0) { tickAudio(); return; }
   }
 
-  const gasIn = (kU || wheelGas) ? 1 : padGas, brakeIn = (kD || wheelBrake) ? 1 : padBrake;
+  const brakeIn = (kD || wheelBrake) ? 1 : padBrake;
+  // Brake wins over gas: if both are held (e.g. finger on the wheel + brake pedal), the car brakes.
+  const gasIn = brakeIn > 0.05 ? 0 : ((kU || wheelGas) ? 1 : padGas);
   const wasBoost = boosting;
-  boosting = (kB || padBoost) && boost > 3 && spd > 5;
+  boosting = (kB || padBoost) && boost > 3 && spd > 5 && brakeIn <= 0.05;
   // Nitro: strong shove, moderate drain; regenerates faster when coasting than when on throttle
   if (boosting) {
     boost = Math.max(0, boost - 16 * dt);
@@ -8077,7 +8096,6 @@ function update(dt) {
     wheelSteer += (0 - wheelSteer) * (1 - Math.exp(-9 * dt));
     if (Math.abs(wheelSteer) < 0.015) wheelSteer = 0;
   }
-  if (isMobile) keySteer = 0;
   const tiltInput = (isMobile && tiltLive && !wheelTouching) ? tiltSteer * 0.85 : 0;
   const steerTarget = THREE.MathUtils.clamp(keySteer + padSteer + (wheelTouching ? wheelSteer : (wheelSteer || tiltInput)), -1, 1);
   const steerReturning = Math.abs(steerTarget) < Math.abs(steerValue) || steerTarget * steerValue < 0;
@@ -8574,20 +8592,9 @@ function update(dt) {
   if (!cameraLookSmoothed) cameraLookSmoothed = cameraLook.clone();
   else cameraLookSmoothed.lerp(cameraLook, 1 - Math.exp(-(26 + Math.min(16, spd * 0.14)) * dt));
   camera.lookAt(cameraLookSmoothed);
-  if (sunDisc) {
-    const e = [0.10, 0.28, 0.66, 0.88, 0.24, 0.055, -0.16][timeMode];
-    sunDisc.visible = timeMode < 6; sunDisc.material.color.copy(sun.color);
-    sunDisc.position.set(0.70, e, 0.65).normalize().multiplyScalar(450).add(camera.position);
-    if (sunGlow) {
-      sunGlow.visible = sunDisc.visible;
-      sunGlow.position.copy(sunDisc.position);
-      sunGlow.scale.setScalar(SUN_GLOW_SIZE);
-    }
-    if (moonDisc) {
-      const moonHeight = timeMode === 6 ? 0.62 : 0.48;
-      moonDisc.position.set(-0.72, moonHeight, -0.5).normalize().multiplyScalar(430).add(camera.position);
-      moonGlow.position.copy(moonDisc.position);
-    }
+  if (sunDisc) {   // positions/visibility are set once per frame in frame()
+    sunDisc.material.color.copy(sun.color);
+    if (sunGlow) sunGlow.scale.setScalar(SUN_GLOW_SIZE);
   }
   if (boosting && !wasBoosting) fovKick = 6; wasBoosting = boosting;
   fovKick *= Math.exp(-3.2 * dt);
@@ -9070,13 +9077,14 @@ function doCrash(why) {
   dead = true; run = false; paused = false; shake = 1; combo = 0; pvx = 0;
   crashSnd();
   const reason = why || 'CRASHED!';
+  const noGlass = /TIME/i.test(reason);   // running out of time is not an impact
   document.querySelector('#crash h2').textContent = reason;
   if (score > bestScore) {
     bestScore = score;
-    try { localStorage.setItem('cd3_b' + trackId + carId, String(bestScore|0)); } catch (e) {}
+    try { localStorage.setItem((story ? 'cd3_sb' : 'cd3_b') + trackId + carId, String(bestScore|0)); } catch (e) {}
   }
   if (bestLap > 0) {
-    try { localStorage.setItem('cd3_l' + trackId + carId, String(bestLap)); } catch (e) {}
+    try { localStorage.setItem((story ? 'cd3_sl' : 'cd3_l') + trackId + carId, String(bestLap)); } catch (e) {}
   }
   document.getElementById('final').textContent = Math.floor(bestScore > score ? bestScore : score) + ' (run ' + Math.floor(score) + ')';
   const fl = document.getElementById('final-lap');
@@ -9092,7 +9100,7 @@ function doCrash(why) {
     else if (/CRASH/i.test(reason)) tip = 'Leave space on passes. Close is good — contact costs speed and time.';
     tipEl.textContent = tip;
     // Keep cracked glass visible under the crash panel for a moment
-    showWindshieldCrack();
+    if (!noGlass) showWindshieldCrack();
   }
   document.getElementById('crash').style.display = 'flex';
   // Keep the 3D cockpit view + cracked glass; only tuck chrome controls
@@ -9101,9 +9109,20 @@ function doCrash(why) {
   });
   const dash = document.getElementById('dash');
   if (dash) { dash.style.display = 'block'; dash.style.visibility = 'visible'; }
-  showWindshieldCrack();
+  if (!noGlass) showWindshieldCrack();
 }
 
+let glLost = false;
+function showGlMessage(text, fatal) {
+  let el = document.getElementById('gl-msg');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'gl-msg';
+    el.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:rgba(2,4,8,.88);color:#fff;font:700 15px/1.5 system-ui,sans-serif;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text; el.style.display = 'flex'; el.dataset.fatal = fatal ? '1' : '';
+}
+function hideGlMessage() { const el = document.getElementById('gl-msg'); if (el && !el.dataset.fatal) el.style.display = 'none'; }
 let _smoothDt = 1 / 60;
 const _shDir = new THREE.Vector3(), _shR = new THREE.Vector3(), _shU = new THREE.Vector3(), _shP = new THREE.Vector3();
 const _rainV2 = new THREE.Vector2();
@@ -9157,6 +9176,7 @@ function frame() {
       if (dbgReal > 3) { dbgReal = dbgGame = dbgFrames = 0; }
     }
   }
+  try {
   if (!run || dead || paused || countdown > 0) { renderStep = true; update(Math.min(realDt, 0.1)); }
   else if (isMobile) {
     // Same fixed-step idea as desktop, with slightly bigger steps (max 34 ms): physics stays stable on slow frames
@@ -9178,6 +9198,10 @@ function frame() {
       if (!run || dead || paused) break;
     }
     renderStep = true;
+  }
+  } catch (err) {
+    renderStep = true;
+    if (!frame._errAt || nowMs - frame._errAt > 2000) { frame._errAt = nowMs; console.error('CAR DRIVE 3D update error (rendering continues)', err); }
   }
   // Smoothness: shadows on alternating frames (invisible at speed), mirror 3D every other
   // frame but composite every frame so the inset never flashes, secondary FX on a light cadence.
@@ -9211,11 +9235,11 @@ function frame() {
     try { tickTrafficGlow(); } catch (e) {}
   }
   try {
-    if (renderer && scene && camera) renderer.render(scene, camera);
+    if (renderer && scene && camera && !glLost) renderer.render(scene, camera);
   } catch (e) {
     console.warn('render frame failed', e);
   }
-  try { streamMirrorToMainCanvas(); } catch (e) {}
+  try { if (!glLost) streamMirrorToMainCanvas(); } catch (e) {}
   if (run && !dead && !paused && (frame._n & 1) === 0) {
     try { tickNexusOverlay(realDt * 2); } catch (e) {}
   }
@@ -9393,7 +9417,7 @@ function updateTiltDot() {
 function updateTiltFromEvent(e) {
   if (!isMobile) return;
   if (!run && !tiltCalibrating) return;
-  if (!mobileLandscape()) return;
+  if (!mobileLandscape()) { tiltRawSeen++; return; }   // events are arriving; the phone is just in portrait
   const v = getScreenRollDeg(e);
   if (!Number.isFinite(v)) return;
   const now = performance.now();
@@ -9481,6 +9505,9 @@ function calibrateTilt() {
     if (tiltRawSeen === 0) {
       setTiltBadge('MOTION BLOCKED · USE HTTPS · TAP TO RETRY', 'needs-perm');
       tiltCalibrating = false;
+    } else if (tiltCalSamples.length === 0) {
+      setTiltBadge('ROTATE TO LANDSCAPE · TAP TO RETRY', 'needs-perm');
+      tiltCalibrating = false;
     } else if (tiltCalSamples.length < 18) {
       const sorted = tiltCalSamples.slice().sort((x, y) => x - y);
       tiltZero = sorted[sorted.length >> 1];
@@ -9507,6 +9534,12 @@ function init() {
   });
   renderer.setSize(innerWidth, innerHeight);
   initNexusOverlay();
+  canvas.addEventListener('webglcontextlost', e => {
+    e.preventDefault(); glLost = true;
+    if (run && !dead && !paused) togglePause();
+    showGlMessage('Graphics paused: the browser reclaimed the GPU. Hang on, it should come back by itself. If it does not, reload the page.');
+  }, false);
+  canvas.addEventListener('webglcontextrestored', () => { glLost = false; hideGlMessage(); }, false);
   // Tone mapping / color space already set in createRenderer — do not force Basic shadows here.
 
   scene = new THREE.Scene();
@@ -9634,7 +9667,10 @@ function init() {
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? (gfxMobile ? 1.35 : 1.75) : 2));
     renderer.setSize(innerWidth, innerHeight);
+    clearTimeout(window._rainResizeT);
+    window._rainResizeT = setTimeout(() => {
     if (rainMesh) { const wasOn = rainOn; scene.remove(rainMesh); rainMesh.geometry.dispose(); rainMesh.material.dispose(); rainMesh = null; if (rainSplash) { scene.remove(rainSplash); rainSplash.geometry.dispose(); rainSplash.material.dispose(); rainSplash = null; rainSplashLife = null; } setRain(wasOn); }
+    }, 300);
     if (fxOverlayCanvas && nexusGfx) {
       fxOverlayCanvas.width = innerWidth;
       fxOverlayCanvas.height = innerHeight;
@@ -9675,7 +9711,7 @@ function init() {
     }
     start();
   };
-  document.getElementById('start-btn').onclick = e => { story = null; ['mode-btn', 'car-btn', 'track-btn', 'view-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
+  document.getElementById('start-btn').onclick = e => { story = null; loadBest(); ['mode-btn', 'car-btn', 'track-btn', 'view-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
   document.getElementById('restart-btn').onclick = e => story ? beginLeg(story.leg, e) : startGame(e);
   buildDials();
   loadYear(); renderStoryBtn();
@@ -9832,7 +9868,10 @@ function init() {
     activeTouchPointers.clear();
     kL = kR = kU = kD = kB = false;
     touchOn = false; touchSteer = 0;
+    wheelTouching = false; wheelGas = false; wheelBrake = false; wheelPointerId = null;
     document.querySelectorAll('.touch-control').forEach(b => b.classList.remove('active'));
+    const _w = document.getElementById('wheel'); if (_w) _w.classList.remove('wheel-dragging');
+    const _h = document.getElementById('wheel-horn'); if (_h) _h.classList.remove('active');
   };
   window.addEventListener('blur', releaseAllMobileInputs);
   document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAllMobileInputs(); });
@@ -9846,7 +9885,10 @@ function init() {
   applyCar();
   frame();
 }
-init();
+try { init(); } catch (err) {
+  console.error('CAR DRIVE 3D failed to start', err);
+  showGlMessage('This game needs WebGL, and it could not start on this browser or device. Try another browser, turn on hardware acceleration, or update your device.', true);
+}
 </script>
 </html>
 
