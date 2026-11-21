@@ -1373,7 +1373,7 @@ body.crashed #glass-reflection {
   <div id="audio-settings-note">HRTF improves direction over headphones. Use Stereo (off) for speakers.</div>
   <button class="main" id="resume-btn">RESUME</button>
 </div>
-<div id="tilt-status" style="display:none" role="status"><span id="tilt-text">TILT STEERING · HOLD STEADY TO CENTER</span><span id="tilt-track"><i id="tilt-dot"></i></span></div>
+<div id="tilt-status" style="display:none" role="status"><span id="tilt-text">TILT v3 · HOLD STEADY TO CENTER</span><span id="tilt-track"><i id="tilt-dot"></i></span></div>
 <div id="orientation-overlay" aria-live="polite"><div><span class="rotate-icon">↻ ▭</span><b>ROTATE TO LANDSCAPE</b><p>CAR DRIVE 3D is designed for horizontal play. Turn your phone sideways to continue.</p></div></div>
 </body>
 <!-- Three.js core inlined below; traffic vehicles are procedural. -->
@@ -8686,7 +8686,7 @@ function getScreenRollDeg(e) {
 }
 const TILT_DEAD = 1.5, TILT_FULL = 20;   // degrees: ignore hand tremor under DEAD, full lock at FULL
 const TILT_SIGN = /[?&]tiltflip\b/.test(location.search) ? -1 : 1;   // add ?tiltflip to the URL if your phone steers backwards
-let tiltDotEl = null;
+let tiltDotEl = null, tiltRawSeen = 0, tiltBadgeAt = 0, tiltListening = false;
 function updateTiltFromEvent(e) {
   if (!isMobile || !run || paused || dead || !mobileLandscape()) return;
   const v = getScreenRollDeg(e);
@@ -8702,7 +8702,7 @@ function updateTiltFromEvent(e) {
       tiltCalibrating = false;
       tiltReady = true;
       tiltRaw = tiltFiltered = tiltSteer = 0;
-      setTiltBadge('TILT ACTIVE · TAP TO RECENTER');
+      setTiltBadge('TILT v3 · ACTIVE · TAP TO RECENTER');
     }
     return;
   }
@@ -8713,6 +8713,7 @@ function updateTiltFromEvent(e) {
   const mag = Math.min(1, Math.max(0, Math.abs(tiltFiltered) - TILT_DEAD) / (TILT_FULL - TILT_DEAD));
   // Game convention: positive steer = left, so a clockwise (right) roll is negative.
   tiltSteer = -TILT_SIGN * Math.sign(tiltFiltered) * Math.pow(mag, 1.05);
+  if (now - tiltBadgeAt > 150) { tiltBadgeAt = now; setTiltBadge('TILT v3 · ' + (tiltFiltered > 0 ? 'R ' : tiltFiltered < 0 ? 'L ' : '') + Math.abs(tiltFiltered).toFixed(0) + '°'); }
   if (!tiltDotEl) tiltDotEl = document.getElementById('tilt-dot');
   if (tiltDotEl) tiltDotEl.style.transform = 'translateX(' + (-tiltSteer * 26).toFixed(1) + 'px)';
 }
@@ -8725,6 +8726,7 @@ async function enableTiltSteering() {
       const permission = await DOE.requestPermission();
       if (permission !== 'granted') throw new Error('Motion permission denied');
     }
+    if (!tiltListening) { tiltListening = true; window.addEventListener('deviceorientation', () => { tiltRawSeen++; }, true); }
     window.removeEventListener('deviceorientation', updateTiltFromEvent);
     window.addEventListener('deviceorientation', updateTiltFromEvent, true);
     tiltPermission = 'granted';
@@ -8742,7 +8744,7 @@ function calibrateTilt() {
   tiltCalibrating = true;
   setTiltBadge('HOLD STEADY · CENTERING TILT');
   setTimeout(() => {
-    if (tiltCalibrating) setTiltBadge('WAITING FOR MOTION SENSOR · TAP HERE TO ENABLE TILT');
+    if (tiltCalibrating) setTiltBadge(tiltRawSeen === 0 ? 'NO MOTION DATA · NEEDS HTTPS + MOTION ACCESS · TAP HERE' : 'SENSOR DATA EMPTY · TAP HERE TO RETRY');
   }, 2500);
 }
 
