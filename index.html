@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v10cbbb">
+<html lang="en" data-build="cd3-mobile-layout-v10dbbb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -493,7 +493,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   }
   /* Gas — right thumb */
   .touch-control.gas{
-    right: max(16px, env(safe-area-inset-right, 0px) + 14px) !important;
+    right: max(28px, env(safe-area-inset-right, 0px) + 28px) !important;
     left: auto !important;
     bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
     top: auto !important;
@@ -524,7 +524,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
   /* Nitro — above brake */
   .touch-control.boost{
     left: auto !important;
-    right: calc(max(16px, env(safe-area-inset-right, 0px) + 14px) + clamp(43px, 10vw, 67px) + 8px) !important;
+    right: calc(max(28px, env(safe-area-inset-right, 0px) + 28px) + clamp(43px, 10vw, 67px) + 8px) !important;
     bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
     top: auto !important;
     width: clamp(46px, 11vw, 68px) !important;
@@ -1748,7 +1748,7 @@ body.crashed #glass-reflection {
 
   /* Pedals: brake left; gas + nitro stacked on the right */
   body.mobile-game-active .touch-control.gas {
-    right: max(16px, env(safe-area-inset-right, 0px) + 14px) !important;
+    right: max(28px, env(safe-area-inset-right, 0px) + 28px) !important;
     left: auto !important;
     width: clamp(43px, 10vw, 67px) !important;
     height: clamp(86px, 50%, 128px) !important;
@@ -1764,7 +1764,7 @@ body.crashed #glass-reflection {
   body.mobile-game-active .touch-control.boost,
   .touch-control.boost {
     left: auto !important;
-    right: calc(max(16px, env(safe-area-inset-right, 0px) + 14px) + clamp(43px, 10vw, 67px) + 8px) !important;
+    right: calc(max(28px, env(safe-area-inset-right, 0px) + 28px) + clamp(43px, 10vw, 67px) + 8px) !important;
     bottom: max(8px, env(safe-area-inset-bottom, 0px) + 6px) !important;
     top: auto !important;
     width: clamp(46px, 11vw, 68px) !important;
@@ -1925,7 +1925,7 @@ body.crashed #glass-reflection {
         <span id="wheel-tilt-text">TILT</span>
         <span id="wheel-tilt-track"><i id="wheel-tilt-dot"></i></span>
       </div>
-      <button type="button" id="wheel-horn" aria-label="Brake (horn)" title="Hold to brake">HORN</button>
+      <button type="button" id="wheel-horn" aria-label="Brake (horn)" title="Hold to brake"></button>
     </div>
 
     <div id="console">
