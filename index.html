@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v7bb">
+<html lang="en" data-build="cd3-mobile-layout-v8bbb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -1587,29 +1587,19 @@ body.crashed #glass-reflection {
 
 <style id="mobile-dash-center-lock">
 /* =====================================================================
-   MOBILE COCKPIT LAYOUT v7 (loads last — wins cascade)
-   ┌─────────────────────────────────────────────────────────────┐
-   │  HUD                                          mission (thin)│
-   │                                                              │
-   │                         [ road ]                             │
-   │                                                              │
-   │  TILT PILL ── sits on dash lip                               │
-   ├──────────[ SPEEDO ]────[ WHEEL ]────[ TACHO ]────────────────┤
-   │  BRAKE / NITRO              │ digital speed │         GAS   │
-   └─────────────────────────────────────────────────────────────┘
-   Desktop GT offset is untouched (this block is coarse/touch only).
+   MOBILE COCKPIT v8 — tilt lives IN the wheel hub
+   Gas / brake / nitro positions preserved.
    ===================================================================== */
 @media (hover: none), (pointer: coarse) {
   :root {
     --m-dash-h: min(23vh, 150px);
   }
 
-  /* ---- Opaque dash slab ---- */
   #dash {
     --cx: 50% !important;
     --wd: min(58vh, 72vw) !important;
-    --cyk: 0.18 !important;
-    --gd: calc(var(--wd) * 0.26) !important;
+    --cyk: 0.22 !important;
+    --gd: calc(var(--wd) * 0.24) !important;
     --rim: calc(var(--wd) * 0.09) !important;
     height: var(--m-dash-h) !important;
     background-color: #0b0d10 !important;
@@ -1625,7 +1615,7 @@ body.crashed #glass-reflection {
     bottom: -2px !important;
     z-index: 0 !important;
     pointer-events: none !important;
-    border-radius: 18px 18px 0 0;
+    border-radius: 16px 16px 0 0;
     background: linear-gradient(180deg, #3a424c 0%, #1a2026 22%, #0e1216 60%, #07090b 100%) !important;
     opacity: 1 !important;
   }
@@ -1642,7 +1632,6 @@ body.crashed #glass-reflection {
     display: none !important;
   }
 
-  /* ---- Wheel: large, centered, may clip bottom ---- */
   #dash #wheel {
     left: 50% !important;
     right: auto !important;
@@ -1663,11 +1652,81 @@ body.crashed #glass-reflection {
     z-index: 6 !important;
   }
 
-  /* ---- Gauges: one on each side of the wheel ---- */
+  /* Floating tilt pill OFF — hub on the wheel instead */
+  #tilt-status { display: none !important; }
+
+  #wheel-tilt {
+    display: flex !important;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 6;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 34%;
+    max-width: 90px;
+    padding: 6px 4px 5px;
+    border-radius: 12px;
+    background: rgba(0, 6, 12, 0.88);
+    border: 1px solid rgba(120, 210, 255, 0.4);
+    box-shadow: 0 2px 10px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.1);
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
+  }
+  #wheel-tilt-text {
+    font-size: clamp(7px, 1.6vw, 9px);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #bdeeff;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #wheel-tilt-track {
+    position: relative;
+    display: block;
+    width: 78%;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.16);
+  }
+  #wheel-tilt-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: #7edcff;
+    box-shadow: 0 0 8px rgba(126,220,255,.85);
+    transition: background .12s;
+  }
+  #wheel-tilt.needs-perm { border-color: rgba(255,180,80,.55); }
+  #wheel-tilt.needs-perm #wheel-tilt-text { color: #ffe0b0; }
+  #wheel-tilt.calibrating { border-color: rgba(126,220,255,.55); }
+  #wheel-tilt.calibrating #wheel-tilt-text { color: #d9f7ff; }
+  #wheel-tilt.active { border-color: rgba(80,220,160,.45); }
+  #wheel-tilt.active #wheel-tilt-text { color: #c8ffe8; }
+  #wheel-tilt.active #wheel-tilt-dot {
+    background: #5dffb0;
+    box-shadow: 0 0 10px rgba(80,255,180,.9);
+  }
+  #yoke-hud { display: none !important; }
+
   #dash #cluster {
     left: 0 !important;
     right: 0 !important;
-    top: 10% !important;
+    top: 6% !important;
     bottom: auto !important;
     width: 100% !important;
     transform: none !important;
@@ -1683,32 +1742,23 @@ body.crashed #glass-reflection {
     z-index: 10 !important;
     pointer-events: none !important;
   }
-  #cluster::before,
-  #cluster::after,
-  #shift-lights,
-  #cluster-mid #dash-caption {
+  #cluster::before, #cluster::after, #shift-lights, #cluster-mid #dash-caption {
     display: none !important;
   }
-  /* Left = speedo */
-  #cluster #speedo {
-    order: 1;
+  #cluster #speedo, #cluster #tacho {
     position: relative !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
     width: var(--gd) !important;
     height: var(--gd) !important;
-    min-width: 56px;
-    min-height: 56px;
+    min-width: 52px;
+    min-height: 52px;
     flex: 0 0 auto;
-    background:
-      radial-gradient(circle at 50% 45%, #1a1e22 0 58%, #0a0c0e 62%) !important;
+    background: radial-gradient(circle at 50% 45%, #1a1e22 0 58%, #0a0c0e 62%) !important;
     border: 3px solid #3a424c !important;
     border-radius: 50% !important;
     box-shadow: inset 0 0 12px #000, 0 4px 12px rgba(0,0,0,.6) !important;
   }
-  /* Center = digital speed only (compact) */
+  #cluster #speedo { order: 1; }
+  #cluster #tacho { order: 3; }
   #cluster #cluster-mid {
     order: 2;
     position: relative !important;
@@ -1716,107 +1766,53 @@ body.crashed #glass-reflection {
     top: auto !important;
     transform: none !important;
     width: auto !important;
-    max-width: 28vw;
+    max-width: 26vw;
     flex: 1 1 auto;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 2px !important;
-    pointer-events: none !important;
   }
   #cluster-mid #speed-readout {
-    font-size: clamp(16px, 4.5vw, 28px) !important;
-    padding: 4px 10px !important;
+    font-size: clamp(15px, 4.2vw, 26px) !important;
+    padding: 3px 8px !important;
     background: rgba(0,0,0,.75) !important;
     border: 1px solid rgba(160,200,220,.3) !important;
     border-radius: 8px !important;
-    min-width: 0 !important;
   }
-  #cluster-mid #dash-status {
-    font-size: 8px !important;
-    opacity: 0.85;
-  }
+  #cluster-mid #dash-status { font-size: 8px !important; opacity: .85; }
   #cluster-mid #center-stack { display: none !important; }
-  /* Right = tacho */
-  #cluster #tacho {
-    order: 3;
-    position: relative !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    width: var(--gd) !important;
-    height: var(--gd) !important;
-    min-width: 56px;
-    min-height: 56px;
-    flex: 0 0 auto;
-    background:
-      radial-gradient(circle at 50% 45%, #1a1e22 0 58%, #0a0c0e 62%) !important;
-    border: 3px solid #3a424c !important;
-    border-radius: 50% !important;
-    box-shadow: inset 0 0 12px #000, 0 4px 12px rgba(0,0,0,.6) !important;
-  }
   #cluster .gauge-numbers { font-size: max(6px, calc(var(--gd) * 0.09)) !important; }
   #cluster .gauge .label { font-size: max(6px, calc(var(--gd) * 0.08)) !important; }
 
-  /* ---- Tilt pill: ON the dash lip (top edge of the solid panel) ---- */
-  #tilt-status {
-    position: fixed !important;
-    left: 50% !important;
-    right: auto !important;
-    top: auto !important;
-    /* Sit just inside the top of the dash slab */
-    bottom: calc(var(--m-dash-h) - 22px) !important;
-    transform: translateX(-50%) !important;
-    z-index: 45 !important;
-    margin: 0 !important;
-    padding: 4px 11px !important;
-    font-size: 9px !important;
-    max-width: min(70vw, 320px);
-    background: rgba(0, 8, 14, 0.92) !important;
-    border: 1px solid rgba(120, 210, 255, 0.35) !important;
-  }
-
-  /* ---- Mission: thin strip under HUD, does not cover the road center ---- */
   #mission {
     top: max(30px, env(safe-area-inset-top, 0px) + 26px) !important;
     left: auto !important;
     right: max(6px, env(safe-area-inset-right, 0px) + 4px) !important;
     transform: none !important;
-    max-width: min(38vw, 200px) !important;
-    width: auto !important;
+    max-width: min(36vw, 190px) !important;
     white-space: normal !important;
     text-align: right !important;
     font-size: 9px !important;
-    line-height: 1.25 !important;
     padding: 4px 8px 5px !important;
     z-index: 9 !important;
     background: rgba(0,0,0,.55) !important;
     border-radius: 8px !important;
   }
-  #mission-bar { height: 3px !important; margin-top: 4px !important; }
-
-  /* ---- Brief: top-left, compact, short-lived overlay ---- */
   #brief {
     top: max(30px, env(safe-area-inset-top, 0px) + 26px) !important;
     left: max(6px, env(safe-area-inset-left, 0px) + 4px) !important;
     right: auto !important;
     transform: none !important;
-    width: min(40vw, 220px) !important;
+    width: min(38vw, 200px) !important;
     text-align: left !important;
     z-index: 9 !important;
   }
-  #brief b { font-size: clamp(12px, 2.8vw, 18px) !important; margin: 1px 0 !important; }
-  #brief small { font-size: 8px !important; letter-spacing: 0.14em !important; }
-  #brief span, #brief em, #brief .radio-line { font-size: 10px !important; }
+  #brief b { font-size: clamp(12px, 2.8vw, 16px) !important; }
+  #brief small { font-size: 8px !important; }
+  #hud-top { padding-top: max(6px, env(safe-area-inset-top, 0px) + 4px) !important; }
 
-  #hud-top {
-    padding-top: max(6px, env(safe-area-inset-top, 0px) + 4px) !important;
-    font-size: 11px !important;
-  }
-
-  /* Pedals stay in corners on the dash face */
   body.mobile-game-active .touch-control.gas {
     right: max(8px, env(safe-area-inset-right, 0px) + 6px) !important;
     left: auto !important;
@@ -1829,14 +1825,12 @@ body.crashed #glass-reflection {
 
   @media (max-height: 420px) {
     :root { --m-dash-h: min(25vh, 120px); }
-    #dash { --wd: min(52vh, 70vw) !important; --gd: calc(var(--wd) * 0.24) !important; }
-    #tilt-status { bottom: calc(var(--m-dash-h) - 18px) !important; }
-  }
-  @media (max-width: 640px) {
-    #dash { --wd: min(56vh, 74vw) !important; --gd: calc(var(--wd) * 0.24) !important; }
-    #cluster #speedo, #cluster #tacho { min-width: 48px; min-height: 48px; }
+    #dash { --wd: min(52vh, 70vw) !important; --gd: calc(var(--wd) * 0.22) !important; }
   }
 }
+
+/* Desktop: hub hidden */
+#wheel-tilt { display: none; }
 </style>
 </head>
 <body>
@@ -1942,6 +1936,10 @@ body.crashed #glass-reflection {
     <div id="wheel">
       <svg id="wheel-svg" viewBox="0 0 400 400" aria-hidden="true"></svg>
       <div id="yoke-hud"><b id="yoke-gear">N</b><small id="yoke-spd">0 KM/H</small></div>
+      <div id="wheel-tilt" role="status" aria-live="polite" title="Tap to enable or recalibrate tilt">
+        <span id="wheel-tilt-text">TILT</span>
+        <span id="wheel-tilt-track"><i id="wheel-tilt-dot"></i></span>
+      </div>
     </div>
 
     <div id="console">
@@ -9357,13 +9355,21 @@ async function requestMobileOrientation() {
   } catch (e) {}
 }
 function setTiltBadge(text, mode) {
-  const el = document.getElementById('tilt-status');
-  const t = document.getElementById('tilt-text');
-  if (t) t.textContent = text;
-  if (el) {
+  const apply = (el, label, shortLabel) => {
+    if (!el) return;
+    if (label) label.textContent = shortLabel != null ? shortLabel : text;
     el.classList.remove('needs-perm', 'calibrating', 'active');
     if (mode) el.classList.add(mode);
-  }
+  };
+  apply(document.getElementById('tilt-status'), document.getElementById('tilt-text'));
+  const wt = document.getElementById('wheel-tilt');
+  const wtxt = document.getElementById('wheel-tilt-text');
+  let s = text || 'TILT';
+  if (/calibrat/i.test(s)) s = 'CALIBRATE';
+  else if (/enable|tap to|permission|https|blocked|retry/i.test(s)) s = 'TAP · TILT';
+  else if (/active|ready|live|hold/i.test(s)) s = 'TILT';
+  else if (s.length > 14) s = 'TILT';
+  apply(wt, wtxt, s);
 }
 function screenOrientationAngle() {
   if (screen.orientation && Number.isFinite(screen.orientation.angle)) return ((screen.orientation.angle % 360) + 360) % 360;
@@ -9395,6 +9401,8 @@ let tiltDotEl = null, tiltRawSeen = 0, tiltBadgeAt = 0, tiltListening = false, t
 function updateTiltDot() {
   if (!tiltDotEl) tiltDotEl = document.getElementById('tilt-dot');
   if (tiltDotEl) tiltDotEl.style.transform = 'translateX(' + (-tiltSteer * 30).toFixed(1) + 'px)';
+  const wdot = document.getElementById('wheel-tilt-dot');
+  if (wdot) wdot.style.transform = 'translateX(' + (-tiltSteer * 22).toFixed(1) + 'px)';
 }
 function updateTiltFromEvent(e) {
   if (!isMobile) return;
@@ -9694,7 +9702,14 @@ function init() {
   document.getElementById('crash-menu').onclick = () => toMenu();
   document.getElementById('pause-btn').onclick = togglePause;
   document.getElementById('resume-btn').onclick = togglePause;
-  document.getElementById('tilt-status').addEventListener('click', e => { e.stopPropagation(); if (tiltPermission !== 'granted') enableTiltSteering(); else calibrateTilt(); });
+  const tiltTap = e => { e.stopPropagation(); e.preventDefault(); if (tiltPermission !== 'granted') enableTiltSteering(); else calibrateTilt(); };
+  const ts = document.getElementById('tilt-status');
+  if (ts) ts.addEventListener('click', tiltTap);
+  const wt = document.getElementById('wheel-tilt');
+  if (wt) {
+    wt.addEventListener('click', tiltTap);
+    wt.addEventListener('pointerdown', e => { e.stopPropagation(); }); // don't start wheel-drag when tapping hub
+  }
   (function setupUnitsUi() {
     const btn = document.getElementById('units-btn');
     const sync = () => { if (btn) btn.textContent = 'UNITS: ' + (useMph ? 'MPH' : 'KM/H'); };
