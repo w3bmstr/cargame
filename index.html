@@ -1,8 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-dash-v4-center">
+<html lang="en" data-build="cd3-global-v1">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+<meta name="description" content="CAR DRIVE 3D — free browser racing. Overtake traffic, tilt or drag to steer, play free drive or story mode. Works on phone and desktop worldwide.">
+<meta name="theme-color" content="#05080c">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CAR DRIVE 3D">
+<meta name="application-name" content="CAR DRIVE 3D">
+<meta name="format-detection" content="telephone=no">
+<meta property="og:title" content="CAR DRIVE 3D — Night Cockpit">
+<meta property="og:description" content="Free browser racing. Overtake, boost, tilt-steer. Play anywhere.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="CAR DRIVE 3D">
+<meta name="twitter:description" content="Free browser racing — phone or desktop, no install required.">
 <title>CAR DRIVE 3D — Night Cockpit</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui,sans-serif;color:#fff;touch-action:none;user-select:none}
@@ -268,44 +283,92 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 }
 
 @media (hover: none), (pointer: coarse) {
-  /* ----- Dash shell: taller, cleaner, room for a real wheel ----- */
+  /* ----- Opaque dash bulkhead (blocks the road completely) ----- */
   #dash{
-    height: min(42vh, 280px) !important;
-    --wd: min(46vh, 58vw) !important;   /* wheel diameter */
+    height: min(42vh, 300px) !important;
+    --wd: min(46vh, 58vw) !important;
     --cx: 50% !important;
-    --cyk: 0.46 !important;             /* wheel vertical anchor */
+    --cyk: 0.46 !important;
     --gd: calc(var(--wd) * 0.18) !important;
     --md: calc(var(--wd) * 0.09) !important;
     --rim: calc(var(--wd) * 0.09) !important;
-    background:
-      linear-gradient(180deg, #2a3138 0%, #14181c 28%, #0a0c0e 100%) !important;
+    /* Fully opaque slab — no alpha on the base */
+    background: #0b0d10 !important;
     border-top: none !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.10),
-      0 -10px 28px rgba(0,0,0,.55) !important;
-    border-radius: 18px 18px 0 0 !important;
+    border-radius: 20px 20px 0 0 !important;
     overflow: visible !important;
+    isolation: isolate;
+    box-shadow:
+      0 -12px 32px rgba(0,0,0,.75),
+      inset 0 1px 0 rgba(255,255,255,.12) !important;
+  }
+  /* Solid bulkhead plate behind everything (full width, no gaps) */
+  #dash::before{
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    left: -5vw !important;
+    right: -5vw !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    border-radius: 20px 20px 0 0;
+    background:
+      linear-gradient(180deg, #3a424c 0%, #1c2228 18%, #101418 55%, #07090b 100%) !important;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.14),
+      inset 0 12px 28px rgba(0,0,0,.35),
+      inset 0 -20px 40px rgba(0,0,0,.5);
+  }
+  /* Top lip / windshield base */
+  #dash::after{
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    left: 4% !important;
+    right: 4% !important;
+    top: 0 !important;
+    height: 10px !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 70%, transparent) !important;
+    opacity: 1 !important;
   }
   #dash-inner{
+    position: relative !important;
+    z-index: 2 !important;
     max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
     overflow: visible !important;
     pointer-events: none;
+    background: transparent !important;
   }
+  /* Desktop SVG silhouette is asymmetric — hide on mobile; CSS bulkhead does the job */
   #dash-shell{
-    height: 100% !important;
-    width: 100vw !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    opacity: 0.85;
-    filter: drop-shadow(0 -6px 16px rgba(0,0,0,.55));
+    display: none !important;
   }
-  /* The sculpted SVG arch peaks at ~42% (desktop GT offset). On mobile, hide it
-     so the gradient shelf reads as a centered panel under a centered wheel. */
-  #dash-shell path{
-    opacity: 0 !important;
+  #dash-fx{
+    z-index: 1 !important;
+    opacity: 1 !important;
+    /* Opaque material wash, not a see-through layer */
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,255,255,.06), transparent 55%),
+      linear-gradient(180deg, rgba(20,24,28,.0), rgba(0,0,0,.25)) !important;
+    mix-blend-mode: normal !important;
   }
-  #dash-fx{ opacity: 0.75; }
-  #dash-boost{ opacity: 0.9; }
+  #dash-fx::before,
+  #dash-fx::after{
+    opacity: 0.5 !important;
+  }
+  #dash-boost{
+    z-index: 1 !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
+  }
+  #headlight-sweep{ display: none !important; }
 
   /* Hide chrome that fights the mobile layout */
   #vent,
@@ -324,15 +387,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
     bottom: calc(var(--wd) * (var(--cyk) + 0.08)) !important;
     transform: translateX(-50%);
     gap: calc(var(--wd) * 0.012) !important;
-    padding: calc(var(--wd) * 0.012) calc(var(--wd) * 0.018) !important;
-    border-radius: calc(var(--wd) * 0.2) calc(var(--wd) * 0.2) calc(var(--wd) * 0.04) calc(var(--wd) * 0.04);
+    padding: calc(var(--wd) * 0.014) calc(var(--wd) * 0.02) !important;
+    border-radius: calc(var(--wd) * 0.18) calc(var(--wd) * 0.18) calc(var(--wd) * 0.04) calc(var(--wd) * 0.04);
+    /* Opaque instrument hood */
     background:
-      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,.06), transparent 60%),
-      linear-gradient(180deg, #0c0e11, #050607) !important;
-    border: 1px solid #2c3238 !important;
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,.08), transparent 55%),
+      linear-gradient(180deg, #1a1e24 0%, #0a0c0f 55%, #050607 100%) !important;
+    border: 1px solid #3a424c !important;
     box-shadow:
       inset 0 calc(var(--wd) * 0.02) calc(var(--wd) * 0.04) #000,
-      0 4px 14px rgba(0,0,0,.65) !important;
+      inset 0 1px 0 rgba(255,255,255,.1),
+      0 6px 18px rgba(0,0,0,.75) !important;
     z-index: 5 !important;
   }
   #cluster::before,
@@ -1504,61 +1569,68 @@ body.crashed #glass-reflection {
 
 <style id="mobile-dash-center-lock">
 /* =====================================================================
-   MOBILE DASH CENTER LOCK (must load last)
-   Desktop keeps the intentional GT offset (--cx ~42%).
-   Phones force a true center stack: shell · cluster · wheel · pedals.
-   Higher specificity + later cascade beats leftover left:38%/42% rules.
+   MOBILE DASH: OPAQUE + CENTER (loads last — wins cascade)
+   Desktop GT offset untouched. Phones get a solid centered bulkhead.
    ===================================================================== */
 @media (hover: none), (pointer: coarse) {
-  body.mobile-game-active #dash,
-  body #dash {
+  #dash,
+  body.mobile-game-active #dash {
     --cx: 50% !important;
+    background-color: #0b0d10 !important;
+    background-image: none !important;
   }
 
-  /* Kill the desktop-asymmetric binnacle silhouette; use a clean centered shelf */
-  body.mobile-game-active #dash-shell,
-  #dash #dash-shell {
-    width: 100vw !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    opacity: 0.88;
-  }
-  /* Soft symmetric top edge instead of the 42%-offset arch reading as "off center" */
-  body.mobile-game-active #dash-shell path:nth-of-type(1),
-  body.mobile-game-active #dash-shell path:nth-of-type(2) {
-    /* keep fill; the gradient still reads as a full-width shelf */
+  /* Extra insurance: opaque plate even if other rules fight */
+  #dash::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    left: -8vw !important;
+    right: -8vw !important;
+    top: -2px !important;
+    bottom: -2px !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(180deg, #3a424c 0%, #1a2026 22%, #0e1216 60%, #07090b 100%) !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
   }
 
-  /* Wheel + shadow + cluster: dead-center column */
-  body.mobile-game-active #dash #wheel,
+  #dash-shell {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  #dash-fx,
+  #dash-boost {
+    mix-blend-mode: normal !important;
+  }
+
+  /* Center column */
   #dash #wheel {
     left: 50% !important;
     right: auto !important;
     margin-left: 0 !important;
     transform-origin: 50% 50% !important;
   }
-  body.mobile-game-active #wheel-shadow,
   #dash #wheel-shadow {
     left: 50% !important;
   }
-  body.mobile-game-active #cluster,
   #dash #cluster {
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
+    background: linear-gradient(180deg, #1a1e24, #050607) !important;
   }
-
-  /* dash-inner must not clip or offset the center column */
-  body.mobile-game-active #dash-inner,
   #dash #dash-inner {
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 auto !important;
-    left: 0 !important;
-    right: 0 !important;
+    background: transparent !important;
   }
 
-  /* Pedals: mirror each other off the center wheel */
+  /* Pedals mirrored from center */
   body.mobile-game-active .touch-control.gas {
     right: max(8px, env(safe-area-inset-right, 0px) + 6px) !important;
     left: auto !important;
@@ -1568,12 +1640,17 @@ body.crashed #glass-reflection {
     left: max(8px, env(safe-area-inset-left, 0px) + 6px) !important;
     right: auto !important;
   }
+
+  /* Kill any leftover transparency from desktop glass treatments on the dash */
+  #dash,
+  #dash * {
+    /* do not force all children opaque — gauges need their faces — only the slab matters */
+  }
 }
 
-/* Narrow phones previously forced left:38% — hard override */
 @media (hover: none), (pointer: coarse) {
   @media (max-width: 520px) {
-    #dash { --cx: 50% !important; }
+    #dash { --cx: 50% !important; background-color: #0b0d10 !important; }
     #dash #wheel { left: 50% !important; }
     #dash #cluster { left: 50% !important; transform: translateX(-50%) !important; }
     #dash #wheel-shadow { left: 50% !important; }
@@ -1664,7 +1741,7 @@ body.crashed #glass-reflection {
       <div id="shift-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="gauge" id="speedo">
         <div class="gauge-numbers"><span>0</span><span>40</span><span>80</span><span>120</span><span>160</span><span>200</span></div>
-        <div class="needle" id="spd-needle"></div><div class="hub"></div><div class="label">KM/H</div>
+        <div class="needle" id="spd-needle"></div><div class="hub"></div><div class="label" id="spd-label">KM/H</div>
       </div>
       <div id="cluster-mid">
         <div id="dash-caption">COCKPIT TELEMETRY</div>
@@ -1712,14 +1789,15 @@ body.crashed #glass-reflection {
   <div class="landing-kicker">NIGHT COCKPIT // OPEN ROAD SERIES</div>
   <h1>CAR DRIVE 3D</h1>
   <div class="landing-rule"></div>
-  <p>Overtake traffic, chain combos, stay on the road. Story mode has a clock — free drive does not.</p>
+  <p>Overtake traffic, chain combos, stay on the road. Works on phone and desktop — free, no account. Story mode has a clock; free drive does not.</p>
   <div style="display:flex;gap:10px;margin-bottom:14px"><button class="main" id="start-car" style="padding:8px 16px;font-size:12px">CAR</button><button class="main" id="start-track" style="padding:8px 16px;font-size:12px">TRACK</button></div>
   <button class="main" id="story-btn" style="margin-bottom:10px">THE YEAR ROAD</button>
   <div style="display:flex;gap:10px;margin-bottom:12px"><button class="main" id="levels-btn" style="padding:8px 18px;font-size:12px">CHAPTERS</button></div>
   <button class="main" id="start-btn" style="background:linear-gradient(180deg,#46566b,#262f3c);box-shadow:none">START ENGINE &middot; FREE DRIVE</button>
+  <button class="sub" id="units-btn" style="margin-top:10px;padding:8px 18px;font-size:12px">UNITS: KM/H</button>
   <div class="keys">Desktop: Steer <b>A/D</b> or arrows · Gas <b>W</b> · Brake <b>S / Space</b> · Boost <b>Shift</b><br>
   Mobile: <b>tilt</b> and/or <b>drag the wheel</b> · gas / brake / nitro on the dash<br>
-  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · build dash-v4-center</span></div>
+  <span style="opacity:.75">C car · V track · Tab camera · R rain · M mute · P pause · controller supported · <b>U</b> units · build global-v1</span></div>
 </div>
 <div id="crash">
   <h2>CRASHED!</h2>
@@ -2336,6 +2414,39 @@ let groundMesh = null, terrainMesh = null, treeLeafList = [], autumnPineCanopyLi
 let skyRig = null, cloudGroup = null, sunGlow = null, horizonGlow = null, lampFx = null;
 let visualQuality = 'high';
 const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches;
+
+/* ---- Worldwide units: default from locale, user override in localStorage ---- */
+function detectMphLocale() {
+  try {
+    const lang = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+    const tag = String(lang).toLowerCase();
+    // MPH regions: US, UK, Myanmar, Liberia
+    if (/(^|-)(us|gb|mm|lr)(-|$)/.test(tag)) return true;
+    if (tag === 'en-us' || tag === 'en-gb') return true;
+  } catch (e) {}
+  return false;
+}
+let useMph = false;
+try {
+  const saved = localStorage.getItem('cd3_units');
+  if (saved === 'mph') useMph = true;
+  else if (saved === 'kmh') useMph = false;
+  else useMph = detectMphLocale();
+} catch (e) { useMph = detectMphLocale(); }
+function speedDisplay(ms) {
+  // internal spd is m/s
+  return Math.round(ms * (useMph ? 2.23693629 : 3.6));
+}
+function speedUnitLabel() {
+  return useMph ? 'mph' : 'km/h';
+}
+function toggleUnits() {
+  useMph = !useMph;
+  try { localStorage.setItem('cd3_units', useMph ? 'mph' : 'kmh'); } catch (e) {}
+  flash((useMph ? 'MPH' : 'KM/H') + ' UNITS');
+  try { updateDash(); } catch (e) {}
+}
+
 // Phones render the same full-quality graphics as desktop. Add ?lite to the URL (or set this to false) to get the old
 // lightweight phone look back. Touch controls and frame-pacing tweaks stay mobile-specific.
 const MOBILE_FULL_GFX = !/[?&]lite\b/.test(location.search);
@@ -7587,12 +7698,14 @@ let tempState = 0.3;
 const motion = { lat: 0, acc: 0, bg: 0 };
 
 function updateDash() {
-  const speedKmh = Math.round(spd * 3.6);
+  const speedShown = speedDisplay(spd);
   const gear = spd < 1 ? 'N' : spd < 15 ? '1' : spd < 25 ? '2' : spd < 37 ? '3' : spd < 50 ? '4' : spd < 65 ? '5' : '6';
   const speedReadout = document.getElementById('speed-readout');
   const speedUnit = document.getElementById('speed-unit');
-  speedReadout.firstChild.nodeValue = speedKmh;
-  speedUnit.textContent = 'km/h · ' + gear;
+  speedReadout.firstChild.nodeValue = speedShown;
+  speedUnit.textContent = speedUnitLabel() + ' · ' + gear;
+  const spdLabel = document.getElementById('spd-label');
+  if (spdLabel) spdLabel.textContent = useMph ? 'MPH' : 'KM/H';
   document.getElementById('dash-lap-value').textContent = lap;
   document.getElementById('dash-score-value').textContent = Math.floor(score);
   const status = document.getElementById('dash-status');
@@ -7614,7 +7727,7 @@ function updateDash() {
   if (!isMobile || Math.abs((dsh._bg || 0) - motion.bg) > 0.02) { dsh._bg = motion.bg; dsh.style.setProperty('--bg', motion.bg.toFixed(2)); }
   const brk = Math.min(1, Math.max(0, -motion.acc) / 30);          // hard braking makes the needles shudder
   const rpm = Math.min(1, rpmOf() + (boosting ? 0.06 : 0));
-  needleSet('spd-needle', Math.min(400, speedKmh) / 400 + Math.sin(now0 * 0.045) * 0.010 * brk, ndt, -120, 240);
+  needleSet('spd-needle', Math.min(400, speedShown) / 400 + Math.sin(now0 * 0.045) * 0.010 * brk, ndt, -120, 240);
   needleSet('rpm-needle', rpm + Math.sin(now0 * 0.06) * 0.012 * (brk + motion.bg), ndt, -120, 240);
   tempState += ((0.30 + 0.42 * Math.min(1, spd / MAX_SPD) + (boosting ? 0.2 : 0)) - tempState) * Math.min(1, ndt * 0.5);
   needleSet('fuel-needle', Math.min(1, timeLeft / 60), ndt, -65, 130);
@@ -7683,7 +7796,7 @@ function updateDash() {
   if (tb) tb.textContent = Math.round(boost) + '%';
   const yg = document.getElementById('yoke-gear'), ys = document.getElementById('yoke-spd');
   if (yg) yg.textContent = gear;
-  if (ys) ys.textContent = speedKmh + ' KM/H';
+  if (ys) ys.textContent = speedShown + ' ' + speedUnitLabel().toUpperCase();
   if (speedGlow) {
     const speedFactor = THREE.MathUtils.clamp((spd - 38) / 42, 0, 1);
     speedGlow.style.opacity = String((speedFactor * 0.62) + (boosting ? 0.18 : 0));
@@ -8803,7 +8916,7 @@ function doCrash(why) {
   document.getElementById('final').textContent = Math.floor(bestScore > score ? bestScore : score) + ' (run ' + Math.floor(score) + ')';
   const fl = document.getElementById('final-lap');
   if (fl) fl.textContent = bestLap > 0 ? formatTime(bestLap) : '—';
-  document.getElementById('final-stats').textContent = 'Laps ' + (lap - 1) + ' · Overtakes ' + overs + ' · Top ' + Math.round(topSpd * 3.6) + ' km/h';
+  document.getElementById('final-stats').textContent = 'Laps ' + (lap - 1) + ' · Overtakes ' + overs + ' · Top ' + speedDisplay(topSpd) + ' ' + speedUnitLabel();
   const tipEl = document.getElementById('crash-tip');
   if (tipEl) {
     let tip = 'Brake earlier, then feed throttle out of the bend.';
@@ -8875,7 +8988,7 @@ function frame() {
       dbgAcc = 0;
       if (!dbgEl) { dbgEl = document.createElement('div'); dbgEl.style.cssText = 'position:fixed;left:6px;top:6px;z-index:99999;font:11px/1.3 monospace;color:#9ff;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre'; document.body.appendChild(dbgEl); }
       const fps = dbgReal > 0 ? dbgFrames / dbgReal : 0, ratio = dbgReal > 0 ? dbgGame / dbgReal : 0;
-      dbgEl.textContent = 'fps ' + fps.toFixed(0) + '  calls ' + renderer.info.render.calls + '  tris ' + ((renderer.info.render.triangles / 1000) | 0) + 'k  clock x' + ratio.toFixed(2) + '\nspeed ' + Math.round(spd * 3.6) + ' km/h  µ ' + surfaceMu.toFixed(2) + '  slip ' + tireSlip.toFixed(2) + '  heat ' + tireHeat.toFixed(2) + '\nlap ' + lap + '  wt ' + weightTransfer.toFixed(2) + '  sim ' + (SIM_HARD ? 'HARD' : 'normal');
+      dbgEl.textContent = 'fps ' + fps.toFixed(0) + '  calls ' + renderer.info.render.calls + '  tris ' + ((renderer.info.render.triangles / 1000) | 0) + 'k  clock x' + ratio.toFixed(2) + '\nspeed ' + speedDisplay(spd) + ' ' + speedUnitLabel() + '  µ ' + surfaceMu.toFixed(2) + '  slip ' + tireSlip.toFixed(2) + '  heat ' + tireHeat.toFixed(2) + '\nlap ' + lap + '  wt ' + weightTransfer.toFixed(2) + '  sim ' + (SIM_HARD ? 'HARD' : 'normal');
       if (dbgReal > 3) { dbgReal = dbgGame = dbgFrames = 0; }
     }
   }
@@ -8961,6 +9074,7 @@ function onKey(e, down) {
     case 'KeyH': if (down && !e.repeat) { setHrtfMode(!hrtfMode); flash(hrtfMode ? 'HRTF ON · HEADPHONES' : 'STEREO PAN'); } break;
     case 'KeyR': if (down && !e.repeat) toggleRain(); break;
     case 'KeyX': if (down && !e.repeat) { wipeMode = (wipeMode + 1) % 3; flash(['WIPERS OFF', 'WIPERS AUTO', 'WIPERS FAST'][wipeMode]); } break;
+    case 'KeyU': if (down && !e.repeat) { toggleUnits(); const b = document.getElementById('units-btn'); if (b) b.textContent = 'UNITS: ' + (useMph ? 'MPH' : 'KM/H'); } break;
   }
 }
 
@@ -9183,7 +9297,7 @@ function calibrateTilt() {
   setTimeout(() => {
     if (!tiltCalibrating) return;
     if (tiltRawSeen === 0) {
-      setTiltBadge('NO MOTION DATA · TAP TO RETRY', 'needs-perm');
+      setTiltBadge('MOTION BLOCKED · USE HTTPS · TAP TO RETRY', 'needs-perm');
       tiltCalibrating = false;
     } else if (tiltCalSamples.length < 18) {
       const sorted = tiltCalSamples.slice().sort((x, y) => x - y);
@@ -9393,6 +9507,13 @@ function init() {
   document.getElementById('pause-btn').onclick = togglePause;
   document.getElementById('resume-btn').onclick = togglePause;
   document.getElementById('tilt-status').addEventListener('click', e => { e.stopPropagation(); if (tiltPermission !== 'granted') enableTiltSteering(); else calibrateTilt(); });
+  (function setupUnitsUi() {
+    const btn = document.getElementById('units-btn');
+    const sync = () => { if (btn) btn.textContent = 'UNITS: ' + (useMph ? 'MPH' : 'KM/H'); };
+    sync();
+    if (btn) btn.addEventListener('click', () => { toggleUnits(); sync(); });
+  })();
+
   if (isMobile) window.addEventListener('pointerdown', () => { if (tiltPermission !== 'granted') enableTiltSteering(); }, { capture: true, passive: true });
 
   // ---- Touch / drag the on-screen wheel to steer (mobile + desktop) ----
