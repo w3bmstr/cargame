@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-build="cd3-mobile-layout-v8bbb">
+<html lang="en" data-build="cd3-mobile-layout-v8cbb">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -1599,7 +1599,7 @@ body.crashed #glass-reflection {
     --cx: 50% !important;
     --wd: min(58vh, 72vw) !important;
     --cyk: 0.22 !important;
-    --gd: calc(var(--wd) * 0.24) !important;
+    --gd: calc(var(--wd) * 0.20) !important;
     --rim: calc(var(--wd) * 0.09) !important;
     height: var(--m-dash-h) !important;
     background-color: #0b0d10 !important;
@@ -1724,18 +1724,19 @@ body.crashed #glass-reflection {
   #yoke-hud { display: none !important; }
 
   #dash #cluster {
-    left: 0 !important;
-    right: 0 !important;
+    left: 50% !important;
+    right: auto !important;
     top: 6% !important;
     bottom: auto !important;
-    width: 100% !important;
-    transform: none !important;
+    width: auto !important;
+    max-width: 92% !important;
+    transform: translateX(-50%) !important;
     display: flex !important;
     flex-direction: row !important;
-    justify-content: space-between !important;
+    justify-content: center !important;
     align-items: center !important;
-    gap: 0 !important;
-    padding: 0 max(6px, 2vw) !important;
+    gap: clamp(6px, 2vw, 14px) !important;
+    padding: 0 !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -1749,9 +1750,10 @@ body.crashed #glass-reflection {
     position: relative !important;
     width: var(--gd) !important;
     height: var(--gd) !important;
-    min-width: 52px;
-    min-height: 52px;
+    min-width: 44px;
+    min-height: 44px;
     flex: 0 0 auto;
+    margin: 0 !important;
     background: radial-gradient(circle at 50% 45%, #1a1e22 0 58%, #0a0c0e 62%) !important;
     border: 3px solid #3a424c !important;
     border-radius: 50% !important;
@@ -1766,13 +1768,14 @@ body.crashed #glass-reflection {
     top: auto !important;
     transform: none !important;
     width: auto !important;
-    max-width: 26vw;
-    flex: 1 1 auto;
+    max-width: 22vw;
+    flex: 0 0 auto;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 2px !important;
+    margin: 0 2px !important;
   }
   #cluster-mid #speed-readout {
     font-size: clamp(15px, 4.2vw, 26px) !important;
