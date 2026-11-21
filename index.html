@@ -1997,7 +1997,6 @@ body.crashed #glass-reflection {
 </div>
 <div id="tilt-status" style="display:none" role="status" aria-live="polite"><span id="tilt-text">TILT · TAP TO ENABLE</span><span id="tilt-track"><i id="tilt-dot"></i></span></div>
 <div id="orientation-overlay" aria-live="polite"><div><span class="rotate-icon">↻ ▭</span><b>ROTATE TO LANDSCAPE</b><p>CAR DRIVE 3D is designed for horizontal play. Turn your phone sideways to continue.</p></div></div>
-</body>
 <!-- Three.js core inlined below; traffic vehicles are procedural. -->
 <script>
 void 0, /* Standalone bundled Three.js r160 build; retained for offline compatibility. */
@@ -2385,8 +2384,6 @@ function tickNexusOverlay(dt) {
   const w = fxOverlayCanvas.width;
   const h = fxOverlayCanvas.height;
   const carColors = ['rgba(0, 240, 255, 0.38)', 'rgba(255, 130, 30, 0.38)', 'rgba(63, 224, 214, 0.38)', 'rgba(240, 178, 74, 0.38)'];
-  const maxS = boosting ? BOOST_SPD : MAX_SPD;
-  const speedRatio = maxS > 0 ? spd / maxS : 0;
   const isScrapingWall = Math.abs(px) >= ROAD_W * 0.48 && spd > 14;
   const wallSide = px >= 0 ? 1 : -1;
 
@@ -2624,12 +2621,10 @@ let kL = false, kR = false, kU = false, kD = false, kB = false;
 // ?hard or ?sim=hard disables assists and raises slip penalties (pro mode).
 const SIM_HARD = /[?&(](hard|sim=hard)\b/.test(location.search);
 const ROAD_ASSIST = !SIM_HARD;
-const ASSIST = isMobile && ROAD_ASSIST;
-let touchOn = false, touchSteer = 0, btnRamp = 0;
 let tiltSteer = 0, tiltRaw = 0, tiltZero = null, tiltReady = false, tiltPermission = 'unknown', tiltFiltered = 0, tiltCalSamples = [], tiltCalibrating = false;
 let tiltLastEvent = 0;
 // Mobile dual steering: tilt AND/OR drag the on-screen wheel.
-let wheelSteer = 0, wheelTouching = false, wheelPointerId = null, wheelGrabAng = 0, wheelGrabSteer = 0, wheelGas = false, wheelBrake = false;
+let wheelSteer = 0, wheelTouching = false, wheelPointerId = null, wheelGas = false, wheelBrake = false;
 // ?debug shows a small readout: fps, speed, time left, and how many game-seconds pass per real second (should be ~1.00).
 const DEBUG = /[?&]debug\b/.test(location.search);
 let dbgGame = 0, dbgReal = 0, dbgFrames = 0, dbgAcc = 0, dbgEl = null;
@@ -8095,7 +8090,6 @@ function update(dt) {
 
   // Mobile: tilt and/or touch-drag the steering wheel. Desktop: keys + pad.
   let keySteer = (kL ? 1 : 0) + (kR ? -1 : 0);
-  if (ASSIST && !isMobile) { btnRamp += (keySteer - btnRamp) * (1 - Math.exp(-(keySteer === 0 ? 16 : 8.0) * dt)); keySteer = btnRamp; }
   const tiltLive = isMobile && tiltReady && (performance.now() - tiltLastEvent < 900);
   // Finger on the wheel always wins. Tilt is only a background assist when not touching.
   if (!wheelTouching) {
@@ -8275,7 +8269,8 @@ function update(dt) {
   updateYearSetPiece(dt);
   if (!run) return;
 
-  tickSmoke(dt); tickSnow(dt); tickDrift(dt); tickRain(dt); tickGlass(dt);
+  _fxAcc += dt;   // visual-only effects run once per drawn frame (with the time of all physics steps), not once per step
+  if (renderStep) { const fdt = _fxAcc; _fxAcc = 0; tickSmoke(fdt); tickSnow(fdt); tickDrift(fdt); tickRain(fdt); tickGlass(fdt); }
   nearT = Math.max(0, nearT - dt);
   comboT = Math.max(0, comboT - dt);
   if (comboT <= 0) combo = 0;
@@ -9118,6 +9113,7 @@ function doCrash(why) {
   if (!noGlass) showWindshieldCrack();
 }
 
+let _fxAcc = 0;
 const _gidc = {};
 function _gid(id) { return _gidc[id] || (_gidc[id] = document.getElementById(id)); }   // cached lookup for per-frame HUD code
 let glLost = false;
@@ -9302,7 +9298,7 @@ function togglePause() {
   document.getElementById('pause').style.display = paused ? 'flex' : 'none';
   document.getElementById('pause-btn').textContent = paused ? 'RESUME' : 'PAUSE';
   if (paused) {
-    kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; btnRamp = 0; tiltSteer = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
+    kL = kR = kU = kD = kB = false; tiltSteer = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
     document.querySelectorAll('.touch-control').forEach(button => button.classList.remove('active'));
   } else {
     // Resume: restore landscape fullscreen on mobile so play stays immersive
@@ -9340,7 +9336,7 @@ function start() {
   resetGlass();
   countdown = 3; cdShown = -1; topSpd = 0;
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
-  kL = kR = kU = kD = kB = false; touchOn = false; touchSteer = 0; tiltSteer = tiltFiltered = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
+  kL = kR = kU = kD = kB = false; tiltSteer = tiltFiltered = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
   document.getElementById('pause').style.display = 'none';
   document.getElementById('pause-btn').textContent = 'PAUSE';
   spawnTraffic();
@@ -9360,7 +9356,6 @@ function refreshMobileOrientation() {
   if (overlay) overlay.style.display = active && !mobileLandscape() ? 'flex' : 'none';
   if (!mobileLandscape()) {
     kL = kR = false;
-    touchSteer = 0;
     tiltSteer = 0;
   }
 }
@@ -9841,7 +9836,6 @@ function init() {
     season = (season + 1) % 4;
     applySeason();
   };
-  const tiltStatusEl = document.getElementById('tilt-status');
   const activeTouchPointers = new Map();
   document.querySelectorAll('.touch-control').forEach(button => {
     const control = button.dataset.control;
@@ -9875,7 +9869,6 @@ function init() {
   const releaseAllMobileInputs = () => {
     activeTouchPointers.clear();
     kL = kR = kU = kD = kB = false;
-    touchOn = false; touchSteer = 0;
     wheelTouching = false; wheelGas = false; wheelBrake = false; wheelPointerId = null;
     document.querySelectorAll('.touch-control').forEach(b => b.classList.remove('active'));
     const _w = document.getElementById('wheel'); if (_w) _w.classList.remove('wheel-dragging');
@@ -9901,5 +9894,5 @@ try { init(); } catch (err) {
     : 'The game hit an error while starting (' + _m.slice(0, 120) + '). Try reloading the page.', true);
 }
 </script>
+</body>
 </html>
-
