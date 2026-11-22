@@ -1997,6 +1997,15 @@ body.crashed #glass-reflection {
 </div>
 <div id="tilt-status" style="display:none" role="status" aria-live="polite"><span id="tilt-text">TILT · TAP TO ENABLE</span><span id="tilt-track"><i id="tilt-dot"></i></span></div>
 <div id="orientation-overlay" aria-live="polite"><div><span class="rotate-icon">↻ ▭</span><b>ROTATE TO LANDSCAPE</b><p>CAR DRIVE 3D is designed for horizontal play. Turn your phone sideways to continue.</p></div></div>
+<div id="calib-bar" style="display:none;position:fixed;left:50%;top:15%;transform:translateX(-50%);width:44%;max-width:340px;z-index:60;pointer-events:none;text-align:center;font:800 13px/1 system-ui,sans-serif;letter-spacing:.32em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7)">
+  <div style="margin-bottom:9px">CALIBRATE</div>
+  <div style="position:relative;height:10px;border-radius:5px;background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)">
+    <div id="calib-zone" style="position:absolute;left:42%;width:16%;top:0;bottom:0;border-radius:5px;background:rgba(255,255,255,.28)"></div>
+    <div style="position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:rgba(255,255,255,.75)"></div>
+    <div id="calib-dot" style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.6)"></div>
+  </div>
+</div>
+<style>#calib-bar.even #calib-dot{background:#4dff9a;box-shadow:0 0 14px rgba(77,255,154,.9)}#calib-bar.even #calib-zone{background:rgba(77,255,154,.45)}</style>
 <!-- Three.js core inlined below; traffic vehicles are procedural. -->
 <script>
 void 0, /* Standalone bundled Three.js r160 build; retained for offline compatibility. */
@@ -2739,7 +2748,7 @@ function beginLeg(i, e) {
   story = { leg: i, eventShown: false }; won = false;
   ['levels', 'win', 'crash'].forEach(id => $(id).style.display = 'none');
   const rebuild = trackId !== L.track;
-  trackId = L.track; carId = L.car;
+  trackId = L.track; carId = L.car; carFromStory = true;
   if (rebuild) buildTrackWorld(); else addYearSetPiece();
   yearSetPieceClock = 0;
   applyCar();
@@ -2905,8 +2914,17 @@ let shake = 0, t = 0, slide = 0, prevT = 0, combo = 0, comboT = 0, nearT = 0;
 let actx, engOsc, engGain, nGain, mctx, wheelAngle = 0;
 let headlightL, headlightR, beamL, beamR, snowMesh;
 let worldGroundH = null;   // terrain-height lookup exported from createWorld (set-pieces such as the WHITEOUT stakes need it)
-let trackG = null, trackId = 10, carId = 0;
+let trackG = null, trackId = 10, carId = 1, carFromStory = false;   // free drive starts in the Rally, same wheel + steering as the chapters
 let timeLeft = 60, offT = 0, countdown = 0, cdShown = -1, topSpd = 0;
+let tiltAbs = 0, tiltAbsAt = 0, calibAbsF = 0, cdCal = 0, cdHoldT = 0, cdLevelT = 0, calibBarOn = false;   // pre-GO balance bar
+function setCalibBar(on, v, even) {
+  const el = document.getElementById('calib-bar'); if (!el) return;
+  if (!on) { if (calibBarOn) { el.style.display = 'none'; calibBarOn = false; } return; }
+  if (!calibBarOn) { el.style.display = 'block'; calibBarOn = true; }
+  const dot = document.getElementById('calib-dot');
+  if (dot) dot.style.left = (50 + Math.max(-1, Math.min(1, v / 20)) * 50) + '%';
+  el.classList.toggle('even', !!even);
+}
 let drafting = false, sunDisc = null, moonDisc = null, moonGlow = null;
 let windowLitMat = null;
 let rainOn = false, rainMesh = null, rainSplash = null, rainDropMeta = null, rainSplashLife = null, lightningEl = null, stormFlashLight = null, lightT = 0, lightNext = 8, lightFlash = 0, muted = false;
@@ -3856,7 +3874,7 @@ function buildTrackWorld() {
   // darkness/fog overrides are not immediately overwritten by day/night setup.
   addYearSetPiece();
 }
-function switchCar() { if (legLocked()) return; carId = (carId + 1) % CARS.length; applyCar(); flash(CARS[carId].n); }
+function switchCar() { if (legLocked()) return; carId = (carId + 1) % CARS.length; carFromStory = false; applyCar(); flash(CARS[carId].n); }
 function switchTrack() {
   if (legLocked()) return;
   trackId = (trackId + 1) % TRACKS.length;
@@ -7993,13 +8011,30 @@ function updateDash() {
 
 let renderStep = true;
 function update(dt) {
-  if (!run || dead || paused) { tickAudio(); return; }
+  if (!run || dead || paused) { if (calibBarOn) setCalibBar(false); tickAudio(); return; }
   if (countdown > 0) {
     countdown -= dt;
     const n = Math.max(0, Math.ceil(countdown));
     if (n !== cdShown) { cdShown = n; flash(n > 0 ? String(n) : 'GO!'); chime(n > 0 ? 440 : 880); }
+    // Pre-GO balance bar: shown during the countdown; GO is held until the phone is level, then tilt is centered.
+    if (isMobile && tiltPermission === 'granted' && cdCal < 2) {
+      const live = performance.now() - tiltAbsAt < 700;
+      if (cdCal === 0 && countdown <= 1.2) { cdCal = live ? 1 : 2; if (!live) calibrateTilt(); }
+      if (cdCal === 1) {
+        calibAbsF += (tiltAbs - calibAbsF) * (1 - Math.exp(-12 * dt));
+        const even = Math.abs(calibAbsF) < 2.5;
+        cdHoldT += dt; cdLevelT = even ? cdLevelT + dt : 0;
+        countdown = Math.max(countdown, 1.2);   // do not take off until it is even
+        setCalibBar(true, calibAbsF, even);
+        if (cdLevelT >= 0.6 || cdHoldT > 8 || !live) { cdCal = 2; calibrateTilt(); setCalibBar(false); }   // 8 s cap so it can never trap the player
+      } else if (cdCal === 0 && live) {
+        calibAbsF += (tiltAbs - calibAbsF) * (1 - Math.exp(-12 * dt));
+        setCalibBar(true, calibAbsF, Math.abs(calibAbsF) < 2.5);
+      }
+    } else if (calibBarOn) setCalibBar(false);
     if (countdown > 0) { tickAudio(); return; }
   }
+  if (calibBarOn) setCalibBar(false);
 
   const brakeIn = (kD || wheelBrake) ? 1 : padBrake;
   // Brake wins over gas: if both are held (e.g. finger on the wheel + brake pedal), the car brakes.
@@ -9334,7 +9369,7 @@ function start() {
   coachStep = 0; coachT = 0; freeGoal = 8;
   setCameraView(0);
   resetGlass();
-  countdown = 3; cdShown = -1; topSpd = 0;
+  countdown = 3; cdShown = -1; topSpd = 0; cdCal = 0; cdHoldT = 0; cdLevelT = 0; calibAbsF = tiltAbs; setCalibBar(false);
   { const q = getP(0); camera.position.set(q.x, q.y + 1.15, q.z); }
   kL = kR = kU = kD = kB = false; tiltSteer = tiltFiltered = 0; wheelSteer = 0; wheelTouching = false; wheelPointerId = null; wheelGas = false; wheelBrake = false;
   document.getElementById('pause').style.display = 'none';
@@ -9427,6 +9462,7 @@ function updateTiltFromEvent(e) {
   const dtS = tiltLastEvent ? Math.min(0.12, (now - tiltLastEvent) / 1000) : 0.016;
   tiltLastEvent = now;
   tiltRawSeen++;
+  tiltAbs = v; tiltAbsAt = now;   // absolute roll (0 = level), used by the pre-GO balance bar
 
   if (tiltCalibrating) {
     tiltCalSamples.push(v);
@@ -9714,7 +9750,7 @@ function init() {
     }
     start();
   };
-  document.getElementById('start-btn').onclick = e => { story = null; loadBest(); ['mode-btn', 'car-btn', 'track-btn', 'view-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
+  document.getElementById('start-btn').onclick = e => { story = null; if (carFromStory) { carId = 1; carFromStory = false; applyCar(); } loadBest(); ['mode-btn', 'car-btn', 'track-btn', 'view-btn'].forEach(id => document.getElementById(id).style.display = ''); startGame(e); };
   document.getElementById('restart-btn').onclick = e => story ? beginLeg(story.leg, e) : startGame(e);
   buildDials();
   loadYear(); renderStoryBtn();
@@ -9807,6 +9843,10 @@ function init() {
         wheelBrake = true;
         horn.classList.add('active');
         try { horn.setPointerCapture(ev.pointerId); } catch (_) {}
+        // Hidden shortcut: double-press the wheel's center (brake) to re-center tilt. No on-screen feedback by design.
+        const _hn = performance.now();
+        if (_hn - (hornDown._last || 0) < 380) { hornDown._last = 0; if (isMobile && tiltPermission === 'granted') calibrateTilt(); }
+        else hornDown._last = _hn;
       };
       const hornUp = (ev) => {
         wheelBrake = false;
