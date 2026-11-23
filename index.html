@@ -2582,6 +2582,7 @@ let surfaceMu = 1;       // instantaneous surface grip multiplier
 let slipAngle = 0;       // rad-ish proxy for body vs velocity heading
 let tireHeat = 0;        // 0 cold … 1 overcooked (grip falls off after long slides)
 let groundMesh = null, terrainMesh = null, treeLeafList = [], autumnPineCanopyList = [], skyMesh = null, starMesh = null, hillMeshes = [], centerLineMesh = null, edgeLineMeshes = [];
+let crossingLampMat = null, crossingList = [];
 let skyRig = null, cloudGroup = null, sunGlow = null, horizonGlow = null, lampFx = null;
 let visualQuality = 'high';
 const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches;
@@ -3470,7 +3471,7 @@ function addYearSetPiece() {
   if (yearLightning) { scene.remove(yearLightning); yearLightning = null; }
   yearDimLights.forEach(v => { if (v.light) v.light.intensity = v.base; }); yearDimLights = [];
   if (yearBlackoutFog && scene.fog) { scene.fog.color.copy(yearBlackoutFog.color); scene.fog.near = yearBlackoutFog.near; scene.fog.far = yearBlackoutFog.far; yearBlackoutFog = null; }
-  if (yearBlackoutSky && skyMesh && skyMesh.material.uniforms) { skyMesh.material.uniforms.horizon.value.copy(yearBlackoutSky.horizon); skyMesh.material.uniforms.zenith.value.copy(yearBlackoutSky.zenith); skyMesh.material.uniforms.glow.value.copy(yearBlackoutSky.glow); yearBlackoutSky = null; }
+  if (yearBlackoutSky && skyMesh && skyMesh.material.uniforms) { skyMesh.material.uniforms.horizon.value.copy(yearBlackoutSky.horizon); skyMesh.material.uniforms.zenith.value.copy(yearBlackoutSky.zenith); skyMesh.material.uniforms.glow.value.copy(yearBlackoutSky.glow); if (yearBlackoutSky.ca !== undefined) skyMesh.material.uniforms.cloudAlpha.value = yearBlackoutSky.ca; yearBlackoutSky = null; }
   yearSnowField = null; yearBridgeWater = null;
   if (!story || !LEGS[story.leg]) return;
   const L = LEGS[story.leg];
@@ -3480,7 +3481,7 @@ function addYearSetPiece() {
   const basis = new THREE.Matrix4().makeBasis(side, up, tangent);
   yearSetPiece = new THREE.Group(); yearSetPiece.position.copy(center); yearSetPiece.quaternion.setFromRotationMatrix(basis); trackG.add(yearSetPiece);
   const mat = (color, roughness=0.8, metalness=0) => new THREE.MeshStandardMaterial({color, roughness, metalness});
-  const concrete = mat(0x59636a), darkStone = mat(0x303b42), water = new THREE.MeshStandardMaterial({color:0x254f63, roughness:0.19, metalness:0.25, transparent:true, opacity:0.88});
+  const water = new THREE.MeshStandardMaterial({color:0x254f63, roughness:0.19, metalness:0.25, transparent:true, opacity:0.88});
   if (L.title === 'THE OLD BRIDGE') {
     // A substantial weathered stone arch bridge. All geometry is decorative and
     // sits outside the drivable corridor; the existing road/collision surface is untouched.
@@ -3740,7 +3741,7 @@ function addYearSetPiece() {
     scene.traverse(o => { if (o.isAmbientLight || o.isHemisphereLight || o.isDirectionalLight) yearDimLights.push({light:o,base:o.intensity}); });
     if (scene.fog) yearBlackoutFog = { color: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far };
     if (scene.fog) { scene.fog.color.set(0x03070b); scene.fog.near = 12; scene.fog.far = Math.min(scene.fog.far, 118); }
-    if (skyMesh && skyMesh.material.uniforms) { yearBlackoutSky = {horizon:skyMesh.material.uniforms.horizon.value.clone(),zenith:skyMesh.material.uniforms.zenith.value.clone(),glow:skyMesh.material.uniforms.glow.value.clone()}; skyMesh.material.uniforms.horizon.value.set(0x020509); skyMesh.material.uniforms.zenith.value.set(0x010204); skyMesh.material.uniforms.glow.value.set(0x020509); }
+    if (skyMesh && skyMesh.material.uniforms) { yearBlackoutSky = {horizon:skyMesh.material.uniforms.horizon.value.clone(),zenith:skyMesh.material.uniforms.zenith.value.clone(),glow:skyMesh.material.uniforms.glow.value.clone(), ca: skyMesh.material.uniforms.cloudAlpha.value}; skyMesh.material.uniforms.cloudAlpha.value = 0; skyMesh.material.uniforms.horizon.value.set(0x020509); skyMesh.material.uniforms.zenith.value.set(0x010204); skyMesh.material.uniforms.glow.value.set(0x020509); }
   } else if (L.title === 'WHITEOUT') {
     // Mountain underpass: heavy portal, battered concrete walls, roof slab, ribs and practical lighting.
     // Decorative geometry only: road surface, collision and vehicle handling are unchanged.
@@ -3858,6 +3859,110 @@ function updateYearSetPiece(dt) {
   }
 }
 
+// Where a track crosses over itself (the figure-eight), the upper road becomes a real bridge: a concrete deck with parapets,
+// and the lower road runs between retaining walls with lamps under the deck. Visual only - collision and driving are untouched.
+// True inside the bridge area (both roads): scenery, guardrails, lamps and signs are kept out so nothing pokes through the bridge.
+function inBridgeZone(x, z) {
+  for (const c of crossingList) {
+    let dx = x - c.Pl.x, dz = z - c.Pl.z;
+    if (Math.abs(dx * c.tlx + dz * c.tlz) < 22 && Math.abs(-dx * c.tlz + dz * c.tlx) < 17) return true;
+    dx = x - c.Pu.x; dz = z - c.Pu.z;
+    if (Math.abs(dx * c.tux + dz * c.tuz) < 24 && Math.abs(-dx * c.tuz + dz * c.tux) < 17) return true;
+  }
+  return false;
+}
+function findCrossings() {
+  const out = [];
+  if (!pts || pts.length < 40 || !curve) return out;
+  const n = pts.length, found = [];
+  for (let i = 0; i < n; i++) for (let j = i + 12; j < n; j++) {
+    if (n - (j - i) < 12) continue;
+    const a = pts[i], b = pts[j], dx = a.x - b.x, dz = a.z - b.z, d2 = dx * dx + dz * dz;
+    if (d2 < 16 && Math.abs(a.y - b.y) > 1.8) found.push({ i, j, d2 });
+  }
+  found.sort((p, q) => p.d2 - q.d2);
+  const cyc = (p, q) => { const d = Math.abs(p - q); return Math.min(d, n - d); };
+  const used = [];
+  for (const f of found) { if (!used.some(u => cyc(u.i, f.i) < 14 && cyc(u.j, f.j) < 14)) used.push(f); }
+  for (const f of used) {
+    const iu = pts[f.i].y > pts[f.j].y ? f.i : f.j, il = iu === f.i ? f.j : f.i;
+    const tu = iu / n, tl = il / n, Tl = curve.getTangent(tl), Tu = curve.getTangent(tu), h = Math.hypot(Tl.x, Tl.z) || 1, hu = Math.hypot(Tu.x, Tu.z) || 1;
+    out.push({ tu, tl, Pu: curve.getPoint(tu), Pl: curve.getPoint(tl), tlx: Tl.x / h, tlz: Tl.z / h, tux: Tu.x / hu, tuz: Tu.z / hu });
+  }
+  return out;
+}
+function buildCrossingBridge() {
+  crossingLampMat = null;
+  if (!crossingList.length || !trackG) return;
+
+  // Procedural weathered concrete (no external image): speckle, board-formwork seams, tie holes, rain streaks, soft blotches.
+  const concrete = (() => {
+    const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d');
+    x.fillStyle = '#bfc3c6'; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 9; i++) {
+      const px = Math.random() * S, py = Math.random() * S, r = 40 + Math.random() * 70, g = x.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, Math.random() < 0.5 ? 'rgba(90,96,100,0.10)' : 'rgba(235,238,240,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.fillRect(0, 0, S, S);
+    }
+    for (let i = 0; i < 2600; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(70,76,80,' + (0.05 + Math.random() * 0.09) + ')' : 'rgba(240,243,245,' + (0.05 + Math.random() * 0.08) + ')'; x.fillRect(Math.random() * S, Math.random() * S, 1 + Math.random() * 1.6, 1 + Math.random() * 1.6); }
+    for (let k = 0; k < 4; k++) {   // formwork seams + tie holes
+      const y = k * 64; x.fillStyle = 'rgba(55,61,66,0.30)'; x.fillRect(0, y, S, 2); x.fillStyle = 'rgba(235,238,240,0.18)'; x.fillRect(0, y + 2, S, 1);
+      for (let h = 0; h < 4; h++) { x.beginPath(); x.arc(32 + h * 64, y + 32, 2.6, 0, Math.PI * 2); x.fillStyle = 'rgba(50,56,60,0.38)'; x.fill(); }
+    }
+    for (let i = 0; i < 16; i++) {   // rain streaks
+      const px = Math.random() * S, w = 3 + Math.random() * 7, h = 70 + Math.random() * 170, py = Math.random() * (S - h * 0.5), g = x.createLinearGradient(0, py, 0, py + h);
+      g.addColorStop(0, 'rgba(40,48,46,0)'); g.addColorStop(0.35, 'rgba(40,48,46,0.20)'); g.addColorStop(1, 'rgba(40,48,46,0)');
+      x.fillStyle = g; x.fillRect(px, py, w, h);
+    }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  })();
+  const mk = (color, rough) => new THREE.MeshStandardMaterial({ color, map: concrete, roughness: rough, metalness: 0.02 });
+  const deckMat = mk(0xcfd3d6, 0.92), parapetMat = mk(0xe4e7e9, 0.88), wallMat = mk(0xa8aeb2, 0.94), capMat = mk(0xf0f2f3, 0.86), ribMat = mk(0x9aa0a4, 0.95);
+  crossingLampMat = new THREE.MeshStandardMaterial({ color: 0x30343a, emissive: 0xffe6b0, emissiveIntensity: 0, roughness: 0.6 });
+  const frameFor = (t, pos) => {
+    const T = curve.getTangent(t).normalize(), su = sideUp(T);
+    const g = new THREE.Group();
+    g.position.copy(pos);
+    g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(su.side, su.up, T));
+    return g;
+  };
+  // box with world-scale texture coordinates (the concrete pattern repeats every 4 m on every face)
+  const box = (g, mat, w, h, l, x, y, z) => {
+    const geo = new THREE.BoxGeometry(w, h, l), uv = geo.attributes.uv, dims = [[l, h], [l, h], [w, l], [w, l], [w, h], [w, h]];
+    for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * dims[f][0] / 4, uv.getY(i) * dims[f][1] / 4); }
+    uv.needsUpdate = true;
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.receiveShadow = true; g.add(m); return m;
+  };
+  const halfRibbon = ROAD_W / 2 + 1.2;   // drivable ribbon incl. rumble strips (matches createRoad)
+  for (const cx of crossingList) {
+    const { tu, tl, Pu, Pl } = cx;
+    const deckBottom = -1.03;                        // relative to the upper road's centre height
+    const up = frameFor(tu, Pu);
+    box(up, deckMat, 22.4, 1.2, 36, 0, 0.17 - 0.6, 0);                                     // deck slab
+    for (const gx of [-8, -4, 0, 4, 8]) box(up, ribMat, 0.55, 0.55, 36, gx, deckBottom - 0.275, 0);   // girders under the deck
+    for (const sx of [-1, 1]) {
+      const px = sx * (halfRibbon + 0.9);
+      box(up, parapetMat, 0.5, 1.05, 36, px, 0.2 + 0.5, 0);                                // parapet wall
+      box(up, capMat, 0.8, 0.14, 36.2, px, 0.2 + 1.05 + 0.07, 0);                          // coping
+      for (let z = -15; z <= 15.1; z += 6) box(up, parapetMat, 0.78, 1.22, 0.78, px, 0.2 + 0.61, z);   // posts
+    }
+    trackG.add(up);
+    const hWall = (Pu.y + deckBottom) - (Pl.y - 0.4);
+    if (hWall > 0.8) {
+      const lo = frameFor(tl, Pl);
+      for (const sx of [-1, 1]) {
+        const wx = sx * (halfRibbon + 1.4);
+        box(lo, wallMat, 0.9, hWall, 34, wx, -0.4 + hWall / 2, 0);                         // retaining wall
+        for (const z of [-14, -7, 0, 7, 14]) box(lo, wallMat, 0.5, hWall, 0.9, wx - sx * 0.7, -0.4 + hWall / 2, z);   // pilasters
+        box(lo, capMat, 1.2, 0.2, 34.2, wx, -0.4 + hWall + 0.0, 0);                        // coping
+      }
+      const lampY = (Pu.y + deckBottom) - Pl.y - 0.12 - 0.55;
+      for (const sx of [-1, 1]) box(lo, crossingLampMat, 0.26, 0.12, 9, sx * 3.8, lampY, 0);   // lamp strips (hang below the girders)
+      trackG.add(lo);
+    }
+  }
+}
 function buildTrackWorld() {
   resetGlass();
   if (trackG) { scene.remove(trackG); trackG.traverse(o => {
@@ -3867,7 +3972,7 @@ function buildTrackWorld() {
     }); }
   trackG = new THREE.Group(); scene.add(trackG);
   scene.add = (...o) => trackG.add(...o); // (was single-argument, which silently dropped the moon glow)
-  try { buildTrack(); createRoad(); createWorld(); } finally { delete scene.add; }
+  try { buildTrack(); createRoad(); crossingList = findCrossings(); createWorld(); buildCrossingBridge(); } finally { delete scene.add; }
   if (scene.fog) { if (!scene.fog.userData) scene.fog.userData = {}; scene.fog.userData.yearBaseNear = scene.fog.near; scene.fog.userData.yearBaseFar = scene.fog.far; }
   applyDayNight(); applySeason();
   // Build signature set pieces after the base lighting pass so event-specific
@@ -4055,6 +4160,9 @@ function createRoad() {
   roadMesh.material.userData.puddle.repeat.set(trackLen / (48 * 7), (ROAD_W + 2.4) / 7);
   roadMesh.receiveShadow = true;
   scene.add(roadMesh);
+  // Phase 2: subtle, geometry-based road wear. A single static mesh keeps
+  // repairs, aggregate wear and fine cracks cheap (no per-frame work).
+  createRoadSurfaceWear(N, hw, loft);
 
   const upos = [], uidx = [];
   const uhw = hw + rumble + 1.4;
@@ -4120,6 +4228,76 @@ function createRoad() {
     edgeLineMeshes.push(edgeMesh);
     scene.add(edgeMesh);
   }
+}
+
+function createRoadSurfaceWear(segmentCount, halfWidth, roadLoft) {
+  if (!curve || !pts || pts.length < 8) return;
+  // Deterministic per-track placement prevents the road from changing every rebuild.
+  let seed = 9176 + (trackId || 0) * 7919;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const positions = [], colors = [], indices = [];
+  const colorA = new THREE.Color(0x77736a), colorB = new THREE.Color(0xaaa49a), colorC = new THREE.Color(0x4d5151);
+  const sample = (u, lateral, lift = 0.035) => {
+    const uu = ((u % 1) + 1) % 1;
+    const point = curve.getPointAt(uu), tangent = curve.getTangentAt(uu).normalize();
+    const basis = sideUp(tangent);
+    return point.addScaledVector(basis.side, lateral).addScaledVector(basis.up, roadLoft + lift);
+  };
+  // Worn aggregate/old patch repairs. Each patch is a small irregular fan.
+  const patchCount = visualQuality === 'low' ? 95 : (isMobile ? 145 : 235);
+  for (let n = 0; n < patchCount; n++) {
+    const u = rand(); let lateral = (rand() * 2 - 1) * (halfWidth - 1.25);
+    if (Math.abs(lateral) < 0.82) lateral = (lateral < 0 ? -1 : 1) * (0.92 + rand() * 1.1);
+    const along = 0.18 + rand() * 1.05, across = 0.12 + rand() * 0.48;
+    const sides = 5 + (rand() * 4 | 0), base = positions.length / 3;
+    const tone = rand();
+    const tint = tone < 0.22 ? colorC : tone < 0.65 ? colorA : colorB;
+    let center = sample(u, lateral, 0.038);
+    positions.push(center.x, center.y, center.z); colors.push(tint.r, tint.g, tint.b);
+    for (let j = 0; j < sides; j++) {
+      const a = j / sides * Math.PI * 2;
+      const wobble = 0.78 + rand() * 0.38;
+      const q = sample(u + Math.cos(a) * along * wobble / Math.max(40, trackLen), lateral + Math.sin(a) * across * wobble, 0.04);
+      positions.push(q.x, q.y, q.z);
+      const shade = 0.88 + rand() * 0.22;
+      colors.push(tint.r * shade, tint.g * shade, tint.b * shade);
+    }
+    for (let j = 0; j < sides; j++) indices.push(base, base + 1 + j, base + 1 + ((j + 1) % sides));
+  }
+  // Fine, broken hairline cracks: narrow ribbons, not high-contrast painted lines.
+  const crackPositions = [], crackColors = [], crackIndices = [];
+  const crackCount = visualQuality === 'low' ? 34 : (isMobile ? 58 : 92);
+  for (let n = 0; n < crackCount; n++) {
+    let u = rand(), lateral = (rand() * 2 - 1) * (halfWidth - 1.6);
+    if (Math.abs(lateral) < 0.82) lateral = (lateral < 0 ? -1 : 1) * (0.92 + rand() * 1.0);
+    const steps = 2 + (rand() * 3 | 0), width = 0.008 + rand() * 0.012;
+    let sideDrift = (rand() - 0.5) * 0.22;
+    for (let j = 0; j < steps; j++) {
+      const du = (0.12 + rand() * 0.3) / Math.max(40, trackLen);
+      const nextU = u + du, nextL = lateral + sideDrift;
+      const a = sample(u, lateral - width, 0.047), b = sample(u, lateral + width, 0.047);
+      const c = sample(nextU, nextL + width, 0.047), d = sample(nextU, nextL - width, 0.047);
+      const base = crackPositions.length / 3;
+      [a,b,c,d].forEach(q => { crackPositions.push(q.x,q.y,q.z); crackColors.push(0.30,0.29,0.27); });
+      crackIndices.push(base,base+1,base+2,base,base+2,base+3);
+      u = nextU; lateral = nextL;
+    }
+  }
+  const makeWearMesh = (pos, col, idx, opacity, roughness) => {
+    if (!pos.length) return;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+      color: 0xffffff, vertexColors: true, roughness, metalness: 0,
+      transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -5
+    }));
+    m.renderOrder = 2; m.receiveShadow = false; scene.add(m);
+  };
+  makeWearMesh(positions, colors, indices, 0.22, 0.98);
+  makeWearMesh(crackPositions, crackColors, crackIndices, 0.48, 1.0);
 }
 
 function grassTex() {
@@ -4655,7 +4833,13 @@ function createWorld() {
     const edge = sstep(0, 70, Math.min(x - gMinX, gMaxX - x, z - gMinZ, gMaxZ - z));
     const farH = -6.05 + (1.4 + n * 0.75) * edge;
     const t = sstep(24, 150, d);
-    return nearH * (1 - t) + farH * t;
+    let gh = nearH * (1 - t) + farH * t;
+    // Underpass: the ground must not rise inside the bridge opening (it used to heave up to the upper road's height there)
+    for (const c of crossingList) {
+      const ddx = x - c.Pl.x, ddz = z - c.Pl.z, along = ddx * c.tlx + ddz * c.tlz, lat = -ddx * c.tlz + ddz * c.tlx;
+      if (Math.abs(along) < 17 && Math.abs(lat) < 11.6) gh = Math.min(gh, c.Pl.y - 0.45);
+    }
+    return gh;
   };
   {
     const step = isMobile ? 9 : 6, nx = Math.ceil((gMaxX - gMinX) / step) + 1, nz = Math.ceil((gMaxZ - gMinZ) / step) + 1;
@@ -4665,8 +4849,10 @@ function createWorld() {
       // Reuse the nearest-road result for height and dirt blending; avoids a second full scan of pts.
       tp[k * 3] = x; tp[k * 3 + 1] = groundH(x, z, roadSample); tp[k * 3 + 2] = z;
       tu[k * 2] = (x + 900) / 1800; tu[k * 2 + 1] = (900 - z) / 1800;
-      const patch = 1.0 + 0.2 * Math.sin(x * 0.045 + 0.7) * Math.cos(z * 0.037) + (Math.random() - 0.5) * 0.1, dirt = 1 - sstep(10.5, 16, d);
-      tc[k * 3] = patch * (1 + dirt * 0.45); tc[k * 3 + 1] = patch * (1 + dirt * 0.18); tc[k * 3 + 2] = patch * (1 - dirt * 0.1);
+      const patch = 0.96 + 0.24 * Math.sin(x * 0.045 + 0.7) * Math.cos(z * 0.037) + (Math.random() - 0.5) * 0.12, dirt = 1 - sstep(9.5, 31, d);
+      // A broader, irregular soil/gravel shoulder fades into grass instead of ending in a sharp green ring.
+      const soil = dirt * (0.72 + 0.18 * Math.sin(x * 0.083 + z * 0.047));
+      tc[k * 3] = patch * (1 + soil * 0.28); tc[k * 3 + 1] = patch * (1 - soil * 0.12); tc[k * 3 + 2] = patch * (1 - soil * 0.30);
     }
     for (let iz = 0; iz < nz - 1; iz++) for (let ix = 0; ix < nx - 1; ix++) { const a = iz * nx + ix, b = a + 1, c = a + nx, e = c + 1; ti.push(a, c, b, b, c, e); }
     const tg = new THREE.BufferGeometry();
@@ -4686,12 +4872,18 @@ function createWorld() {
     side: THREE.BackSide,
     depthWrite: false,
     fog: false,
+    defines: { CLOUD_OCT: isMobile ? 3 : 4, CLOUD_OCT2: isMobile ? 2 : 3 },
     uniforms: {
       horizon: { value: new THREE.Color(0x9bd5e7) },
       zenith: { value: new THREE.Color(0x1e67a0) },
       glow: { value: new THREE.Color(0xffc28a) },
       sunDir: { value: new THREE.Vector3(0.7, 0.3, 0.65).normalize() },
-      sunGlow: { value: 0.9 }
+      sunGlow: { value: 0.9 },
+      cloudCover: { value: 0.4 },
+      cloudCol: { value: new THREE.Color(0xffffff) },
+      cloudShade: { value: new THREE.Color(0x8aa0bc) },
+      cloudAlpha: { value: 0.8 },
+      uTime: { value: 0 }
     },
     vertexShader: `
       varying vec3 vWorld;
@@ -4706,7 +4898,28 @@ function createWorld() {
       uniform vec3 glow;
       uniform vec3 sunDir;
       uniform float sunGlow;
+      uniform float cloudCover;
+      uniform vec3 cloudCol;
+      uniform vec3 cloudShade;
+      uniform float cloudAlpha;
+      uniform float uTime;
       varying vec3 vWorld;
+      float hsh(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
+      float vnoise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hsh(i), hsh(i + vec2(1.0, 0.0)), f.x), mix(hsh(i + vec2(0.0, 1.0)), hsh(i + vec2(1.0, 1.0)), f.x), f.y);
+      }
+      float fbm(vec2 p) {
+        float a = 0.5, sum = 0.0;
+        for (int i = 0; i < CLOUD_OCT; i++) { sum += a * vnoise(p); p = p * 2.03 + vec2(17.3, 9.1); a *= 0.5; }
+        return sum;
+      }
+      float fbm2(vec2 p) {
+        float a = 0.5, sum = 0.0;
+        for (int i = 0; i < CLOUD_OCT2; i++) { sum += a * vnoise(p); p = p * 2.07 + vec2(11.7, 23.3); a *= 0.5; }
+        return sum;
+      }
       void main() {
         vec3 dir = normalize(vWorld);
         float height = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
@@ -4718,12 +4931,64 @@ function createWorld() {
         color = mix(color, mix(horizon, vec3(0.82, 0.88, 0.94), 0.45), horizonHaze);
         float horizonBand = pow(max(0.0, 1.0 - abs(dir.y) * 3.6), 2.2);
         color += glow * horizonBand * 0.09;
-        float sunDot = max(0.0, dot(dir, normalize(sunDir)));
+        vec3 sd = normalize(sunDir);
+        float sunDot = max(0.0, dot(dir, sd));
         color += glow * pow(sunDot, 24.0) * sunGlow * 0.35;
         color += glow * pow(sunDot, 6.0) * sunGlow * 0.08;
+        color += glow * pow(sunDot, 3.0) * sunGlow * 0.035;
         color += zenith * pow(height, 3.5) * 0.12;
+
+        // low-sun drama: warm arch on the sun side, pink belt + earth shadow on the opposite side
+        vec2 hd = normalize(dir.xz + vec2(0.0001));
+        vec2 sh = normalize(sd.xz + vec2(0.0001));
+        float az = dot(hd, sh);
+        float lowK = (1.0 - smoothstep(0.02, 0.55, sd.y)) * sunGlow;
+        float up = max(dir.y, 0.0);
+        float ax = (up - 0.05) * 7.5;
+        float arch = exp(-ax * ax) * pow(max(az, 0.0), 2.5) * lowK;
+        vec3 warm = mix(glow, vec3(1.0, 0.42, 0.16), 0.55);
+        color += warm * arch * 0.42;
+        color += glow * exp(-up * 3.2) * pow(max(az, 0.0), 1.4) * lowK * 0.10;
+        float anti = pow(max(-az, 0.0), 1.6);
+        float belt = smoothstep(0.0, 0.1, dir.y) * (1.0 - smoothstep(0.10, 0.36, dir.y)) * anti * lowK;
+        color = mix(color, vec3(0.86, 0.58, 0.66), belt * 0.22);
+        color *= 1.0 - 0.10 * anti * lowK * (1.0 - smoothstep(0.0, 0.07, dir.y));
+
+        // two procedural cloud decks: a high thin one and a lower, puffier one (parallax between them gives depth).
+        // Both are lit from the sun side and fade toward the horizon colour with distance.
+        float haze = 1.0 - smoothstep(0.0, 0.30, dir.y);
+        if (cloudAlpha > 0.01 && dir.y > 0.008) {
+          vec2 uv = dir.xz / (dir.y + 0.22) * 1.6 + vec2(uTime * 0.004, uTime * 0.0016);
+          float n = fbm(uv);
+          float cov = mix(0.66, 0.34, clamp(cloudCover, 0.0, 1.0));
+          float c = smoothstep(cov, cov + 0.22, n);
+          vec2 toSun = sh * 0.05;
+          float n2 = fbm(uv + toSun);
+          float lit = clamp((n - n2) * 4.5 + 0.55, 0.0, 1.0);
+          vec3 cc = mix(cloudShade, cloudCol, lit);
+          cc += warm * pow(sunDot, 2.0) * lowK * 0.75;
+          cc += glow * pow(sunDot, 12.0) * sunGlow * 0.35 * (1.0 - c * 0.4);
+          cc = mix(cc, horizon, haze * 0.5);
+          float fadeH = smoothstep(0.012, 0.16, dir.y);
+          color = mix(color, cc, c * fadeH * cloudAlpha);
+
+          vec2 uv2 = dir.xz / (dir.y + 0.12) * 0.85 + vec2(uTime * 0.0022 + 31.7, uTime * 0.0009 - 12.4);
+          float m1 = fbm2(uv2);
+          float cov2 = mix(0.70, 0.40, clamp(cloudCover, 0.0, 1.0));
+          float c2 = smoothstep(cov2, cov2 + 0.16, m1);
+          float m2 = fbm2(uv2 + sh * 0.06);
+          float lit2 = clamp((m1 - m2) * 5.5 + 0.5, 0.0, 1.0);
+          vec3 cc2 = mix(cloudShade * 0.85, cloudCol, lit2);
+          cc2 += warm * pow(sunDot, 2.0) * lowK * 0.75;
+          cc2 = mix(cc2, horizon, haze * 0.6);
+          float fade2 = smoothstep(0.008, 0.10, dir.y);
+          color = mix(color, cc2, c2 * fade2 * cloudAlpha * 0.9);
+        }
+
         color = color / (color + vec3(0.85)) * 1.12;
+        color += (hsh(gl_FragCoord.xy) - 0.5) / 255.0;   // dither: no colour banding in the gradient
         gl_FragColor = vec4(color, 1.0);
+        #include <colorspace_fragment>
       }
     `
   }));
@@ -4739,7 +5004,36 @@ function createWorld() {
   scene.add(sunDisc);
   sunGlow = new THREE.Sprite(spriteMat(haloTex, 0xffc070, true, 0.28)); sunGlow.scale.set(SUN_GLOW_SIZE * 1.15, SUN_GLOW_SIZE * 1.15, 1);
   scene.add(sunGlow);
-  moonDisc = new THREE.Sprite(spriteMat(discTex, 0xe8f0ff, false, 1)); moonDisc.scale.set(100, 100, 1);
+  const moonTex = (() => {   // procedural moon: lit sphere shading, soft maria, faint craters, limb darkening. No external image.
+    const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d'), cx = S / 2, R = S * 0.135;
+    let seed = 20481; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    x.save(); x.beginPath(); x.arc(cx, cx, R, 0, Math.PI * 2); x.clip();
+    const base = x.createRadialGradient(cx - R * 0.28, cx - R * 0.28, R * 0.1, cx, cx, R);
+    base.addColorStop(0, '#fbfdff'); base.addColorStop(0.7, '#e3eaf6'); base.addColorStop(1, '#c4cfe4');
+    x.fillStyle = base; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 9; i++) {   // maria
+      const px = cx + (rnd() - 0.5) * R * 1.3, py = cx + (rnd() - 0.5) * R * 1.3, w = R * (0.22 + rnd() * 0.30);
+      const g = x.createRadialGradient(px, py, 0, px, py, w);
+      g.addColorStop(0, 'rgba(96,112,142,0.34)'); g.addColorStop(1, 'rgba(96,112,142,0)');
+      x.save(); x.translate(px, py); x.scale(1, 0.55 + rnd() * 0.6); x.translate(-px, -py); x.fillStyle = g; x.fillRect(px - w, py - w, w * 2, w * 2); x.restore();
+    }
+    for (let i = 0; i < 46; i++) {   // craters
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * R * 0.92, px = cx + Math.cos(a) * d, py = cx + Math.sin(a) * d, r = R * (0.014 + rnd() * 0.04);
+      x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2); x.fillStyle = 'rgba(110,126,156,0.16)'; x.fill();
+      x.beginPath(); x.arc(px - r * 0.18, py - r * 0.18, r, Math.PI * 0.9, Math.PI * 1.95); x.strokeStyle = 'rgba(255,255,255,0.20)'; x.lineWidth = Math.max(1, r * 0.22); x.stroke();
+    }
+    const limb = x.createRadialGradient(cx, cx, R * 0.6, cx, cx, R);
+    limb.addColorStop(0, 'rgba(30,44,76,0)'); limb.addColorStop(1, 'rgba(30,44,76,0.32)');
+    x.fillStyle = limb; x.fillRect(0, 0, S, S);
+    x.restore();
+    x.globalCompositeOperation = 'destination-in';   // feather the rim
+    const m = x.createRadialGradient(cx, cx, 0, cx, cx, S / 2);
+    m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop((R - 2) / (S / 2), 'rgba(0,0,0,1)'); m.addColorStop((R + 3) / (S / 2), 'rgba(0,0,0,0)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = m; x.fillRect(0, 0, S, S);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  })();
+  moonDisc = new THREE.Sprite(spriteMat(moonTex, 0xf2f6ff, false, 1)); moonDisc.scale.set(100, 100, 1);
   moonGlow = new THREE.Sprite(spriteMat(haloTex, 0xa8c8ff, true, 0.38)); moonGlow.scale.set(280, 280, 1);
   scene.add(moonDisc, moonGlow);
   horizonGlow = new THREE.Mesh(new THREE.SphereGeometry(280, 40, 20), new THREE.MeshBasicMaterial({
@@ -4774,7 +5068,7 @@ function createWorld() {
       '#include <normal_fragment_begin>\n float cloudRim = abs(dot(normalize(normal), normalize(vViewPosition)));\n diffuseColor.a *= 1.4 * smoothstep(0.02, 0.7, cloudRim);');
   };
   cloudMat.customProgramCacheKey = () => 'cloud-softrim';
-  const cloudCount = gfxMobile ? 6 : (visualQuality === 'low' ? 7 : visualQuality === 'medium' ? 11 : 16);
+  const cloudCount = 0;   // the old lumpy mesh clouds are retired: the procedural sky clouds (two layers) replace them
   for (let i = 0; i < cloudCount; i++) {
     const puffs = 7 + (i % 5), parts = [];
     for (let j = 0; j < puffs; j++) {
@@ -4895,6 +5189,7 @@ function createWorld() {
 
   // Keep scenery off any part of the road (matters where a track crosses itself)
   const clearOfRoad = (x, z, minD) => {
+    if (crossingList.length && inBridgeZone(x, z)) return false;
     const m2 = minD * minD;
     for (let k = 0; k < pts.length; k++) { const dx = pts[k].x - x, dz = pts[k].z - z; if (dx * dx + dz * dz < m2) return false; }
     return true;
@@ -4924,6 +5219,40 @@ function createWorld() {
       }
     }
     addInst(inst(rockGeo, rockMat, rm, visualQuality === 'high' && !isMobile, true));
+  }
+
+  // Roadside gravel: one instanced batch of small, irregular stones softens the
+  // asphalt-to-soil boundary and gives the shoulders scale without adding draw calls.
+  {
+    const pebbleGeo = new THREE.IcosahedronGeometry(1, 0);
+    const pebbleMat = new THREE.MeshStandardMaterial({
+      color: trackId === 3 ? 0x8c725c : 0x77766e, roughness: 0.96,
+      metalness: 0.015, flatShading: true, vertexColors: true
+    });
+    const pebbleMatrices = [], pebbleColors = [];
+    const pebbleCount = visualQuality === 'low' ? 150 : (isMobile ? 280 : 620);
+    const pebbleColor = new THREE.Color();
+    for (let i = 0; i < pebbleCount; i++) {
+      const u = (i * 0.61803398875 + Math.random() * 0.17) % 1;
+      const p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize(), { side } = sideUp(tang);
+      const dir = i % 2 ? 1 : -1;
+      const lateral = dir * (ROAD_W * 0.5 + 1.45 + Math.random() * 3.2);
+      const x = p.x + side.x * lateral + tang.x * (Math.random() - 0.5) * 2.2;
+      const z = p.z + side.z * lateral + tang.z * (Math.random() - 0.5) * 2.2;
+      if (!clearOfRoad(x, z, ROAD_W * 0.5 + 1.25)) continue;
+      const scale = 0.045 + Math.random() * 0.16;
+      const y = groundH(x, z) + scale * 0.28;
+      pebbleMatrices.push(mk(x, y, z, Math.random() * 3, Math.random() * 6.28, Math.random() * 3,
+        scale * (0.8 + Math.random() * 1.0), scale * (0.35 + Math.random() * 0.42), scale * (0.7 + Math.random() * 0.9)));
+      const shade = 0.72 + Math.random() * 0.52;
+      pebbleColors.push(pebbleColor.setRGB(shade, shade * (0.96 + Math.random() * 0.08), shade * (0.91 + Math.random() * 0.13)).clone());
+    }
+    const pebbles = inst(pebbleGeo, pebbleMat, pebbleMatrices, false, true);
+    if (pebbles) {
+      pebbleColors.forEach((c, i) => pebbles.setColorAt(i, c));
+      if (pebbles.instanceColor) pebbles.instanceColor.needsUpdate = true;
+      addInst(pebbles);
+    }
   }
 
   // Trees: procedural branching conifers and broadleaf crowns, plus bushes and a distant forest. Shared LOD geometry remains
@@ -5257,6 +5586,7 @@ function createWorld() {
         const base = p2.clone().addScaledVector(su.side, dir * (ROAD_W * 0.5 + 1.35)).addScaledVector(su.up, 0.55);
         // orient bar along tangent
         const yaw = Math.atan2(t2.x, t2.z);
+        if (crossingList.length && inBridgeZone(base.x, base.z)) continue;   // no roadside guardrail on or under the bridge
         railBarM.push(mk(base.x, base.y + 0.15, base.z, 0, yaw, 0, 1, 1, 1));
         railPostM.push(mk(base.x, base.y - 0.05, base.z, 0, yaw, 0, 1, 1, 1));
         if (s % 2 === 0) railReflectM.push(mk(base.x,base.y+0.28,base.z,0,yaw,0,1,1,1));
@@ -5638,6 +5968,18 @@ function applyDayNight() {
     sky.horizon.value.setHex(horizon);
     sky.zenith.value.setHex(zenith);
     sky.glow.value.setHex(m.sunCol);
+    // Season character: each season gives the sky its own colour cast (not only the trees)
+    const _sk = [[0xd8f0e6, 0.08, 0x2a78b8, 0.06], [0xfff0cc, 0.05, 0x1a62c4, 0.10], [0xffae60, 0.14, 0x405c8c, 0.08], [0xd2dcea, 0.22, 0x6c86a8, 0.18]][season] || [0, 0, 0, 0];
+    const _ks = timeMode >= 5 ? 0.4 : 1;
+    sky.horizon.value.lerp(_gc.setHex(_sk[0]), _sk[1] * _ks);
+    sky.zenith.value.lerp(_gc.setHex(_sk[2]), _sk[3] * _ks);
+    // cloud layer by time of day and season (winter/autumn skies are heavier, summer clearer)
+    sky.cloudCol.value.setHex([0xffd9c0, 0xffd0a8, 0xffffff, 0xffffff, 0xffc4a0, 0xb8a0c8, 0x40506a][timeMode]);
+    sky.cloudShade.value.setHex([0x9a8aa8, 0xa88a9a, 0x8aa0bc, 0x88a0c0, 0xa07890, 0x4a4468, 0x151c30][timeMode]);
+    sky.cloudCover.value = Math.max(0.05, Math.min(1, [0.45, 0.40, 0.34, 0.30, 0.45, 0.40, 0.28][timeMode] + [0.10, -0.04, 0.12, 0.22][season]));
+    sky.cloudAlpha.value = [0.85, 0.85, 0.80, 0.75, 0.85, 0.80, 0.45][timeMode];
+    // distance haze: far fog takes on the sky's horizon colour so ground and sky meet without a colour seam
+    scene.fog.color.lerp(sky.horizon.value, 0.32);
     skyMesh.visible = true;
   }
   if (horizonGlow) {
@@ -5674,7 +6016,7 @@ function applyDayNight() {
   // hill tint
   const hillCols = [0x3a5a40, 0x4a6a38, 0x2a6a30, 0x2a6a30, 0x4a4a28, 0x2a2838, 0x1a2030];
   for (const h of hillMeshes) {
-    if (h.material && !h.userData.proceduralRidge) h.material.color.setHex(hillCols[timeMode] || 0x2a5a28).lerp(new THREE.Color(m.bg), 0.35);
+    if (h.material && !h.userData.proceduralRidge) { h.material.color.setHex(hillCols[timeMode] || 0x2a5a28).lerp(new THREE.Color(m.bg), 0.35); if (skyMesh) h.material.color.lerp(skyMesh.material.uniforms.horizon.value, 0.22); }
   }
   hemi.intensity = m.hemiI;
   hemi.color.set(m.hemiSky);
@@ -5694,12 +6036,17 @@ function applyDayNight() {
     sunI: m.sunI, hemiI: m.hemiI,
     fogColor: scene.fog.color.clone(), fogNear: scene.fog.near, fogFar: scene.fog.far,
     horizon: skyMesh ? skyMesh.material.uniforms.horizon.value.clone() : null,
-    zenith: skyMesh ? skyMesh.material.uniforms.zenith.value.clone() : null
+    zenith: skyMesh ? skyMesh.material.uniforms.zenith.value.clone() : null,
+    cloudCover: skyMesh ? skyMesh.material.uniforms.cloudCover.value : 0,
+    cloudCol: skyMesh ? skyMesh.material.uniforms.cloudCol.value.clone() : null,
+    cloudShade: skyMesh ? skyMesh.material.uniforms.cloudShade.value.clone() : null,
+    sunGlowU: skyMesh ? skyMesh.material.uniforms.sunGlow.value : 0
   };
   if (roadMesh?.material?.emissiveIntensity !== undefined && !rainOn) {
     roadMesh.material.emissiveIntensity = m.lights ? 0.52 : 0.18;
   }
   renderer.toneMappingExposure = m.exposure;
+  if (crossingLampMat) crossingLampMat.emissiveIntensity = m.lights ? 1.8 : 0;
   if (headlightL) {
     headlightL.visible = m.lights;
     headlightR.visible = m.lights;
@@ -5826,6 +6173,12 @@ function applyOvercast() {
     const u = skyMesh.material.uniforms;
     u.horizon.value.copy(b.horizon).lerp(greyOf(b.horizon), 0.5 * r);
     u.zenith.value.copy(b.zenith).lerp(greyOf(b.zenith), 0.5 * r);
+    if (u.cloudCover && b.cloudCol) {
+      u.cloudCover.value = Math.min(1, b.cloudCover + 0.50 * r);
+      u.cloudCol.value.copy(b.cloudCol).lerp(_gc.setHex(0x8b929c), 0.55 * r);
+      u.cloudShade.value.copy(b.cloudShade).lerp(_gc.setHex(0x4a505c), 0.5 * r);
+      u.sunGlow.value = b.sunGlowU * (1 - 0.65 * r);
+    }
   }
   if (cloudGroup) cloudGroup.traverse(o => {
     const d = o.material && o.material.userData;
@@ -5858,11 +6211,11 @@ function applyRoadWetness() {
   if (!roadMesh || !roadMesh.material) return;
   const m = roadMesh.material, night = timeMode >= 5;
   // Night still shows a thin film so headlight pools read on asphalt.
-  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? 1.34 : 0.82);
+  m.envMapIntensity = (ROAD_ENV[timeMode] || 0.5) * (rainOn ? (night ? 1.34 : 1.05) : 0.82);
   if (m.clearcoat !== undefined) {
-    m.clearcoat = rainOn ? (night ? 0.68 : 0.54) : (night ? 0.24 : 0.12);
-    m.clearcoatRoughness = rainOn ? (night ? 0.16 : 0.20) : (night ? 0.34 : 0.46);
-    m.reflectivity = rainOn ? 0.58 : 0.38;
+    m.clearcoat = rainOn ? (night ? 0.68 : 0.42) : (night ? 0.24 : 0.12);
+    m.clearcoatRoughness = rainOn ? (night ? 0.16 : 0.25) : (night ? 0.34 : 0.46);
+    m.reflectivity = rainOn ? (night ? 0.58 : 0.50) : 0.38;
   }
 }
 function setRain(on) {
@@ -6607,21 +6960,21 @@ function carMats() {
   if (_cm) return _cm;
   const S = (c, r, m, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: r, metalness: m, envMapIntensity: 1.2 }, o || {}));
   _cm = {
-    // Plain alpha-blended glass on every device. The old desktop MeshPhysicalMaterial used transmission, which makes three.js
-    // re-render the whole opaque scene into an extra target each frame (and again inside the mirror render).
-    glass: new THREE.MeshStandardMaterial({
-      color: 0x152838, roughness: 0.06, metalness: 0.25,
-      transparent: true, opacity: 0.34, envMapIntensity: 1.9,
+    // Alpha-blended automotive glass avoids the costly transmission render pass, including in the rear-view mirror.
+    glass: new THREE.MeshPhysicalMaterial({
+      color: 0x172b3a, roughness: 0.115, metalness: 0.12,
+      transparent: true, opacity: 0.40, envMapIntensity: 1.75,
+      clearcoat: 0.82, clearcoatRoughness: 0.075,
       side: THREE.DoubleSide, depthWrite: false
     }),
-    dark: S(0x0e1014, 0.42, 0.35, { envMapIntensity: 0.6 }),
-    chrome: S(0xe8eef4, 0.06, 1.0, { envMapIntensity: 2.8 }),
-    rim: S(0xc8d0d8, 0.18, 0.92, { envMapIntensity: 1.9 }),
-    rotor: S(0x808890, 0.3, 0.88, { side: THREE.DoubleSide, envMapIntensity: 1.2 }),
-    tire: S(0x0a0a0c, 0.88, 0.02, { side: THREE.DoubleSide }),
-    caliper: S(0xc42822, 0.35, 0.45, { envMapIntensity: 0.5 }),
-    head: new THREE.MeshPhysicalMaterial({ color: 0xfff7e8, emissive: 0xffe2a8, emissiveIntensity: 0.72, roughness: 0.12, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.65 }),
-    tail: new THREE.MeshPhysicalMaterial({ color: 0xff3025, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.13, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.05 }),
+    dark: S(0x0e1014, 0.48, 0.22, { envMapIntensity: 0.55 }),
+    chrome: S(0xdce3e9, 0.145, 0.96, { envMapIntensity: 2.35 }),
+    rim: S(0xc8d0d8, 0.22, 0.88, { envMapIntensity: 1.75 }),
+    rotor: S(0x808890, 0.38, 0.78, { side: THREE.DoubleSide, envMapIntensity: 1.05 }),
+    tire: S(0x0a0a0c, 0.94, 0.015, { side: THREE.DoubleSide }),
+    caliper: S(0xc42822, 0.39, 0.32, { envMapIntensity: 0.45 }),
+    head: new THREE.MeshPhysicalMaterial({ color: 0xfff7e8, emissive: 0xffe2a8, emissiveIntensity: 0.82, roughness: 0.16, metalness: 0.04, clearcoat: 1, clearcoatRoughness: 0.055, envMapIntensity: 1.8 }),
+    tail: new THREE.MeshPhysicalMaterial({ color: 0xff3025, emissive: 0xe01008, emissiveIntensity: [0.04, 0.03, 0.025, 0.025, 0.28, 1.05, 1.55][timeMode], roughness: 0.17, metalness: 0.03, clearcoat: 1, clearcoatRoughness: 0.055, envMapIntensity: 1.2 }),
     plate: new THREE.MeshBasicMaterial({ color: 0xffffff, map: licensePlateTexture(), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false }),
     plateLamp: new THREE.MeshStandardMaterial({ color: 0xffe9c5, emissive: 0xffd69a, emissiveIntensity: [0, 0, 0, 0, 0.18, 0.72, 1.05][timeMode], roughness: 0.32 }),
     white: S(0xe6eaec, 0.5, 0.15),
@@ -6629,18 +6982,55 @@ function carMats() {
   };
   return _cm;
 }
+// A tiny procedural micro-variation map gives clear-coated paint a fine metallic finish.
+// Generated once, shared by all car colours, and kept deliberately subtle for mobile GPUs.
+let _carPaintMicroMap = null;
+function carPaintMicroMap() {
+  if (_carPaintMicroMap) return _carPaintMicroMap;
+  const size = 256, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const image = ctx.createImageData(size, size);
+  let seed = 0x51f15e;
+  for (let i = 0; i < image.data.length; i += 4) {
+    seed = (Math.imul(seed ^ (seed >>> 15), 1 | seed) + 0x6d2b79f5) | 0;
+    const n = (seed >>> 24) & 255;
+    const v = 116 + Math.round(n * 0.34);
+    image.data[i] = image.data[i + 1] = image.data[i + 2] = v;
+    image.data[i + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2);
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  _carPaintMicroMap = tex;
+  return tex;
+}
 const _paintMats = {};
 function carPaint(color) {
-  // Richer automotive clearcoat so bodies read more solid and reflective in cockpit/chase.
-  return _paintMats[color] || (_paintMats[color] = isMobile
-    ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.20, metalness: 0.48, clearcoat: 0.92, clearcoatRoughness: 0.10, envMapIntensity: 1.85, reflectivity: 0.85 })
-    : new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.14, metalness: 0.58,
-        clearcoat: 1.0, clearcoatRoughness: 0.05,
-        envMapIntensity: 2.55, reflectivity: 1.0,
-        specularIntensity: 1.05,
-        sheen: 0.22, sheenRoughness: 0.14, sheenColor: new THREE.Color(0xffffff)
-      }));
+  // Automotive paint is a pigmented base with a distinct clearcoat, not a solid metal surface.
+  if (_paintMats[color]) return _paintMats[color];
+  const mobile = !!isMobile;
+  const m = new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: mobile ? 0.235 : 0.205,
+    metalness: mobile ? 0.34 : 0.40,
+    bumpMap: carPaintMicroMap(),
+    bumpScale: mobile ? 0.006 : 0.009,
+    clearcoat: 1.0,
+    clearcoatRoughness: mobile ? 0.085 : 0.065,
+    envMapIntensity: mobile ? 1.9 : 2.35,
+    reflectivity: 0.88,
+    specularIntensity: 1.0,
+    sheen: mobile ? 0.08 : 0.12,
+    sheenRoughness: 0.2,
+    sheenColor: new THREE.Color(0xffffff)
+  });
+  _paintMats[color] = m;
+  return m;
 }
 function carPaintVariant(color) {
   // Per-car paint so traffic is not a sea of identical clearcoat.
@@ -9167,6 +9557,7 @@ const _shDir = new THREE.Vector3(), _shR = new THREE.Vector3(), _shU = new THREE
 const _rainV2 = new THREE.Vector2();
 function frame() {
   requestAnimationFrame(frame);
+  if (skyMesh) skyMesh.material.uniforms.uTime.value = performance.now() * 0.001;
   if (cloudGroup && ((frame._n | 0) & 1) === 0) {
     cloudGroup.rotation.y += rainOn ? 0.00015 : 0.000056;
     const tNow = performance.now() * 0.001;
