@@ -4332,6 +4332,112 @@ function createRoadSurfaceWear(segmentCount, halfWidth, roadLoft) {
   };
   makeWearMesh(positions, colors, indices, 0.22, 0.98);
   makeWearMesh(crackPositions, crackColors, crackIndices, 0.48, 1.0);
+
+  // Phase 4: subtle longitudinal tyre-polish lanes. These are baked once into
+  // static ribbon geometry (not decals updated every frame) and stay inside
+  // the actual carriageway. Their low opacity lets the asphalt grain show through.
+  const polishPos = [], polishCol = [], polishIdx = [];
+  const polishStep = isMobile ? 3.4 : 2.15;
+  const laneCenters = [-halfWidth * 0.25, halfWidth * 0.25];
+  const wheelOffsets = [-0.52, 0.52];
+  const polishCount = Math.max(24, Math.ceil(trackLen / polishStep));
+  const polishDark = new THREE.Color(0x30343a);
+  const polishLight = new THREE.Color(0x666a6d);
+  for (const laneCenter of laneCenters) for (const wheelOffset of wheelOffsets) {
+    let phase = rand() * Math.PI * 2;
+    for (let i = 0; i < polishCount; i++) {
+      const u0 = i / polishCount, u1 = (i + 1) / polishCount;
+      const mid = (u0 + u1) * 0.5;
+      const lateral = laneCenter + wheelOffset + Math.sin(mid * 37 + phase) * 0.035;
+      const width = 0.105 + rand() * 0.055;
+      const a = sample(u0, lateral - width, 0.052), b = sample(u0, lateral + width, 0.052);
+      const c = sample(u1, lateral + width, 0.052), d = sample(u1, lateral - width, 0.052);
+      const base = polishPos.length / 3;
+      [a,b,c,d].forEach((q,j) => {
+        polishPos.push(q.x,q.y,q.z);
+        const tone = (i % 7 === 0) ? polishLight : polishDark;
+        const shade = 0.88 + rand() * 0.20;
+        polishCol.push(tone.r*shade,tone.g*shade,tone.b*shade);
+      });
+      polishIdx.push(base,base+1,base+2,base,base+2,base+3);
+    }
+  }
+  if (polishPos.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(polishPos,3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(polishCol,3));
+    g.setIndex(polishIdx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+      color:0xffffff,vertexColors:true,roughness:0.96,metalness:0,
+      transparent:true,opacity:0.105,depthWrite:false,side:THREE.DoubleSide,
+      polygonOffset:true,polygonOffsetFactor:-6
+    }));
+    m.renderOrder=3; m.frustumCulled=true; scene.add(m);
+  }
+
+  // Fine transverse grooves across the existing asphalt shoulder. The dark
+  // cuts are narrow and restrained so they read as rumble texture, not kerbs.
+  const rumblePos=[], rumbleCol=[], rumbleIdx=[];
+  const grooveSpacing = isMobile ? 1.05 : 0.72;
+  const grooveCount = Math.max(1,Math.floor(trackLen/grooveSpacing));
+  const grooveDark = new THREE.Color(0x24282d);
+  const grooveEdge = new THREE.Color(0x8b8d8c);
+  for (let i=0;i<grooveCount;i++) {
+    const u=i/grooveCount;
+    const halfAlong=0.022/Math.max(40,trackLen);
+    const uA=u-halfAlong, uB=u+halfAlong;
+    for (const sign of [-1,1]) {
+      const inner=sign*(halfWidth+0.12), outer=sign*(halfWidth+1.08);
+      const a=sample(uA,inner,0.058), b=sample(uA,outer,0.058);
+      const c=sample(uB,outer,0.058), d=sample(uB,inner,0.058);
+      const base=rumblePos.length/3;
+      [a,b,c,d].forEach((q,j)=>{
+        rumblePos.push(q.x,q.y,q.z);
+        const tone=(j===0||j===3)?grooveEdge:grooveDark;
+        const shade=0.90+rand()*0.12;
+        rumbleCol.push(tone.r*shade,tone.g*shade,tone.b*shade);
+      });
+      rumbleIdx.push(base,base+1,base+2,base,base+2,base+3);
+    }
+  }
+  if (rumblePos.length) {
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(rumblePos,3));
+    g.setAttribute('color',new THREE.Float32BufferAttribute(rumbleCol,3));
+    g.setIndex(rumbleIdx); g.computeVertexNormals();
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+      color:0xffffff,vertexColors:true,roughness:1,metalness:0,
+      transparent:true,opacity:0.20,depthWrite:false,side:THREE.DoubleSide,
+      polygonOffset:true,polygonOffsetFactor:-7
+    }));
+    m.renderOrder=3; scene.add(m);
+  }
+
+  // A narrow, feathered asphalt-to-shoulder seam catches grazing light and
+  // visually separates the carriageway without introducing a raised edge.
+  const seamPos=[], seamCol=[], seamIdx=[];
+  const seamSteps=Math.max(64,Math.ceil(trackLen/(isMobile?4.0:2.4)));
+  const seamTone=new THREE.Color(0x20252a);
+  for(let i=0;i<seamSteps;i++){
+    const u0=i/seamSteps,u1=(i+1)/seamSteps;
+    for(const sign of [-1,1]){
+      const inner=sign*(halfWidth-0.055),outer=sign*(halfWidth+0.045);
+      const a=sample(u0,inner,0.054),b=sample(u0,outer,0.054);
+      const c=sample(u1,outer,0.054),d=sample(u1,inner,0.054);
+      const base=seamPos.length/3;
+      [a,b,c,d].forEach(q=>{seamPos.push(q.x,q.y,q.z);seamCol.push(seamTone.r,seamTone.g,seamTone.b);});
+      seamIdx.push(base,base+1,base+2,base,base+2,base+3);
+    }
+  }
+  const seamGeo=new THREE.BufferGeometry();
+  seamGeo.setAttribute('position',new THREE.Float32BufferAttribute(seamPos,3));
+  seamGeo.setAttribute('color',new THREE.Float32BufferAttribute(seamCol,3));
+  seamGeo.setIndex(seamIdx); seamGeo.computeVertexNormals();
+  const seamMesh=new THREE.Mesh(seamGeo,new THREE.MeshStandardMaterial({
+    color:0xffffff,vertexColors:true,roughness:1,transparent:true,opacity:0.22,
+    depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-8
+  }));
+  seamMesh.renderOrder=3; scene.add(seamMesh);
 }
 
 function grassTex() {
@@ -4863,7 +4969,13 @@ function createWorld() {
   const groundH = worldGroundH = (x, z, roadSample = null) => {
     const [d, ry] = roadSample || nearestRoad(x, z);
     const nearH = ry - 0.34 - Math.max(0, d - 11) * 0.03;
-    const n = 2.4 * Math.sin(x * 0.011 + 1.3) * Math.cos(z * 0.013) + 1.3 * Math.sin(x * 0.027 + z * 0.021);
+    // Broad landforms plus smaller erosion-scale undulations. These fade into the
+    // existing road shoulder blend, so the pavement and roadside props stay grounded.
+    const n =
+      3.0 * Math.sin(x * 0.0067 + 1.3) * Math.cos(z * 0.0074 - 0.6) +
+      1.45 * Math.sin(x * 0.017 + z * 0.014) +
+      0.62 * Math.sin(x * 0.041 - z * 0.033) * Math.cos(z * 0.029 + 0.8) +
+      0.22 * Math.sin(x * 0.091 + z * 0.073);
     const edge = sstep(0, 70, Math.min(x - gMinX, gMaxX - x, z - gMinZ, gMaxZ - z));
     const farH = -6.05 + (1.4 + n * 0.75) * edge;
     const t = sstep(24, 150, d);
@@ -5157,9 +5269,9 @@ function createWorld() {
   // Distant hills: one instanced mesh (tinted per time of day through its shared material, varied per hill)
   {
     const hm = [];
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < (isMobile ? 26 : 34); i++) {
       const r = 32 + Math.random() * 48;
-      const ang = (i / 22) * Math.PI * 2 + Math.random() * 0.18;
+      const ang = (i / (isMobile ? 26 : 34)) * Math.PI * 2 + Math.random() * 0.18;
       const dist = 260 + (i % 4) * 25 + Math.random() * 20;
       hm.push(mk(Math.cos(ang) * dist, -18, Math.sin(ang) * dist, 0, Math.random() * 6.28, 0, r, r * (0.26 + Math.random() * 0.16), r));
     }
@@ -5171,9 +5283,9 @@ function createWorld() {
   // Layered distant peaks: one instanced mesh
   {
     const pm = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < (isMobile ? 28 : 36); i++) {
       const r = 16 + (i % 5) * 9, h = (44 + (i % 6) * 18) * (0.65 + (i % 4) * 0.22);
-      const a = i / 26 * Math.PI * 2 + 0.08;
+      const a = i / (isMobile ? 28 : 36) * Math.PI * 2 + 0.08;
       pm.push(mk(Math.cos(a) * (300 + (i % 4) * 32), 3 + (i % 3) * 2, Math.sin(a) * (300 + (i % 3) * 28), 0, Math.random() * 6.28, 0, r, h, r));
     }
     const peakMat = new THREE.MeshStandardMaterial({ color: visual.hills, roughness: 0.96, flatShading: true, fog: true });
@@ -5195,19 +5307,25 @@ function createWorld() {
       const base = new THREE.Color(spec.color);
       for (let i = 0; i <= segments; i++) {
         const a = i / segments * Math.PI * 2;
-        const n1 = Math.sin(a * (5 + layer) + 0.7) * 0.5;
-        const n2 = Math.sin(a * (11 + layer * 2) + 2.1) * 0.24;
-        const n3 = Math.sin(a * (19 + layer * 3) + 0.4) * 0.12;
-        const ridge = Math.max(0.18, 0.58 + n1 + n2 + n3);
+        const n1 = Math.sin(a * (4.5 + layer * 0.7) + 0.7) * 0.43;
+        const n2 = Math.sin(a * (10 + layer * 2) + 2.1) * 0.23;
+        const n3 = Math.sin(a * (19 + layer * 3) + 0.4) * 0.13;
+        const n4 = Math.sin(a * (31 + layer * 4) + 1.7) * 0.075;
+        const n5 = Math.sin(a * (47 + layer * 5) + 0.2) * 0.035;
+        const ridge = Math.max(0.12, 0.58 + n1 + n2 + n3 + n4 + n5);
         const r0 = spec.radius - spec.depth * 0.5;
         const r1 = spec.radius + spec.depth * 0.5;
         const x0 = Math.cos(a) * r0, z0 = Math.sin(a) * r0;
         const x1 = Math.cos(a) * r1, z1 = Math.sin(a) * r1;
-        const valley = -15 + Math.sin(a * 7.0 + layer) * 4;
+        const valley = -17 + Math.sin(a * 7.0 + layer) * 4 + Math.sin(a * 17.0 + layer * 2) * 1.2;
         const crest = valley + spec.height * ridge;
         const tint = base.clone().multiplyScalar(0.88 + 0.16 * ridge);
+        const shadowTint = tint.clone().multiplyScalar(0.78);
+        const sunTint = tint.clone().multiplyScalar(1.10);
         positions.push(x0, valley, z0, (x0 + x1) * 0.5, crest, (z0 + z1) * 0.5, x1, valley - 2, z1);
-        for (let v = 0; v < 3; v++) colors.push(tint.r, tint.g, tint.b);
+        colors.push(shadowTint.r, shadowTint.g, shadowTint.b,
+          sunTint.r, sunTint.g, sunTint.b,
+          shadowTint.r, shadowTint.g, shadowTint.b);
         if (i < segments) {
           const k = i * 3;
           indices.push(k, k + 1, k + 3, k + 1, k + 4, k + 3, k + 1, k + 2, k + 4, k + 2, k + 5, k + 4);
@@ -6090,6 +6208,7 @@ function applyDayNight() {
   hemi.groundColor.set(m.hemiGnd);
   sun.intensity = m.sunI;
   sun.color.set(m.sunCol);
+  applyAtmosphericBalance();
   const sunElevations = [0.10, 0.28, 0.66, 0.88, 0.24, 0.055, -0.16];
   const sunDir = new THREE.Vector3(0.70, sunElevations[timeMode], 0.65).normalize();
   // Moving the directional source changes shadow length and direction through
@@ -6224,8 +6343,25 @@ function softTex(stops) {   // radial alpha gradient, white, used for glows / ro
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 let dayBase = null;
+let automotiveFill = null;
+let nexusEnvironmentBaseIntensity = 1;
 const _gc = new THREE.Color();
 function greyOf(col) { const l = col.r * 0.3 + col.g * 0.59 + col.b * 0.11; return _gc.setRGB(l, l, l); }
+// Balance image-based reflections and cool automotive fill against the selected sky.
+// This changes only lighting/material response; it never touches vehicle or world simulation.
+function applyAtmosphericBalance() {
+  const envByTime = [0.92, 0.98, 1.0, 0.96, 0.84, 0.66, 0.52];
+  const fillByTime = [0.32, 0.36, 0.44, 0.46, 0.30, 0.20, 0.14];
+  const rainEnv = rainOn ? (timeMode >= 5 ? 0.90 : 0.94) : 1;
+  if (scene && scene.environment && scene.environmentIntensity !== undefined) {
+    scene.environmentIntensity = nexusEnvironmentBaseIntensity * envByTime[timeMode] * rainEnv;
+  }
+  if (automotiveFill) {
+    automotiveFill.intensity = fillByTime[timeMode] * (visualQuality === 'high' ? 1 : (visualQuality === 'medium' ? 0.88 : 0.72));
+    automotiveFill.color.setHex(timeMode >= 5 ? 0x829bc4 : (timeMode >= 4 ? 0xb5a0a0 : 0x9bb9d8));
+    if (rainOn) automotiveFill.intensity *= 1.10;
+  }
+}
 // Rain = overcast: dimmer sun, greyer + closer fog, greyer/denser clouds, the sun and moon hide behind cloud, stars fade,
 // foliage dulls. Always computed from the clear-weather values saved by applyDayNight, so toggling is exact and reversible.
 function applyOvercast() {
@@ -6262,6 +6398,7 @@ function applyOvercast() {
     if (!mat.userData.baseTint) mat.userData.baseTint = mat.color.clone();
     mat.color.copy(mat.userData.baseTint).multiplyScalar(k);
   }
+  applyAtmosphericBalance();
 }
 const BEAM_LEN = 38;
 const BEAM_LEVEL = [0.5, 0, 0, 0, 0.15, 0.7, 1];   // by timeMode: dawn, sunrise, day, noon, evening, dusk, night
@@ -6285,13 +6422,14 @@ function applyRoadWetness() {
     m.reflectivity = rainOn ? (night ? 0.58 : 0.50) : 0.38;
   }
 }
+// PHASE 8: denser, more varied rainfall and moving road-level spray; reuses the existing single-pass weather systems.
 function setRain(on) {
   rainOn = on;
   if (!rainMesh) {
     // World-space rainfall: drops fall through the scene and are depth-tested against trees, buildings and the road.
     // Each drop is a camera-facing quad stretched between its two endpoints, with a minimum width in real pixels, so rain stays
     // visible at any resolution (WebGL lines are always 1 px thin, which made the old rain almost invisible).
-    const count = gfxMobile ? 760 : (visualQuality === 'low' ? 900 : (visualQuality === 'medium' ? 1550 : 2350));
+    const count = gfxMobile ? 900 : (visualQuality === 'low' ? 1050 : (visualQuality === 'medium' ? 1800 : 2700));
     const p = new Float32Array(count * 6), aAttr = new Float32Array(count * 2);
     rainDropMeta = new Float32Array(count * 3);
     const c = camera.position;
@@ -6303,10 +6441,10 @@ function setRain(on) {
       rainDropMeta[i * 3] = 0.75 + Math.random() * 0.8; // fall-speed variation
       rainDropMeta[i * 3 + 1] = 0.72 + Math.random() * 1.05; // streak length
       rainDropMeta[i * 3 + 2] = 0.55 + Math.random() * 0.9; // gust response
-      const op = 0.18 + Math.random() * 0.28;
+      const op = 0.21 + Math.random() * 0.30;
       p[j] = x; p[j + 1] = y; p[j + 2] = z;
       p[j + 3] = x + 0.05; p[j + 4] = y + 0.8 + 1.0 * rainDropMeta[i * 3 + 1]; p[j + 5] = z;
-      aAttr[i * 2] = op; aAttr[i * 2 + 1] = op * 0.35;
+      aAttr[i * 2] = op; aAttr[i * 2 + 1] = op * 0.42;
     }
     const gm = new THREE.InstancedBufferGeometry();
     gm.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 1, 0]), 3));   // x: across, y: along (0 head, 1 tail)
@@ -6318,7 +6456,7 @@ function setRain(on) {
     gm.instanceCount = count;
     rainMesh = new THREE.Mesh(gm, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, depthTest: true, fog: false, side: THREE.DoubleSide,
-      uniforms: { uView: { value: new THREE.Vector2(1280, 720) }, uWidth: { value: 1.8 } },
+      uniforms: { uView: { value: new THREE.Vector2(1280, 720) }, uWidth: { value: 2.0 } },
       vertexShader: `attribute vec3 aP0; attribute vec3 aP1; attribute vec2 aAlpha;
         uniform vec2 uView; uniform float uWidth; varying float vA; varying float vX;
         void main(){
@@ -6341,7 +6479,7 @@ function setRain(on) {
   if (!rainSplash) {
     // Fine road-level spray/mist, kept sparse so it reads as wet-road interaction,
     // not a second screen-space rain layer.
-    const n = gfxMobile ? 36 : (visualQuality === 'low' ? 44 : (visualQuality === 'medium' ? 80 : 120));
+    const n = gfxMobile ? 60 : (visualQuality === 'low' ? 72 : (visualQuality === 'medium' ? 140 : 220));
     const sp = new Float32Array(n * 3), ss = new Float32Array(n);
     rainSplashLife = new Float32Array(n);
     const c = camera.position;
@@ -6349,14 +6487,14 @@ function setRain(on) {
       sp[i * 3] = c.x + (Math.random() - 0.5) * 17;
       sp[i * 3 + 1] = c.y - 1.5;
       sp[i * 3 + 2] = c.z + (Math.random() - 0.5) * 30;
-      ss[i] = 0.06 + Math.random() * 0.12; rainSplashLife[i] = Math.random();
+      ss[i] = 0.12 + Math.random() * 0.16; rainSplashLife[i] = Math.random();
     }
     const sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
     sg.setAttribute('aSize', new THREE.BufferAttribute(ss, 1));
     rainSplash = new THREE.Points(sg, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, depthTest: true, fog: false,
-      uniforms: { uOpacity: { value: 0.28 } },
+      uniforms: { uOpacity: { value: 0.36 } },
       vertexShader: `attribute float aSize; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=aSize*(180.0/max(1.0,-mv.z)); gl_Position=projectionMatrix*mv; }`,
       fragmentShader: `uniform float uOpacity; void main(){ vec2 c=gl_PointCoord-0.5; float d=length(c); float a=smoothstep(0.5,0.08,d)*uOpacity; if(a<0.015) discard; gl_FragColor=vec4(0.72,0.83,0.91,a); }`
     }));
@@ -6583,7 +6721,7 @@ function tickGlass(dt) {
 function tickRain(dt) {
   if (!rainMesh || !rainMesh.visible) return;
   const a = rainMesh.userData.arr;
-  { const u = rainMesh.material.uniforms; renderer.getDrawingBufferSize(_rainV2); u.uView.value.copy(_rainV2); u.uWidth.value = Math.max(1.6, 1.15 * renderer.getPixelRatio()); }
+  { const u = rainMesh.material.uniforms; renderer.getDrawingBufferSize(_rainV2); u.uView.value.copy(_rainV2); u.uWidth.value = Math.max(1.8, 1.25 * renderer.getPixelRatio()); }
   const alpha = rainMesh.geometry.attributes.aAlpha ? rainMesh.geometry.attributes.aAlpha.array : null;
   const c = camera.position;
   const meta = rainDropMeta;
@@ -6601,7 +6739,7 @@ function tickRain(dt) {
       a[j + 1] = c.y + 12 + Math.random() * 31;
       a[j + 2] = c.z + (Math.random() - 0.5) * 72;
       if (meta) { meta[i * 3] = 0.75 + Math.random() * 0.8; meta[i * 3 + 1] = 0.55 + Math.random() * 0.85; meta[i * 3 + 2] = 0.55 + Math.random() * 0.9; }
-      if (alpha) { const op = 0.18 + Math.random() * 0.28; alpha[i * 2] = op; alpha[i * 2 + 1] = op * 0.35; }
+      if (alpha) { const op = 0.21 + Math.random() * 0.30; alpha[i * 2] = op; alpha[i * 2 + 1] = op * 0.35; }
     }
     const leanX = crossWind * 0.035 * gustMul + spd * 0.0015;
     const leanZ = forwardWind * 0.025;
@@ -6620,13 +6758,19 @@ function tickRain(dt) {
         sp[i * 3] = c.x + (Math.random() - 0.5) * 16;
         sp[i * 3 + 1] = c.y - 1.45 + Math.random() * 0.35;
         sp[i * 3 + 2] = c.z + (Math.random() - 0.5) * 28;
-        ss[i] = 0.06 + Math.random() * 0.12;
-      } else ss[i] *= 1 + dt * 0.9;
+        ss[i] = 0.12 + Math.random() * 0.16;
+      } else {
+        // Fine spray drifts backward with the slipstream and spreads as it rises.
+        sp[i * 3] += crossWind * 0.32 * dt;
+        sp[i * 3 + 2] += forwardWind * 0.42 * dt;
+        sp[i * 3 + 1] += dt * (0.12 + ss[i] * 0.35);
+        ss[i] *= 1 + dt * 0.72;
+      }
     }
     rainSplash.geometry.attributes.position.needsUpdate = true;
     rainSplash.geometry.attributes.aSize.needsUpdate = true;
     if (rainSplash.material.uniforms && rainSplash.material.uniforms.uOpacity)
-      rainSplash.material.uniforms.uOpacity.value = 0.30 + Math.min(0.20, spd * 0.003);
+      rainSplash.material.uniforms.uOpacity.value = 0.36 + Math.min(0.22, spd * 0.0035);
   }
   // Lightning now illuminates the actual scene, not just a full-screen flash.
   if (lightningEl && rainOn) {
@@ -7083,12 +7227,12 @@ function carPaint(color) {
   const mobile = !!isMobile;
   const m = new THREE.MeshPhysicalMaterial({
     color,
-    roughness: mobile ? 0.235 : 0.205,
-    metalness: mobile ? 0.34 : 0.40,
+    roughness: mobile ? 0.225 : 0.19,
+    metalness: mobile ? 0.32 : 0.38,
     bumpMap: carPaintMicroMap(),
     bumpScale: mobile ? 0.006 : 0.009,
     clearcoat: 1.0,
-    clearcoatRoughness: mobile ? 0.085 : 0.065,
+    clearcoatRoughness: mobile ? 0.075 : 0.055,
     envMapIntensity: mobile ? 1.9 : 2.35,
     reflectivity: 0.88,
     specularIntensity: 1.0,
@@ -7284,8 +7428,24 @@ function buildPassengerCar(b, sp) {
     [winHalf * 0.76, c[1][1] - 0.045, c[1][0]], [-winHalf * 0.76, c[1][1] - 0.045, c[1][0]]), 3);
   b.add('glass', gt3Quad([-winHalf * 0.76, c[4][1] - 0.045, c[4][0]], [winHalf * 0.76, c[4][1] - 0.045, c[4][0]],
     [winHalf, beltY + 0.035, c[5][0]], [-winHalf, beltY + 0.035, c[5][0]]), 3);
-  // Interior void (dark) well inside
+  // Interior: a dark cabin well plus readable seats, dashboard and steering wheel.
+  // These are baked into the cached car template, so traffic adds no per-frame cost.
   b.add('dark', gBox(1.25, cabH * 0.65, roofLen * 0.7, 0, beltY + cabH * 0.5, roofMid), 1);
+  // Front seat cushions and shaped backrests (kept low enough to sit below the glass).
+  for (const sx of [-0.39, 0.39]) {
+    b.add('dark', gBox(0.39, 0.13, 0.48, sx, 0.57, 0.02), 1);
+    b.add('dark', gBox(0.37, 0.48, 0.14, sx, 0.80, -0.20, -0.12), 1);
+    b.add('dark', gBox(0.22, 0.18, 0.12, sx, 1.02, -0.22), 1);
+  }
+  // Rear bench, visible through the rear side glass.
+  b.add('dark', gBox(0.92, 0.12, 0.43, 0, 0.58, -1.02), 1);
+  b.add('dark', gBox(0.92, 0.30, 0.12, 0, 0.78, -1.20), 1);
+  // Sculpted dashboard and instrument brow, positioned behind the windscreen.
+  b.add('dark', gBox(1.18, 0.16, 0.24, 0, 0.91, 0.56), 1);
+  b.add('chrome', gBox(0.44, 0.045, 0.018, -0.30, 0.98, 0.43), 1);
+  // Steering wheel on the left-hand-drive side; torus lies in the driver-facing plane.
+  b.add('dark', _gp(new THREE.TorusGeometry(0.145, 0.018, 8, 20), -0.39, 0.84, 0.48), 1);
+  b.add('chrome', gBox(0.025, 0.22, 0.025, -0.39, 0.84, 0.49), 1);
   // Roof
   b.add('paint', gBox(1.58, 0.05, roofLen + 0.08, 0, roofY + 0.02, roofMid), 3);
   b.add('dark', gBox(1.6, 0.1, (fz - rz) * 0.9, 0, 0.24, 0), 3);
@@ -7530,8 +7690,8 @@ function addVehicleSignature(b, key) {
   if (key !== 'bus' && key !== 'truck') {
     for (const s of [-1, 1]) {
       b.add(metal, gBox(0.012, 0.016, 1.55, s * 0.93, 0.78, -0.05), 1);
-      b.add(metal, gBox(0.016, 0.028, 0.12, s * 0.935, 0.82, -0.35), 1);
-      b.add(metal, gBox(0.016, 0.028, 0.12, s * 0.935, 0.82, 0.55), 1);
+      // Model-specific door handles are authored by each body template below.
+      // Do not add a second generic pair here: that created four handles per side.
     }
   }
   if (key === 'sports') {
@@ -7990,8 +8150,8 @@ function buildSelectablePlayerCar() {
   for (const side of [-1,1]) {
     addDetail(new THREE.BoxGeometry(.012,.36,1.12),seam,side*.91,.66,-.22);
     addDetail(new THREE.BoxGeometry(.018,.035,1.55),alloy,side*.94,.31,-.1);
-    // Flush handles and narrow fender extractor accents sharpen the side profile.
-    addDetail(new THREE.BoxGeometry(.018,.026,.13),alloy,side*.925,.78,-.42);
+    // Body templates own the correct model-specific handle count and placement.
+    // Keep only the narrow fender extractor accents here to avoid duplicate handles.
     addDetail(new THREE.BoxGeometry(.018,.018,.34),trim,side*.936,.58,.92);
     addDetail(new THREE.BoxGeometry(.018,.012,.25),alloy,side*.941,.60,.92);
   }
@@ -10050,12 +10210,14 @@ function init() {
       pmrem.compileEquirectangularShader();
       nexusEnvironmentTarget = pmrem.fromEquirectangular(nexusEnvironment);
       scene.environment = nexusEnvironmentTarget.texture;
+      nexusEnvironmentBaseIntensity = gfxProfile.envIntensity;
       scene.environmentIntensity = gfxProfile.envIntensity;
       nexusEnvironment.dispose();
       pmrem.dispose();
     } catch (e) {
       scene.environment = nexusEnvironment;
-      scene.environmentIntensity = gfxProfile.envIntensity * 1.12;
+      nexusEnvironmentBaseIntensity = gfxProfile.envIntensity * 1.12;
+      scene.environmentIntensity = nexusEnvironmentBaseIntensity;
     }
   }
   camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.08, 900);
@@ -10070,7 +10232,7 @@ function init() {
   scene.add(new THREE.AmbientLight(0xb0ccd8, 0.18));
   // Cool opposing fill gives body shoulders, mirrors and window edges shape in daylight.
   // It deliberately casts no shadows, keeping the added lighting cost negligible.
-  const automotiveFill = new THREE.DirectionalLight(0x9bb9d8, visualQuality === 'high' ? 0.44 : (visualQuality === 'medium' ? 0.36 : 0.28));
+  automotiveFill = new THREE.DirectionalLight(0x9bb9d8, visualQuality === 'high' ? 0.44 : (visualQuality === 'medium' ? 0.36 : 0.28));
   automotiveFill.position.set(-52, 24, -46);
   automotiveFill.castShadow = false;
   scene.add(automotiveFill);
@@ -10105,6 +10267,7 @@ function init() {
   scene.add(headlightR);
   scene.add(headlightL.target);
   scene.add(headlightR.target);
+  applyAtmosphericBalance();
 
   // Stronger volumetric beam cones
   function makeBeam() {
