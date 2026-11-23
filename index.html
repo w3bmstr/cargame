@@ -622,9 +622,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #start{isolation:isolate;overflow:hidden}
 #start:before{
   content:"";position:absolute;inset:0;z-index:-2;
-  background-image:url("assets/images/car-hero.png");
+  /* Entirely procedural launch artwork: no missing image, network request or asset folder. */
+  background-color:#071019;
+  background-image:
+    radial-gradient(ellipse at 50% 62%,rgba(255,154,83,.25) 0%,rgba(255,112,54,.08) 19%,transparent 43%),
+    radial-gradient(ellipse at 18% 35%,rgba(74,151,190,.22),transparent 38%),
+    radial-gradient(ellipse at 83% 27%,rgba(255,190,125,.13),transparent 34%),
+    linear-gradient(180deg,transparent 0 48%,rgba(5,10,15,.15) 49%,rgba(2,5,9,.94) 100%),
+    linear-gradient(168deg,#182d3c 0%,#233b48 30%,#172a35 53%,#09131d 78%,#03070c 100%);
   background-size:cover;background-position:center;
-  filter:saturate(1.12) contrast(1.08) brightness(.72);
+  filter:saturate(1.12) contrast(1.08) brightness(.86);
   transform:scale(1.035);
 }
 #start:after{
@@ -2006,7 +2013,7 @@ body.crashed #glass-reflection {
   </div>
 </div>
 <style>#calib-bar.even #calib-dot{background:#4dff9a;box-shadow:0 0 14px rgba(77,255,154,.9)}#calib-bar.even #calib-zone{background:rgba(77,255,154,.45)}</style>
-<!-- Three.js core inlined below; traffic vehicles are procedural. -->
+<!-- Standalone build: Three.js core is inlined; game art, materials, traffic and FX are procedural. No remote assets or runtime imports. -->
 <script>
 void 0, /* Standalone bundled Three.js r160 build; retained for offline compatibility. */
 /**
@@ -2423,6 +2430,13 @@ function tickNexusOverlay(dt) {
   }
 }
 
+function getRendererPixelRatio(mobile, highMobile) {
+  // Keep the same resolution budget at startup and after every resize.
+  // This is a pixel-work cap, not a frame-rate cap: the simulation remains real-time.
+  const profile = getNexusGfxProfile();
+  const cap = mobile ? (highMobile ? profile.mobilePixelCap : 1.45) : profile.pixelCap;
+  return Math.max(1, Math.min(window.devicePixelRatio || 1, cap));
+}
 function createRenderer(canvas, options = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -2441,14 +2455,25 @@ function createRenderer(canvas, options = {}) {
   renderer.shadowMap.type = (options.softShadows !== false)
     ? THREE.PCFSoftShadowMap
     : THREE.BasicShadowMap;
+  // Three r160 uses physically-correct light falloff by default; explicitly keep
+  // the renderer's output pipeline stable across desktop/mobile initialization.
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.info.autoReset = true;
-  const prCap = options.mobile ? (options.highMobile ? 1.75 : 1.45) : 2;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, prCap));
+  renderer.setPixelRatio(getRendererPixelRatio(!!options.mobile, !!options.highMobile));
   return renderer;
 }
 // Photographic-style procedural environment: gives car paint, glass and wet asphalt
 // something believable to reflect without requiring external HDR downloads.
 function createNexusEnvironment() {
+  // Stable local random stream: identical reflection studio every launch, without
+  // consuming Math.random values used by traffic, weather, particles or gameplay.
+  let envSeed = 0x4e455855;
+  const envRand = () => {
+    envSeed = (Math.imul(envSeed ^ (envSeed >>> 15), 1 | envSeed) + 0x6d2b79f5) | 0;
+    let z = envSeed; z = Math.imul(z ^ (z >>> 15), z | 1); z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+  };
   // A hand-built equirectangular reflection environment: soft sky gradients,
   // broad sky cards, and a distant rural road horizon. It gives paint,
   // glass and wet asphalt something richer to reflect without external HDRs.
@@ -2467,12 +2492,12 @@ function createNexusEnvironment() {
 
   // Soft, broken cloud bands keep the upper reflections from looking like a flat gradient.
   for (let i = 0; i < 62; i++) {
-    const px = Math.random() * 1200 - 80;
-    const py = 42 + Math.random() * 178;
-    const w = 28 + Math.random() * 150;
-    const h = 5 + Math.random() * 19;
+    const px = envRand() * 1200 - 80;
+    const py = 42 + envRand() * 178;
+    const w = 28 + envRand() * 150;
+    const h = 5 + envRand() * 19;
     const cloud = x.createRadialGradient(px, py, 1, px, py, w);
-    cloud.addColorStop(0, `rgba(232,240,248,${0.035 + Math.random() * 0.075})`);
+    cloud.addColorStop(0, `rgba(232,240,248,${0.035 + envRand() * 0.075})`);
     cloud.addColorStop(1, 'rgba(232,240,248,0)');
     x.fillStyle = cloud; x.save(); x.translate(px, py); x.scale(1, h / w); x.translate(-px, -py);
     x.fillRect(px - w, py - w, w * 2, w * 2); x.restore();
@@ -2497,8 +2522,8 @@ function createNexusEnvironment() {
   ridge(350, 13, 'rgba(27,43,49,.30)', 4.7);
   // Distant forest canopy, varied in height and spacing to avoid a repeated skyline.
   x.fillStyle = 'rgba(17,31,34,.48)';
-  for (let px = -12; px < 2060; px += 10 + Math.random() * 13) {
-    const h = 13 + Math.random() * 35, r = 5 + Math.random() * 11;
+  for (let px = -12; px < 2060; px += 10 + envRand() * 13) {
+    const h = 13 + envRand() * 35, r = 5 + envRand() * 11;
     x.beginPath(); x.arc(px, 348 - h * 0.42, r, 0, Math.PI * 2); x.fill();
     x.fillRect(px - r * 0.38, 348 - h * 0.42, r * 0.76, h * 0.42 + 26);
   }
@@ -2585,7 +2610,16 @@ let groundMesh = null, terrainMesh = null, treeLeafList = [], autumnPineCanopyLi
 let crossingLampMat = null, crossingList = [];
 let skyRig = null, cloudGroup = null, sunGlow = null, horizonGlow = null, lampFx = null;
 let visualQuality = 'high';
+let nexusEnvironmentTarget = null;
 const isMobile = typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches;
+// One graphics policy is shared by renderer creation, IBL, shadows and resize.
+// Quality changes pixel workload; it never throttles the simulation clock.
+const NEXUS_GFX_PROFILES = Object.freeze({
+  low:    Object.freeze({ pixelCap: 1.45, mobilePixelCap: 1.45, exposure: 1.12, envIntensity: 1.05, shadowMap: 512, antialias: false, softShadows: false }),
+  medium: Object.freeze({ pixelCap: 1.75, mobilePixelCap: 1.75, exposure: 1.12, envIntensity: 1.35, shadowMap: 1536, antialias: true, softShadows: true }),
+  high:   Object.freeze({ pixelCap: 2.00, mobilePixelCap: 1.75, exposure: 1.16, envIntensity: 1.65, shadowMap: 2048, antialias: true, softShadows: true })
+});
+function getNexusGfxProfile() { return NEXUS_GFX_PROFILES[visualQuality] || NEXUS_GFX_PROFILES.high; }
 
 /* ---- Worldwide units: default from locale, user override in localStorage ---- */
 function detectMphLocale() {
@@ -4852,7 +4886,11 @@ function createWorld() {
       const patch = 0.96 + 0.24 * Math.sin(x * 0.045 + 0.7) * Math.cos(z * 0.037) + (Math.random() - 0.5) * 0.12, dirt = 1 - sstep(9.5, 31, d);
       // A broader, irregular soil/gravel shoulder fades into grass instead of ending in a sharp green ring.
       const soil = dirt * (0.72 + 0.18 * Math.sin(x * 0.083 + z * 0.047));
-      tc[k * 3] = patch * (1 + soil * 0.28); tc[k * 3 + 1] = patch * (1 - soil * 0.12); tc[k * 3 + 2] = patch * (1 - soil * 0.30);
+      const slopeShade = 0.965 + 0.035 * Math.sin(x * 0.019 + z * 0.014) * Math.cos(z * 0.023);
+      const dryVariation = 0.975 + 0.025 * Math.sin(x * 0.061 - z * 0.052);
+      tc[k * 3] = patch * slopeShade * dryVariation * (1 + soil * 0.28);
+      tc[k * 3 + 1] = patch * slopeShade * (1 - soil * 0.12);
+      tc[k * 3 + 2] = patch * slopeShade * (1 - soil * 0.30) * (0.985 + 0.015 * Math.cos(x * 0.033));
     }
     for (let iz = 0; iz < nz - 1; iz++) for (let ix = 0; ix < nx - 1; ix++) { const a = iz * nx + ix, b = a + 1, c = a + nx, e = c + 1; ti.push(a, c, b, b, c, e); }
     const tg = new THREE.BufferGeometry();
@@ -5430,29 +5468,58 @@ function createWorld() {
   addInst(inst(postGeo, postMat, postM, false, false));
   addInst(inst(capGeo, capMat, capM, false, false));
 
-  // Fine verge grass: a single instanced mesh adds texture beside the asphalt
-  // without introducing per-frame work, external textures, or extra draw calls.
+  // Verge vegetation: curved, tapered ribbon blades read as grass rather than
+  // miniature cones. One shared geometry and one instanced batch keep this static.
   {
-    const bladeGeo = mergeGeos([
-      new THREE.ConeGeometry(0.075, 0.72, 5).translate(-0.16, 0.36, 0),
-      new THREE.ConeGeometry(0.065, 0.58, 5).translate(0.02, 0.29, 0.035),
-      new THREE.ConeGeometry(0.07, 0.66, 3).translate(0.17, 0.33, -0.025)
-    ]);
-    const grassMat = new THREE.MeshStandardMaterial({ color: trackId === 3 ? 0x827044 : 0x667b45, roughness: 1, vertexColors: false, flatShading: true });
-    const grassM = [];
-    const grassStep = visualQuality === 'low' ? 22 : visualQuality === 'medium' ? 16 : 12;
+    const gp = [], gi = [];
+    const bladeSpecs = [
+      [-0.19, 0.00, -0.035, 0.62, 0.075, -0.10],
+      [-0.09, 0.00,  0.045, 0.82, 0.068, -0.16],
+      [ 0.02, 0.00, -0.015, 0.70, 0.082,  0.12],
+      [ 0.13, 0.00,  0.035, 0.91, 0.061,  0.19],
+      [ 0.21, 0.00, -0.045, 0.57, 0.070,  0.09]
+    ];
+    bladeSpecs.forEach(([bx, by, bz, h, w, bend], bi) => {
+      const base = gp.length / 3, segs = 4;
+      for (let j = 0; j <= segs; j++) {
+        const t = j / segs, y = by + h * t;
+        const cx = bx + bend * t * t, cz = bz + Math.sin(t * Math.PI) * bend * 0.22;
+        const half = w * (1 - t) * (0.88 + 0.12 * Math.sin(t * Math.PI));
+        gp.push(cx - half, y, cz, cx + half, y, cz);
+      }
+      for (let j = 0; j < segs; j++) {
+        const a = base + j * 2, b = a + 2;
+        gi.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    });
+    const bladeGeo = new THREE.BufferGeometry();
+    bladeGeo.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
+    bladeGeo.setIndex(gi); bladeGeo.computeVertexNormals();
+    const grassMat = new THREE.MeshStandardMaterial({
+      color: trackId === 3 ? 0x9a8350 : 0x8a9b50, roughness: 1,
+      vertexColors: false, side: THREE.DoubleSide, flatShading: false
+    });
+    const grassM = [], grassColors = [];
+    const grassStep = visualQuality === 'low' ? 24 : visualQuality === 'medium' ? 13 : (isMobile ? 15 : 8);
+    const grassTint = new THREE.Color();
     for (let i = 0; i < pts.length; i += grassStep) {
       const u = i / pts.length, p = curve.getPointAt(u), tang = curve.getTangentAt(u).normalize();
       const { side } = sideUp(tang);
       [-1, 1].forEach((dir, sideIndex) => {
-        const off = ROAD_W * 0.5 + 3.4 + ((i * 7 + sideIndex * 5) % 11);
+        const off = ROAD_W * 0.5 + 2.8 + ((i * 7 + sideIndex * 5) % 14);
         const x = p.x + side.x * dir * off, z = p.z + side.z * dir * off;
         if (!clearOfRoad(x, z, ROAD_W * 0.5 + 1.8)) return;
-        const sc = 0.65 + ((i * 13 + sideIndex * 3) % 9) * 0.055;
-        grassM.push(mk(x, groundH(x, z) - 0.02, z, 0, ((i * 17) % 31) * 0.11, 0, sc, sc, sc));
+        const sc = 0.72 + ((i * 13 + sideIndex * 3) % 11) * 0.065;
+        grassM.push(mk(x, groundH(x, z) - 0.025, z, 0, ((i * 17) % 31) * 0.11, 0, sc, sc, sc));
+        const variation = 0.78 + ((i * 37 + sideIndex * 19) % 29) / 100;
+        grassColors.push(grassTint.setRGB(variation * 0.91, variation, variation * 0.72).clone());
       });
     }
-    addInst(inst(bladeGeo, grassMat, grassM, false, false));
+    const grassBatch = addInst(inst(bladeGeo, grassMat, grassM, false, false));
+    if (grassBatch) {
+      grassColors.forEach((c, i) => grassBatch.setColorAt(i, c));
+      if (grassBatch.instanceColor) grassBatch.instanceColor.needsUpdate = true;
+    }
   }
 
   // Rural utility poles and sagging overhead wires give the road a lived-in scale.
@@ -9954,13 +10021,14 @@ function init() {
   // Story-mode quality keeps the detailed scene, but bounds pixel and shadow costs.
   // Full-graphics devices adapt render resolution to measured frame time; ?lite stays fixed.
   visualQuality = gfxMobile ? 'low' : isMobile ? 'medium' : 'high';
+  const gfxProfile = getNexusGfxProfile();
   renderer = createRenderer(canvas, {
-    antialias: visualQuality !== 'low' && !(isMobile && (window.devicePixelRatio || 1) >= 2.5),
+    antialias: gfxProfile.antialias && !(isMobile && (window.devicePixelRatio || 1) >= 2.5),
     shadows: visualQuality !== 'low',
-    softShadows: visualQuality === 'high' || (visualQuality === 'medium' && !gfxMobile),
+    softShadows: gfxProfile.softShadows,
     mobile: gfxMobile || isMobile,
     highMobile: isMobile && !gfxMobile,
-    exposure: visualQuality === 'high' ? 1.16 : 1.12
+    exposure: gfxProfile.exposure
   });
   renderer.setSize(innerWidth, innerHeight);
   initNexusOverlay();
@@ -9980,14 +10048,14 @@ function init() {
     try {
       const pmrem = new THREE.PMREMGenerator(renderer);
       pmrem.compileEquirectangularShader();
-      const envRT = pmrem.fromEquirectangular(nexusEnvironment);
-      scene.environment = envRT.texture;
-      scene.environmentIntensity = visualQuality === 'high' ? 1.65 : (visualQuality === 'medium' ? 1.35 : 1.05);
+      nexusEnvironmentTarget = pmrem.fromEquirectangular(nexusEnvironment);
+      scene.environment = nexusEnvironmentTarget.texture;
+      scene.environmentIntensity = gfxProfile.envIntensity;
       nexusEnvironment.dispose();
       pmrem.dispose();
     } catch (e) {
       scene.environment = nexusEnvironment;
-      scene.environmentIntensity = visualQuality === 'high' ? 1.8 : 1.2;
+      scene.environmentIntensity = gfxProfile.envIntensity * 1.12;
     }
   }
   camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.08, 900);
@@ -10012,7 +10080,7 @@ function init() {
   // 512² + tight frustum around the car ≈ same on-screen quality as a larger map
   // over a huge world volume, at ~1/4 the shadow fill cost of 1024².
   // Tighter frustum + bigger map: ~5 cm/texel on desktop (was ~14 cm), ~15 cm on phones (was ~28 cm).
-  const shadowRes = visualQuality === 'high' ? 2048 : (visualQuality === 'medium' ? 1536 : 512);
+  const shadowRes = getNexusGfxProfile().shadowMap;
   const shExt = visualQuality === 'high' ? 48 : 56;
   sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.camera.near = 4;
@@ -10095,7 +10163,7 @@ function init() {
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? (gfxMobile ? 1.35 : 1.75) : 2));
+    renderer.setPixelRatio(getRendererPixelRatio(gfxMobile || isMobile, isMobile && !gfxMobile));
     renderer.setSize(innerWidth, innerHeight);
     clearTimeout(window._rainResizeT);
     window._rainResizeT = setTimeout(() => {
