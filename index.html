@@ -7197,6 +7197,8 @@ function carMats() {
     caliper: S(0xc42822, 0.39, 0.32, { envMapIntensity: 0.45 }),
     // Shared lamp mats — intensity driven only by applyTimeOfDay (no per-frame flicker sources)
     head: new THREE.MeshPhysicalMaterial({ color: 0xfff7e8, emissive: 0xffe2a8, emissiveIntensity: 0.55, roughness: 0.16, metalness: 0.04, clearcoat: 1, clearcoatRoughness: 0.055, envMapIntensity: 1.8 }),
+    // Polished steel for the truck wheel discs (cars keep their black rims)
+    truckRim: S(0xdde1e6, 0.24, 0.95),
     // Lit LED elements: deeper red + little env reflection so they no longer wash out to salmon/pink in daylight
     tail: new THREE.MeshPhysicalMaterial({ color: 0xd4120e, emissive: 0xff1808, emissiveIntensity: 0.55, roughness: 0.3, metalness: 0.0, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 0.6 }),
     // Same LEDs at full brightness: swapped in while a car is braking
@@ -7252,7 +7254,7 @@ function bindCarEnvironment() {
   };
   if (_cm) {
     apply(_cm.glass); apply(_cm.chrome); apply(_cm.rim); apply(_cm.dark);
-    apply(_cm.head); apply(_cm.tail); apply(_cm.tailBrake); apply(_cm.tailLens); apply(_cm.amber); apply(_cm.rotor); apply(_cm.caliper);
+    apply(_cm.head); apply(_cm.truckRim); apply(_cm.tail); apply(_cm.tailBrake); apply(_cm.tailLens); apply(_cm.amber); apply(_cm.rotor); apply(_cm.caliper);
   }
   if (typeof _paintMats !== 'undefined' && _paintMats) {
     for (const k in _paintMats) apply(_paintMats[k]);
@@ -7329,7 +7331,7 @@ function carBuilder() {
       if (mask & 1) (sets.hi[mat] || (sets.hi[mat] = [])).push(geo);
       if (mask & 2) (sets.lo[mat] || (sets.lo[mat] = [])).push(geo);
     },
-    addWheelMount(x, z, r, w) { wheels.push({ x, z, r, w }); },
+    addWheelMount(x, z, r, w, style) { wheels.push({ x, z, r, w, style }); },
     done() {
       const out = { hi: [], lo: [], wheels: wheels.slice() };
       for (const lod of ['hi', 'lo']) for (const k in sets[lod]) out[lod].push({ mat: k, geo: mergeGeos(sets[lod][k]) });
@@ -7360,6 +7362,46 @@ function carWheel(b, x, z, r, w) {
   b.add('chrome', gCylX(r * 0.14, r * 0.14, 0.03, 12, x + out * 0.55, r, z), 1);
   b.add('dark', gCylX(r * 0.08, r * 0.08, 0.02, 10, x + out * 0.62, r, z), 1);
   b.add('caliper', gBox(w * 0.28, r * 0.42, r * 0.18, x - s * w * 0.1, r + r * 0.16, z + r * 0.42), 1);
+}
+
+// Truck wheel: the same tyre as the cars, but a polished-steel disc wheel (hand holes, hex lug nuts, raised hub) instead of the
+// black face. The static part (tyre, tread, dark barrel, chrome bead ring) is built here; the disc, lugs and hub are built by
+// makeTruckSpinWheel and attached through the wheel mount (style 'truck'), so they turn with the truck.
+function truckWheel(b, x, z, r, w) {
+  if (b.addWheelMount) b.addWheelMount(x, z, r, w, 'truck');
+  const s = x < 0 ? -1 : 1, out = s * w * 0.5;
+  const lp = [[0.55, -0.48], [0.88, -0.5], [0.98, -0.36], [1.0, -0.12], [1.0, 0.12], [0.98, 0.36], [0.88, 0.5], [0.55, 0.48]]
+    .map(p => new THREE.Vector2(p[0] * r, p[1] * w));
+  b.add('tire', _gp(new THREE.LatheGeometry(lp, 36), x, r, z, 0, 0, Math.PI / 2), 3);
+  b.add('dark', gCylX(r * 0.99, r * 0.99, w * 0.55, 24, x, r, z), 1);
+  b.add('dark', gCylX(r * 0.58, r * 0.58, w * 0.72, 18, x, r, z), 3);
+  b.add('chrome', _gp(new THREE.TorusGeometry(r * 0.555, 0.016, 8, 36), x + out * 0.92, r, z, 0, Math.PI / 2, 0), 3);
+}
+function makeTruckSpinWheel(r, w, mats, s) {
+  const g = new THREE.Group();
+  const R = r * 0.98, W = w * 0.92, X = f => s * W * f;
+  const rimG = [], darkG = [], chromeG = [];
+  // cylinder on the axle (x), stretched radially by sy, moved out to radius `rad`, then swung round the axle by angle a
+  const cyl = (rt, rb, len, seg, x, rad, a, sy) => {
+    const geo = new THREE.CylinderGeometry(rt, rb, len, seg); geo.rotateZ(Math.PI / 2);
+    if (sy) geo.scale(1, sy, 1);
+    geo.translate(x, rad, 0); if (a) geo.rotateX(a);
+    return geo;
+  };
+  const face = X(0.4);
+  rimG.push(cyl(R * 0.53, R * 0.53, 0.03, 32, face, 0, 0));                      // steel disc
+  const ring = new THREE.TorusGeometry(R * 0.46, 0.012, 6, 32); ring.rotateY(Math.PI / 2); ring.translate(face + s * 0.016, 0, 0);
+  chromeG.push(ring);                                                            // stamped ring
+  for (let i = 0; i < 8; i++) darkG.push(cyl(R * 0.06, R * 0.06, 0.012, 14, face + s * 0.017, R * 0.37, (i / 8) * Math.PI * 2 + Math.PI / 8, 1.5));   // hand holes
+  for (let i = 0; i < 10; i++) chromeG.push(cyl(R * 0.03, R * 0.03, 0.03, 6, face + s * 0.03, R * 0.235, (i / 10) * Math.PI * 2));                    // hex lug nuts
+  rimG.push(cyl(R * 0.17, R * 0.19, 0.04, 22, face + s * 0.035, 0, 0));          // raised hub
+  darkG.push(cyl(R * 0.085, R * 0.085, 0.01, 16, face + s * 0.057, 0, 0));       // centre cap
+  const add = (list, mat) => { const m = new THREE.Mesh(mergeGeos(list), mat); g.add(m); };
+  add(rimG, mats.truckRim || mats.rim || mats.chrome);
+  add(darkG, mats.dark);
+  add(chromeG, mats.chrome || mats.rim);
+  g.userData.radius = R;
+  return g;
 }
 
 function makeSpinWheel(r, w, mats) {
@@ -7397,7 +7439,7 @@ function attachSpinWheels(root, mounts, mats) {
   const mm = mats || {};
   for (let i = 0; i < mounts.length; i++) {
     const m = mounts[i];
-    const wh = makeSpinWheel(m.r * 0.98, m.w * 0.92, mm);
+    const wh = m.style === 'truck' ? makeTruckSpinWheel(m.r, m.w, mm, m.x < 0 ? -1 : 1) : makeSpinWheel(m.r * 0.98, m.w * 0.92, mm);
     wh.position.set(m.x, m.r, m.z);
     root.add(wh);
     wheels.push(wh);
@@ -7810,7 +7852,7 @@ function buildTruckCar(b) {
   });
   // Center plate frame recess (plate mesh from addCarPlates sits here, fully clear)
   b.add('dark', gBox(0.82, 0.28, 0.04, 0, 1.42, -3.97), 3);
-  [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => carWheel(b, x, z, 0.5, 0.32));
+  [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => truckWheel(b, x, z, 0.5, 0.32));
   b.add('shadow', _gp(new THREE.PlaneGeometry(2.6, 8.8), 0, 0.01, 0.4, -Math.PI / 2), 3);
 }
 // Purpose-built procedural GT3: shaped cabin glass follows the roofline instead of using oversized box panes.
@@ -8066,9 +8108,10 @@ function carTemplate(key) {
   addVehicleSignature(b, key);
   return (_carTpl[key] = b.done());
 }
+var _bigSeq = 0;   // big vehicles alternate truck, bus, truck so trucks always appear
 function carInstance(color, big, plateCode) {
   const r = Math.random();
-  const key = plateCode === 'RIV 2048' ? 'sports' : plateCode === 'RIV 7316' ? 'muscle' : big ? (r < 0.4 ? 'bus' : 'truck') : r < 0.28 ? 'sedan' : r < 0.48 ? 'hatch' : r < 0.68 ? 'suv' : r < 0.86 ? 'sports' : 'van';
+  const key = plateCode === 'RIV 2048' ? 'sports' : plateCode === 'RIV 7316' ? 'muscle' : big ? (['truck', 'bus', 'truck'][_bigSeq++ % 3]) : r < 0.28 ? 'sedan' : r < 0.48 ? 'hatch' : r < 0.68 ? 'suv' : r < 0.86 ? 'sports' : 'van';
   const tpl = carTemplate(key), mats = carMats(), paint = carPaintVariant(color);
   const plateMat = plateLit(mats.plate.clone());
   plateMat.map = licensePlateTexture(plateCode);
@@ -8173,9 +8216,13 @@ function makeCar(color, big, plateCode) {
     const sm = getMobileCarMats();
     const paint = sm.paints[color] || (sm.paints[color] = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.35 }));
     const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
-    const wheel = (x, z, r, w) => {
+    const wheel = (x, z, r, w, truck) => {
       const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 10), sm.tire); t.rotation.z = Math.PI / 2; t.position.set(x, r, z); g.add(t);
       const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w * 0.88, 8), sm.rim); h.rotation.z = Math.PI / 2; h.position.set(x, r, z); g.add(h);
+      if (truck) { // polished disc + dark hub cap so truck wheels differ from the cars
+        const d = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.58, r * 0.58, w * 0.96, 10), sm.chrome); d.rotation.z = Math.PI / 2; d.position.set(x, r, z); g.add(d);
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.2, r * 0.2, w * 1.04, 8), sm.dark); c.rotation.z = Math.PI / 2; c.position.set(x, r, z); g.add(c);
+      }
     };
     const lamp = (x, y, z, w, mat) => box(w, 0.1, 0.05, mat, x, y, z);
     const shadow = (w, d, z) => {
@@ -8210,7 +8257,7 @@ function makeCar(color, big, plateCode) {
         box(2.32, 0.45, 5.78, paint, 0, 2.4, -1.0);
         box(2.12, 1.85, 0.045, sm.door, 0, 2.15, -3.94);
         box(1.9, 0.16, 0.055, paint, 0, 2.42, -3.972);
-        [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32));
+        [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => wheel(x, z, 0.5, 0.32, true));
         [-0.7, 0.7].forEach(x => lamp(x, 0.95, 4.03, 0.35, sm.hl));
         [-0.85, 0.85].forEach(x => lamp(x, 0.95, -3.93, 0.4, sm.tl));
         addMobilePlate(.68, .16, 1.30, -4.00, true); addMobilePlate(.62, .14, .70, 4.13, false);
@@ -8245,6 +8292,7 @@ function makeCar(color, big, plateCode) {
 // All traffic vehicles are now generated by the built-in procedural Three.js vehicle system.
 
 function spawnTraffic() {
+  _bigSeq = 0;
   traffic.forEach(c => scene.remove(c.mesh));
   traffic = [];
   // Wider color palette + occasional darker / metallic tones
@@ -8256,7 +8304,7 @@ function spawnTraffic() {
   ];
   for (let i = 0; i < CARS_N; i++) {
     const isRivalSlot = (i % 11 === 3) || (i % 11 === 8);
-    const big = !isRivalSlot && Math.random() < 0.16;
+    const big = !isRivalSlot && (i % 6 === 1);   // fixed slots (was a 16% dice roll that sometimes produced no trucks at all)
     const rivalIndex = (i % 11 === 3) ? 0 : (i % 11 === 8) ? 1 : -1;
     const rivalCodes = ['RIV 2048', 'RIV 7316'];
     const plateCode = rivalIndex >= 0 ? rivalCodes[rivalIndex] : (String.fromCharCode(65+(Math.random()*26|0),65+(Math.random()*26|0),65+(Math.random()*26|0)) + ' ' + String(1000+(Math.random()*9000|0)));
