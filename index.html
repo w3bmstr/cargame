@@ -7456,8 +7456,7 @@ function buildPassengerCar(b, sp) {
     b.add('chrome', gBox(0.012, 0.018, (fz - rz) * 0.72, s * 0.928, bodyTop - 0.03, 0), 1);
     sp.seams.forEach(z => b.add('dark', gBox(0.01, 0.48, 0.012, s * 0.927, bodyTop - 0.27, z), 1));
     sp.handles.forEach(z => b.add('chrome', gBox(0.014, 0.026, 0.13, s * 0.931, bodyTop - 0.12, z), 1));
-    b.add('dark', gBox(0.06, 0.1, (fz - rz) * 0.62, s * 0.93, 0.32, 0), 3);
-    if (sp.cladding) b.add('dark', gBox(0.045, 0.15, (fz - rz) * 0.8, s * 0.935, 0.42, 0), 3);
+    // Model-specific A-pillar mirror: keep it attached beside the front side glass.
     b.add('paint', gSph(0.1, 1.2, 0.65, 1.0, s * 1.02, bodyTop - 0.03, c[0][0] - 0.06), 3);
     b.add('dark', gBox(0.13, 0.03, 0.05, s * 0.94, bodyTop - 0.04, c[0][0] - 0.06), 3);
     b.add('dark', gBox(0.55, 0.012, 0.012, s * 0.25, c[0][1] + 0.01, c[0][0] - 0.01, 0, 0, s * 0.16), 1); // wipers
@@ -8137,21 +8136,12 @@ function buildSelectablePlayerCar() {
   const alloy = mats.chrome || new THREE.MeshStandardMaterial({color:0x9da8b0,roughness:.28,metalness:.82});
   // Wheel hardware is already modeled in the shared cached vehicle template.
   // Do not layer a second rotor/cap/caliper set over it: that caused doubled hubs.
-  // Side mirrors, front splitter and rear diffuser are low-profile and body-coloured.
-  for (const side of [-1,1]) {
-    addDetail(new THREE.BoxGeometry(.16,.09,.22),paint,side*.91,.91,.36);
-    addDetail(new THREE.BoxGeometry(.07,.055,.16),trim,side*.89,.87,.43);
-    addDetail(new THREE.BoxGeometry(.12,.12,2.35),trim,side*1.0,.28,0);
-  }
+  // The cached vehicle template owns mirrors, door seams and rocker geometry.
+  // Do not add generic side rails or a second mirror pair over model-specific parts.
   addDetail(new THREE.BoxGeometry(1.78,.075,.16),trim,0,.28,2.17);
   addDetail(new THREE.BoxGeometry(1.5,.07,.18),trim,0,.27,-2.12);
-  // Thin door shut-lines and sill highlights, visible only at close range.
-  const seam = new THREE.MeshStandardMaterial({color:0x20272d,roughness:.82,metalness:.12});
+  // Small fender extractors add restrained detail without drawing extra side stripes.
   for (const side of [-1,1]) {
-    addDetail(new THREE.BoxGeometry(.012,.36,1.12),seam,side*.91,.66,-.22);
-    addDetail(new THREE.BoxGeometry(.018,.035,1.55),alloy,side*.94,.31,-.1);
-    // Body templates own the correct model-specific handle count and placement.
-    // Keep only the narrow fender extractor accents here to avoid duplicate handles.
     addDetail(new THREE.BoxGeometry(.018,.018,.34),trim,side*.936,.58,.92);
     addDetail(new THREE.BoxGeometry(.018,.012,.25),alloy,side*.941,.60,.92);
   }
