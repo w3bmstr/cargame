@@ -38,6 +38,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sys
 #graphics-note{max-width:300px;margin:0 0 14px;color:#a9bdca;font-size:11px;line-height:1.4}
 #minimap{position:absolute;top:10px;right:10px;width:90px;height:90px;border-radius:8px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.12);overflow:hidden;display:none;z-index:5}
 #minimap canvas{width:100%;height:100%}
+/* chapters / missions run without the minimap (desktop and phone) */
+body.in-story #minimap{display:none !important}
 #mirror{
   position:absolute;top:10px;left:50%;transform:translateX(-50%);
   width:min(34vw,280px);height:72px;border-radius:8px;
@@ -2781,6 +2783,7 @@ function beginLeg(i, e) {
   goFS();
   const L = LEGS[i];
   story = { leg: i, eventShown: false }; won = false;
+  document.body.classList.add('in-story');
   ['levels', 'win', 'crash'].forEach(id => $(id).style.display = 'none');
   const rebuild = trackId !== L.track;
   trackId = L.track; carId = L.car; carFromStory = true;
@@ -2832,6 +2835,7 @@ function completeLeg() {
 function toMenu() {
   resetGlass();
   story = null; won = false; dead = false; run = false; paused = false;
+  document.body.classList.remove('in-story');
   ['win', 'crash', 'levels'].forEach(id => $(id).style.display = 'none');
   $('start').style.display = 'flex';
   showUI(false); $('mission').style.display = 'none';
@@ -7201,6 +7205,8 @@ function carMats() {
     truckRim: S(0xdde1e6, 0.24, 0.95),
     // Lit LED elements: deeper red + little env reflection so they no longer wash out to salmon/pink in daylight
     tail: new THREE.MeshPhysicalMaterial({ color: 0xd4120e, emissive: 0xff1808, emissiveIntensity: 0.55, roughness: 0.3, metalness: 0.0, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 0.6 }),
+    // Red conspicuity tape / reflectors (never swaps with brake lights)
+    tapeRed: S(0xd01818, 0.5, 0.1, { emissive: 0x400000, emissiveIntensity: 0.25 }),
     // Same LEDs at full brightness: swapped in while a car is braking
     tailBrake: new THREE.MeshPhysicalMaterial({ color: 0xff2418, emissive: 0xff2410, emissiveIntensity: 1.6, roughness: 0.3, metalness: 0.0, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 0.6 }),
     // Smoked-red lens body the LED strips sit in, and the amber turn-signal block
@@ -7313,6 +7319,20 @@ function carRearLamp(b, s, cx, y, z, w, h) {
   for (let k = -1; k <= 1; k++) b.add('tail', gBox(L, h * 0.13, 0.012, sx, y + k * h * 0.3, z - 0.022), 3);
   b.add('tail', gBox(w * 0.07, h * 0.82, 0.012, cx - s * w * 0.44, y, z - 0.022), 3);
   b.add('amber', gBox(w * 0.2, h * 0.5, 0.014, cx + s * w * 0.38, y - h * 0.05, z - 0.021), 3);
+}
+// Tall rear cluster for buses/trucks: stop (red) / turn (amber) / reverse (white) on a smoked-red lens in a dark housing.
+function stackRearLamp(b, cx, y, z, w, h) {
+  b.add('dark', gBox(w + 0.04, h + 0.05, 0.07, cx, y, z + 0.03), 3);
+  b.add('tailLens', gBox(w, h, 0.04, cx, y, z), 3);
+  const sh = h * 0.29, g = h * 0.34;
+  b.add('tail', gBox(w * 0.82, sh, 0.02, cx, y + g, z - 0.025), 3);
+  b.add('amber', gBox(w * 0.82, sh, 0.02, cx, y, z - 0.025), 3);
+  b.add('white', gBox(w * 0.82, sh, 0.02, cx, y - g, z - 0.025), 3);
+}
+// Red/white conspicuity tape: n alternating segments across `width` (centred on x=0)
+function conspicuityTape(b, y, z, width, h, n, mask) {
+  const w = width / n;
+  for (let i = 0; i < n; i++) b.add(i % 2 ? 'white' : 'tapeRed', gBox(w, h, 0.012, -width / 2 + w * (i + 0.5), y, z), mask || 3);
 }
 // Brake lights: swap the LED meshes between the normal and full-bright material (no per-car materials needed).
 function setBrakeLights(g, on) {
@@ -7744,6 +7764,14 @@ function buildPassengerCar(b, sp) {
   });
   // Thin luminous link between clusters
   b.add('tail', gBox(0.48, 0.018, 0.018, 0, 0.70, rz - 0.038), 3);
+  // High-mount stop lamp: slim bar on the lower rear glass (brightens on braking)
+  { const t = 0.2, hz = c[5][0] + (c[4][0] - c[5][0]) * t, hy = (beltY + 0.04) + ((c[4][1] - 0.04) - (beltY + 0.04)) * t + 0.015;
+    b.add('tail', gBox(0.34, 0.03, 0.03, 0, hy, hz - 0.012), 3); }
+  // Bumper corner wraps + red reflectors
+  sd.forEach(s => {
+    b.add('dark', gBox(0.05, 0.12, 0.18, s * 0.895, 0.24, rz + 0.04), 3);
+    b.add('tapeRed', gBox(0.14, 0.03, 0.012, s * 0.72, 0.245, rz - 0.087), 3);
+  });
   // Bumper + diffuser stay under y≈0.34 so plate at y=0.52 is fully clear
   b.add('dark', gBox(1.76, 0.11, 0.20, 0, 0.24, rz + 0.02), 3);
   b.add('dark', gBox(1.30, 0.06, 0.11, 0, 0.18, rz + 0.02), 1);
@@ -7794,7 +7822,7 @@ function buildBusCar(b) {
   b.add('white', gBox(2.43, 0.1, 9.52, 0, 1.55, 0), 1);                                   // body side stripe
   sd.forEach(s => {
     b.add('head', gBox(0.4, 0.2, 0.05, s * 0.85, 0.95, 4.78), 3);
-    b.add('tail', gBox(0.4, 0.3, 0.05, s * 0.9, 1.1, -4.78), 3);
+    stackRearLamp(b, s * 1.03, 1.1, -4.80, 0.26, 0.70);
     b.add('dark', gBox(0.08, 0.45, 0.28, s * 1.32, 2.25, 4.3), 1);                           // bus mirrors
     b.add('dark', gBox(0.04, 0.36, 0.20, s * 1.36, 2.25, 4.3), 1);
     b.add('dark', gBox(0.012, 1.9, 0.014, s * 1.21, 1.5, 3.4), 1);                         // door seam
@@ -7803,6 +7831,21 @@ function buildBusCar(b) {
   });
   b.add('dark', gBox(1.6, 0.2, 0.04, 0, 3.0, 4.76), 1);                                     // destination sign
   b.add('head', gBox(1.2, 0.1, 0.02, 0, 3.0, 4.79), 1);
+  // ---- Bus rear: the upper rear was open (you could see straight through to the windscreen) ----
+  b.add('dark', gBox(2.2, 1.0, 9.3, 0, 2.4, 0), 3);                                         // dark interior behind the windows
+  b.add('paint', gBox(2.4, 1.0, 0.1, 0, 2.4, -4.70), 3);                                   // rear upper panel
+  b.add('dark', gBox(2.0, 0.64, 0.02, 0, 2.42, -4.76), 3);                                 // rear window frame
+  b.add('glass', gBox(1.9, 0.54, 0.02, 0, 2.42, -4.775), 3);                               // rear window
+  b.add('tail', gBox(0.9, 0.05, 0.02, 0, 2.83, -4.765), 3);                                // high-mount stop lamp
+  for (const x of [-0.5, 0, 0.5]) b.add('amber', gBox(0.14, 0.07, 0.03, x, 3.05, -4.765), 3);   // roof marker lamps
+  b.add('dark', gBox(1.4, 0.4, 0.02, 0, 1.62, -4.765), 3);                                 // engine louver panel
+  for (let j = 0; j < 5; j++) b.add('chrome', gBox(1.3, 0.014, 0.02, 0, 1.48 + j * 0.07, -4.78), 1);
+  for (const s of sd) {
+    b.add('tapeRed', gBox(0.18, 0.07, 0.02, s * 1.0, 0.5, -4.885), 3);                     // bumper reflectors
+    b.add('dark', gBox(0.06, 0.28, 0.16, s * 1.2, 0.5, -4.66), 3);                          // bumper end caps
+    b.add('dark', gBox(0.012, 0.9, 0.02, s * 0.75, 1.62, -4.765), 1);                      // engine hatch seams
+  }
+  conspicuityTape(b, 0.5, -4.887, 1.2, 0.05, 8, 1);                                         // tape across the bumper
   [[-1.1, 3.1], [1.1, 3.1], [-1.1, -2.9], [1.1, -2.9]].forEach(([x, z]) => carWheel(b, x, z, 0.5, 0.32));
   b.add('shadow', _gp(new THREE.PlaneGeometry(2.8, 10.3), 0, 0.01, 0, -Math.PI / 2), 3);
 }
@@ -7819,27 +7862,31 @@ function buildTruckCar(b) {
   b.add('paint', gBox(2.32, 0.45, 5.78, 0, 2.4, -1.0), 3);
   // Rear doors (clear center for plate)
   b.add('white', gBox(2.12, 1.85, 0.05, 0, 2.15, -3.95), 3);
-  b.add('chrome', gBox(0.05, 1.7, 0.06, -0.12, 2.15, -3.99), 1);
-  b.add('chrome', gBox(0.05, 1.7, 0.06, 0.12, 2.15, -3.99), 1);
+  b.add('white', gBox(2.3, 0.45, 0.06, 0, 3.275, -3.93), 3);                             // header panel above the doors (markers sit on it)
+  b.add('paint', gBox(2.38, 0.06, 0.12, 0, 3.52, -3.92), 3);                             // roof drip lip
+  b.add('dark', gBox(0.014, 1.85, 0.02, 0, 2.15, -3.985), 3);                            // door seam
+  for (const y of [1.3, 3.0]) b.add('dark', gBox(2.0, 0.02, 0.015, 0, y, -3.985), 1);     // door panel ribs
+  for (const s of sd) {
+    b.add('dark', gBox(0.02, 1.7, 0.015, s * 1.0, 2.15, -3.985), 1);
+    b.add('chrome', gBox(0.035, 1.55, 0.03, s * 0.6, 2.15, -3.995), 1);                 // cam-lock bars
+    b.add('chrome', gBox(0.09, 0.16, 0.05, s * 0.6, 2.15, -4.015), 1);                  // handles
+    for (const y of [1.32, 2.98]) b.add('chrome', gBox(0.07, 0.04, 0.04, s * 0.6, y, -4.0), 1);   // keepers
+    for (const y of [1.9, 2.4, 2.85]) b.add('chrome', gBox(0.05, 0.14, 0.04, s * 1.04, y, -3.985), 1);   // hinges
+  }
+  for (const x of [-0.15, 0, 0.15]) b.add('tail', gBox(0.1, 0.06, 0.03, x, 3.38, -3.965), 3);   // ID lamps
   for (let i = 0; i < 11; i++) sd.forEach(s => b.add('dark', gBox(0.02, 2.6, 0.05, s * 1.16, 2.15, -3.5 + i * 0.5), 1));
   // Reflective safety stripes (keep clear of plate band ~y 1.35–1.55)
-  b.add('tail', gBox(1.7, 0.07, 0.03, 0, 1.85, -3.99), 3);
-  b.add('white', gBox(1.7, 0.05, 0.03, 0, 1.78, -3.99), 3);
-  b.add('tail', gBox(1.7, 0.07, 0.03, 0, 0.95, -3.99), 3);
-  b.add('white', gBox(1.7, 0.05, 0.03, 0, 0.88, -3.99), 3);
-  // Rear bumper
-  b.add('dark', gBox(2.25, 0.16, 0.18, 0, 0.55, -3.95), 3);
+  conspicuityTape(b, 1.82, -3.99, 1.7, 0.07, 10, 3);                                      // red/white tape across the doors
+  conspicuityTape(b, 0.95, -3.99, 1.7, 0.07, 10, 3);
+  // Rear underride bar (narrower, so the mud flaps sit outside it) + struts + tape
+  b.add('dark', gBox(1.55, 0.16, 0.12, 0, 0.55, -4.0), 3);
+  for (const s of sd) b.add('dark', gBox(0.08, 0.25, 0.12, s * 0.55, 0.62, -3.92), 3);
+  conspicuityTape(b, 0.55, -4.066, 1.5, 0.06, 8, 3);
+  for (const s of sd) b.add('tapeRed', gBox(0.12, 0.12, 0.02, s * 1.05, 0.7, -3.99), 3);    // lower corner reflectors
   // REAL truck rear lights: vertical stack each side (stop / turn / reverse)
   sd.forEach(s => {
     const lx = s * 0.95;
-    // Housing
-    b.add('dark', gBox(0.22, 0.72, 0.08, lx, 1.15, -4.00), 3);
-    // Top: stop / tail (red)
-    b.add('tail', gBox(0.18, 0.20, 0.05, lx, 1.38, -4.04), 3);
-    // Mid: turn (amber via head/white warm — use tail darker strip + white)
-    b.add('head', gBox(0.18, 0.16, 0.05, lx, 1.15, -4.04), 3);
-    // Bottom: reverse
-    b.add('white', gBox(0.18, 0.16, 0.05, lx, 0.92, -4.04), 3);
+    stackRearLamp(b, lx, 1.15, -4.03, 0.20, 0.66);        // stop / turn / reverse stack
     // Upper marker lights on cargo corners
     b.add('tail', gBox(0.12, 0.08, 0.04, s * 1.05, 3.35, -3.98), 3);
     b.add('head', gBox(0.10, 0.06, 0.03, s * 1.05, 3.35, -4.01), 3);
@@ -7848,10 +7895,11 @@ function buildTruckCar(b) {
     b.add('glass', gBox(0.02, 0.7, 1.1, s * 1.06, 1.9, 3.1), 1);
     b.add('dark', gBox(0.10, 0.42, 0.12, s * 1.18, 2.05, 3.9), 1);
     b.add('head', gBox(0.35, 0.16, 0.05, s * 0.7, 0.95, 4.05), 3);
-    b.add('dark', gBox(0.45, 0.4, 0.04, s * 1.0, 0.4, -3.1), 1);
+    b.add('dark', gBox(0.5, 0.55, 0.03, s * 1.0, 0.52, -3.93), 3);                       // mud flap behind the rear tyre
+    b.add('white', gBox(0.3, 0.07, 0.012, s * 1.0, 0.55, -3.95), 1);
   });
   // Center plate frame recess (plate mesh from addCarPlates sits here, fully clear)
-  b.add('dark', gBox(0.82, 0.28, 0.04, 0, 1.42, -3.97), 3);
+  b.add('dark', gBox(0.54, 0.32, 0.04, 0, 1.42, -3.97), 3);
   [[-1, 3], [1, 3], [-1, -2.2], [1, -2.2], [-1, -3.4], [1, -3.4]].forEach(([x, z]) => truckWheel(b, x, z, 0.5, 0.32));
   b.add('shadow', _gp(new THREE.PlaneGeometry(2.6, 8.8), 0, 0.01, 0.4, -Math.PI / 2), 3);
 }
@@ -7924,6 +7972,7 @@ function buildGT3Car(b) {
     carRearLamp(b, s, s*.58, .70, -2.14, .42, .075);
     b.add('tail',gBox(.36,.016,.016,s*.58,.78,-2.145),3);
     b.add('white',gBox(.10,.03,.014,s*.58,.60,-2.14),3);
+    b.add('tapeRed', gBox(.14,.03,.012,s*.80,.25,-2.155),3);   // bumper reflector
   });
   b.add('tail', gBox(0.45, 0.016, 0.016, 0, 0.70, -2.14), 3);
   // plate lives on the textured plane from addCarPlates
@@ -8079,10 +8128,10 @@ function carTemplate(key) {
   const b = carBuilder();
   if (key === 'bus') {
     buildBusCar(b);
-    addCarPlates(b, { w: .62, h: .16, y: .68, z: 4.95 }, { w: .75, h: .20, y: 0.85, z: -4.95 });
+    addCarPlates(b, { w: .62, h: .16, y: .68, z: 4.95 }, { w: .75, h: .20, y: 0.85, z: -4.76 });
   } else if (key === 'truck') {
     buildTruckCar(b);
-    addCarPlates(b, { w: .58, h: .15, y: .68, z: 4.15 }, { w: .78, h: .22, y: 1.42, z: -4.05 });
+    addCarPlates(b, { w: .58, h: .15, y: .68, z: 4.15 }, { w: .78, h: .22, y: 1.42, z: -3.985 });
   } else if (key === 'sports') {
     buildGT3Car(b);
     addCarPlates(b, { w: .50, h: .12, y: .36, z: 2.12 }, { w: .64, h: .16, y: .52, z: -2.16 });
@@ -8607,6 +8656,7 @@ function tickSmoke(dt) {
 function drawMap() {
   // Always refresh the rear-view mirror; the minimap needs track points.
   drawMirror();
+  if (story) return;   // no minimap during chapters/missions: skip drawing it too
   if (!mctx || !pts.length) return;
   const ctx = mctx, w = 90, h = 90;
   ctx.clearRect(0, 0, w, h);
